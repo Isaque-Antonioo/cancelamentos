@@ -120,6 +120,67 @@ body::before {
     animation: slideDown 0.7s ease-out;
 }
 
+/* Header Top Bar */
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.header-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-logo svg {
+    filter: drop-shadow(0 2px 8px rgba(53, 204, 163, 0.3));
+}
+
+.brand-name {
+    font-size: 1.5em;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--hubstrom-accent) 0%, var(--hubstrom-accent-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Logout Button */
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 10px;
+    color: var(--color-danger);
+    font-size: 0.9em;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-smooth);
+}
+
+.logout-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+}
+
+.logout-btn svg {
+    transition: transform var(--transition-smooth);
+}
+
+.logout-btn:hover svg {
+    transform: translateX(3px);
+}
+
 @keyframes slideDown {
     from {
         opacity: 0;

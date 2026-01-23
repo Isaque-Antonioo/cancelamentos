@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hubstrom - Login">
+    <title>Hubstrom - Login</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+
+    <style>
+        /* Variáveis de Cores Hubstrom */
+        :root {
+            --hubstrom-dark: #1e293b;
+            --hubstrom-dark-light: #334155;
+            --hubstrom-dark-lighter: #475569;
+            --hubstrom-accent: #35cca3;
+            --hubstrom-accent-light: #5ddbb8;
+            --hubstrom-accent-dark: #2ba882;
+            --hubstrom-accent-glow: rgba(53, 204, 163, 0.3);
+            --surface-glass: rgba(255, 255, 255, 0.05);
+            --surface-glass-hover: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --shadow-glow: 0 0 40px rgba(53, 204, 163, 0.15);
+            --border-subtle: 1px solid rgba(255, 255, 255, 0.08);
+            --color-danger: #ef4444;
+            --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, var(--hubstrom-dark) 50%, #1a2744 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow: hidden;
+        }
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(53, 204, 163, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(53, 204, 163, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(53, 204, 163, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: -1;
+            animation: backgroundPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes backgroundPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Floating Particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--hubstrom-accent);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 15s infinite;
+        }
+
+        .particle:nth-child(1) { left: 10%; animation-delay: 0s; animation-duration: 20s; }
+        .particle:nth-child(2) { left: 20%; animation-delay: 2s; animation-duration: 18s; }
+        .particle:nth-child(3) { left: 30%; animation-delay: 4s; animation-duration: 22s; }
+        .particle:nth-child(4) { left: 40%; animation-delay: 1s; animation-duration: 16s; }
+        .particle:nth-child(5) { left: 50%; animation-delay: 3s; animation-duration: 19s; }
+        .particle:nth-child(6) { left: 60%; animation-delay: 5s; animation-duration: 21s; }
+        .particle:nth-child(7) { left: 70%; animation-delay: 0.5s; animation-duration: 17s; }
+        .particle:nth-child(8) { left: 80%; animation-delay: 2.5s; animation-duration: 23s; }
+        .particle:nth-child(9) { left: 90%; animation-delay: 4.5s; animation-duration: 15s; }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.3;
+            }
+            90% {
+                opacity: 0.3;
+            }
+            100% {
+                transform: translateY(-100vh) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* Login Container */
+        .login-container {
+            width: 100%;
+            max-width: 440px;
+            padding: 20px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Login Card */
+        .login-card {
+            background: var(--surface-glass);
+            border-radius: 24px;
+            padding: 48px 40px;
+            backdrop-filter: blur(20px);
+            border: var(--border-subtle);
+            box-shadow: var(--shadow-soft), var(--shadow-glow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--hubstrom-accent), transparent);
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* Logo Section */
+        .logo-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .logo-icon {
+            width: 56px;
+            height: 56px;
+            animation: logoGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(53, 204, 163, 0.4)); }
+            50% { filter: drop-shadow(0 0 20px rgba(53, 204, 163, 0.7)); }
+        }
+
+        .logo-text {
+            font-size: 2.4em;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--hubstrom-accent) 0%, var(--hubstrom-accent-light) 50%, var(--hubstrom-accent) 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientFlow 4s ease infinite;
+            letter-spacing: -0.5px;
+        }
+
+        @keyframes gradientFlow {
+            0% { background-position: 0% center; }
+            50% { background-position: 100% center; }
+            100% { background-position: 0% center; }
+        }
+
+        .logo-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95em;
+            font-weight: 400;
+        }
+
+        /* Form Styles */
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .form-group {
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.85em;
+            font-weight: 500;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper svg {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            color: var(--text-muted);
+            transition: color var(--transition-smooth);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 16px 16px 50px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1em;
+            font-family: inherit;
+            transition: all var(--transition-smooth);
+            outline: none;
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-input:focus {
+            border-color: var(--hubstrom-accent);
+            background: rgba(15, 23, 42, 0.8);
+            box-shadow: 0 0 0 4px rgba(53, 204, 163, 0.1);
+        }
+
+        .form-input:focus + svg,
+        .input-wrapper:focus-within svg {
+            color: var(--hubstrom-accent);
+        }
+
+        /* Password Toggle */
+        .password-toggle {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            transition: color var(--transition-smooth);
+        }
+
+        .password-toggle:hover {
+            color: var(--hubstrom-accent);
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, var(--hubstrom-accent) 0%, var(--hubstrom-accent-dark) 100%);
+            border: none;
+            border-radius: 12px;
+            color: var(--hubstrom-dark);
+            font-size: 1em;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(53, 204, 163, 0.4);
+        }
+
+        .submit-btn:hover::before {
+            left: 100%;
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(30, 41, 59, 0.3);
+            border-top-color: var(--hubstrom-dark);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .submit-btn.loading .spinner {
+            display: inline-block;
+        }
+
+        .submit-btn.loading .btn-text {
+            opacity: 0.7;
+        }
+
+        /* Error Message */
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 14px 16px;
+            color: var(--color-danger);
+            font-size: 0.9em;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .error-message.show {
+            display: flex;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-8px); }
+            80% { transform: translateX(8px); }
+        }
+
+        .error-message svg {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Footer */
+        .login-footer {
+            text-align: center;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .login-footer p {
+            color: var(--text-muted);
+            font-size: 0.85em;
+        }
+
+        .login-footer a {
+            color: var(--hubstrom-accent);
+            text-decoration: none;
+            transition: color var(--transition-smooth);
+        }
+
+        .login-footer a:hover {
+            color: var(--hubstrom-accent-light);
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 36px 24px;
+                border-radius: 20px;
+            }
+
+            .logo-text {
+                font-size: 2em;
+            }
+
+            .logo-icon {
+                width: 48px;
+                height: 48px;
+            }
+        }
+
+        /* Selection */
+        ::selection {
+            background: var(--hubstrom-accent);
+            color: var(--hubstrom-dark);
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Particles -->
+    <div class="particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <div class="logo">
+                    <svg class="logo-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M27.6 21.3H42.6V6.3C42.6 2.8 39.8 0 36.3 0H6.3C2.8 0 0 2.8 0 6.3V36.3C0 39.8 2.8 42.6 6.3 42.6H21.3V27.6C21.3 24.1 24.1 21.3 27.6 21.3Z" fill="#35CCA3"/>
+                        <path d="M57.7 21.3H42.6V36.3C42.6 39.8 39.8 42.6 36.3 42.6H21.3V57.7C21.3 61.2 24.1 64 27.6 64H57.7C61.2 64 64 61.2 64 57.7V27.7C64 24.2 61.2 21.4 57.7 21.4V21.3Z" fill="#35CCA3"/>
+                        <path d="M42.6 36.3V21.3H27.6C24.1 21.3 21.3 24.1 21.3 27.6V42.6H36.3C39.8 42.6 42.6 39.8 42.6 36.3Z" fill="#1E293B"/>
+                    </svg>
+                    <span class="logo-text">Hubstrom</span>
+                </div>
+                <p class="logo-subtitle">Acesse o painel de cancelamentos</p>
+            </div>
+
+            <!-- Login Form -->
+            <form class="login-form" id="loginForm">
+                <div class="error-message" id="errorMessage">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span id="errorText">Credenciais invalidas. Tente novamente.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="username">Usuario</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            class="form-input"
+                            placeholder="Digite seu usuario"
+                            autocomplete="username"
+                            required
+                        >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="form-input"
+                            placeholder="Digite sua senha"
+                            autocomplete="current-password"
+                            required
+                        >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        <button type="button" class="password-toggle" id="togglePassword" aria-label="Mostrar senha">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" id="eyeIcon">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span class="spinner"></span>
+                    <span class="btn-text">Entrar</span>
+                </button>
+            </form>
+
+            <!-- Footer -->
+            <div class="login-footer">
+                <p>&copy; 2026 Hubstrom. Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+</body>
+</html>

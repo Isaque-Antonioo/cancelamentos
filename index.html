@@ -12,12 +12,33 @@
 
     <!-- Estilos -->
     <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Verificacao de autenticacao -->
+    <script src="js/auth.js"></script>
 </head>
 <body>
     <div class="container">
         <header class="header">
-            <h1> Análise de Cancelamentos</h1>
-            <p>Janeiro 2026 | Relatório Completo</p>
+            <div class="header-top">
+                <div class="header-logo">
+                    <svg width="40" height="40" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M27.6 21.3H42.6V6.3C42.6 2.8 39.8 0 36.3 0H6.3C2.8 0 0 2.8 0 6.3V36.3C0 39.8 2.8 42.6 6.3 42.6H21.3V27.6C21.3 24.1 24.1 21.3 27.6 21.3Z" fill="#35CCA3"/>
+                        <path d="M57.7 21.3H42.6V36.3C42.6 39.8 39.8 42.6 36.3 42.6H21.3V57.7C21.3 61.2 24.1 64 27.6 64H57.7C61.2 64 64 61.2 64 57.7V27.7C64 24.2 61.2 21.4 57.7 21.4V21.3Z" fill="#35CCA3"/>
+                        <path d="M42.6 36.3V21.3H27.6C24.1 21.3 21.3 24.1 21.3 27.6V42.6H36.3C39.8 42.6 42.6 39.8 42.6 36.3Z" fill="#1E293B"/>
+                    </svg>
+                    <span class="brand-name">Hubstrom</span>
+                </div>
+                <button class="logout-btn" onclick="hubstromLogout()" title="Sair">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    <span>Sair</span>
+                </button>
+            </div>
+            <h1>Analise de Cancelamentos</h1>
+            <p>Janeiro 2026 | Relatorio Completo</p>
         </header>
 
         <!-- KPIs -->
