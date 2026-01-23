@@ -245,7 +245,7 @@
             position: relative;
         }
 
-        .input-wrapper svg {
+        .input-wrapper > svg {
             position: absolute;
             left: 16px;
             top: 50%;
@@ -254,11 +254,13 @@
             height: 20px;
             color: var(--text-muted);
             transition: color var(--transition-smooth);
+            pointer-events: none;
+            z-index: 1;
         }
 
         .form-input {
             width: 100%;
-            padding: 16px 16px 16px 50px;
+            padding: 16px 50px 16px 50px;
             background: rgba(15, 23, 42, 0.6);
             border: 2px solid rgba(255, 255, 255, 0.08);
             border-radius: 12px;
@@ -273,6 +275,18 @@
             color: var(--text-muted);
         }
 
+        /* Fix autocomplete background */
+        .form-input:-webkit-autofill,
+        .form-input:-webkit-autofill:hover,
+        .form-input:-webkit-autofill:focus,
+        .form-input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px rgba(15, 23, 42, 0.95) inset !important;
+            -webkit-text-fill-color: var(--text-primary) !important;
+            box-shadow: 0 0 0 30px rgba(15, 23, 42, 0.95) inset !important;
+            caret-color: var(--text-primary);
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
         .form-input:focus {
             border-color: var(--hubstrom-accent);
             background: rgba(15, 23, 42, 0.8);
@@ -280,26 +294,37 @@
         }
 
         .form-input:focus + svg,
-        .input-wrapper:focus-within svg {
+        .input-wrapper:focus-within > svg {
             color: var(--hubstrom-accent);
         }
 
         /* Password Toggle */
         .password-toggle {
             position: absolute;
-            right: 16px;
+            right: 14px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
             border: none;
             color: var(--text-muted);
             cursor: pointer;
-            padding: 4px;
+            padding: 6px;
             transition: color var(--transition-smooth);
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
         }
 
         .password-toggle:hover {
             color: var(--hubstrom-accent);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .password-toggle svg {
+            width: 20px;
+            height: 20px;
         }
 
         /* Submit Button */
