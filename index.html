@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Análise de Cancelamentos - Dashboard de métricas e insights">
+    <meta name="author" content="Sua Empresa">
+    <title>Análise de Cancelamentos - Janeiro 2026</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1> Análise de Cancelamentos</h1>
+            <p>Janeiro 2026 | Relatório Completo</p>
+        </header>
+
+        <!-- KPIs -->
+        <section class="kpi-grid">
+            <div class="kpi-card danger">
+                <div class="kpi-value">53</div>
+                <div class="kpi-label">Total de Solicitações</div>
+            </div>
+            <div class="kpi-card danger">
+                <div class="kpi-value">33</div>
+                <div class="kpi-label">Cancelados (62.3%)</div>
+            </div>
+            <div class="kpi-card success">
+                <div class="kpi-value">13</div>
+                <div class="kpi-label">Revertidos (24.5%)</div>
+            </div>
+            <div class="kpi-card warning">
+                <div class="kpi-value">32.1%</div>
+                <div class="kpi-label">Taxa de Retenção</div>
+            </div>
+            <div class="kpi-card danger">
+                <div class="kpi-value">R$ 25.417</div>
+                <div class="kpi-label">MRR Perdido</div>
+            </div>
+            <div class="kpi-card success">
+                <div class="kpi-value">R$ 10.983</div>
+                <div class="kpi-label">MRR Recuperado</div>
+            </div>
+        </section>
+
+        <!-- Alerta Crítico -->
+        <div class="highlight-box">
+            <h3>⚠️ ALERTA CRÍTICO: USABILIDADE</h3>
+            <p style="font-size: 1.2em; margin-bottom: 10px;">
+                <strong>49% dos cancelamentos</strong> (26 de 53) são por problemas de USABILIDADE.
+            </p>
+            <p style="color: #aaa;">
+                Este é o principal motivo e representa quase metade de todos os pedidos de cancelamento.
+                A análise detalhada abaixo explica exatamente o que significa "usabilidade" neste contexto.
+            </p>
+        </div>
+
+        <!-- Gráficos Principais -->
+        <section class="charts-row">
+            <div class="chart-card">
+                <h3>Distribuição por Motivo Principal</h3>
+                <canvas id="motivoChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Status das Solicitações</h3>
+                <canvas id="statusChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Análise de Usabilidade -->
+        <section class="section">
+            <h2> O QUE SIGNIFICA "USABILIDADE"  <STRONG> NO PONTO DE VISTA DOS CLIENTES</STRONG> EM CANCELAMENTOS</h2>
+            <p style="margin-bottom: 20px; color: #aaa;">
+                Analisando os comentários da coluna "Causa" e "Motivo da solicitação", categorizamos os problemas de usabilidade:
+            </p>
+
+            <div class="problem-grid">
+                <article class="problem-card">
+                    <h4>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M10.3669 8H15.9897V2.36693C15.9897 1.05427 14.9251 0 13.6227 0H2.36692C1.0646 0 0 1.0646 0 2.36693V13.6227C0 14.9354 1.0646 15.9897 2.36692 15.9897H7.98966V10.3566C7.98966 9.04394 9.05426 7.98967 10.3566 7.98967L10.3669 8Z" fill="#35CCA3"/>
+                            <path d="M21.6227 8H15.9999V13.6331C15.9999 14.9457 14.9353 16 13.633 16H8.01025V21.6331C8.01025 22.9457 9.07485 24 10.3772 24H21.633C22.9353 24 23.9999 22.9354 23.9999 21.6331V10.3773C23.9999 9.0646 22.9353 8.01033 21.633 8.01033L21.6227 8Z" fill="#35CCA3"/>
+                            <path d="M15.9999 13.6331V8H10.3772C9.07485 8 8.01025 9.0646 8.01025 10.3669V16H13.633C14.9353 16 15.9999 14.9354 15.9999 13.6331Z" fill="#1E293B"/>
+                        </svg>
+                        ConnectHub / WhatsApp (10 casos)
+                    </h4>
+                    <ul>
+                        <li>Instabilidade na integração com WhatsApp</li>
+                        <li>Bloqueios e banimentos frequentes pela Meta</li>
+                        <li>Problemas de comunicação com clientes</li>
+                        <li>Falta de métricas de atendimento</li>
+                        <li>Clientes dos contadores ficam insatisfeitos</li>
+                    </ul>
+                </article>
+
+                <article class="problem-card">
+                    <h4> Funcionalidades Não Atendem (11 casos)</h4>
+                    <ul>
+                        <li>Falta de personalização de mensagens por cliente</li>
+                        <li>Impossibilidade de editar/personalizar PDFs</li>
+                        <li>Layout confuso para parcelamentos</li>
+                        <li>Falta de métricas e relatórios</li>
+                        <li>Autenticação de 2 fatores obrigatória</li>
+                    </ul>
+                </article>
+
+                <article class="problem-card">
+                    <h4> Dificuldade de Adaptação (7 casos)</h4>
+                    <ul>
+                        <li>Curva de aprendizado alta</li>
+                        <li>Falta de treinamento adequado</li>
+                        <li>Equipe do escritório não aderiu</li>
+                        <li>Complexidade na parametrização</li>
+                    </ul>
+                </article>
+
+                <article class="problem-card">
+                    <h4>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M3.60166 12.0001C3.60166 7.36963 7.35845 3.61768 11.9949 3.61768V12.0001H3.59131H3.60166Z" fill="#35CCA3"/>
+                            <path d="M2.06986 12H3.60155C3.60155 16.6305 7.35834 20.3824 11.9948 20.3824C16.6313 20.3824 20.3881 16.6305 20.3881 12C20.3881 7.36952 16.6313 3.61757 11.9948 3.61757V2.06718C11.9948 0.930233 12.9159 0 14.0647 0H20.4502C22.4166 0 24 1.59173 24 3.55556V20.4445C24 22.4083 22.4062 24 20.4502 24H3.54981C1.58344 24 0 22.4083 0 20.4445V17.54V17.2713V14.0569C0 12.9199 0.921087 11.9897 2.06986 11.9897V12Z" fill="#35CCA3"/>
+                            <path d="M20.3881 12.0001C20.3881 16.6306 16.6313 20.3825 11.9948 20.3825C7.35836 20.3825 3.60156 16.6306 3.60156 12.0001H12.0052V3.61768C16.6417 3.61768 20.3985 7.36962 20.3985 12.0001H20.3881Z" fill="#1E293B"/>
+                        </svg>
+                        XMLHub (3 casos)
+                    </h4>
+                    <ul>
+                        <li>Formato de download em lote não agrada</li>
+                        <li>Não atende bem e-commerce</li>
+                        <li>Instabilidades nas buscas de XML</li>
+                    </ul>
+                </article>
+
+                <article class="problem-card">
+                    <h4>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M4.2931 6.37581C4.2931 6.2827 4.2931 6.19995 4.31379 6.11719H1.72758C0.77586 6.11719 0 6.89304 0 7.84477V17.1448C0 18.0965 0.77586 18.8724 1.72758 18.8724H4.31379C4.31379 18.7896 4.2931 18.6965 4.2931 18.6137V6.37581Z" fill="#35CCA3"/>
+                            <path d="M11.0793 4.85511C11.0793 4.59649 11.1207 4.33788 11.1828 4.0896H6.56898C5.40002 4.0896 4.43795 4.96891 4.30347 6.10684H6.12415C7.07588 6.10684 7.85174 6.8827 7.85174 7.83442V17.1344C7.85174 18.0861 7.07588 18.862 6.12415 18.862H4.30347C4.43795 19.9999 5.40002 20.8792 6.56898 20.8792H11.1828C11.1207 20.6413 11.0793 20.3827 11.0793 20.1137V4.84475V4.85511Z" fill="#35CCA3"/>
+                            <path d="M7.86218 17.1448V7.84477C7.86218 6.89304 7.08632 6.11719 6.13459 6.11719H4.3139C4.3139 6.19995 4.29321 6.29305 4.29321 6.37581V18.6137C4.29321 18.7068 4.29321 18.7896 4.3139 18.8724H6.13459C7.08632 18.8724 7.86218 18.0965 7.86218 17.1448Z" fill="#1E293B"/>
+                            <path d="M21.1553 2.01035H13.9242C12.6208 2.01035 11.5242 2.88968 11.1829 4.08968H12.3725C13.6346 4.08968 14.6484 5.11381 14.6484 6.36554V18.6035C14.6484 19.8655 13.6242 20.8793 12.3725 20.8793H11.1829C11.5139 22.0793 12.6104 22.9586 13.9242 22.9586H21.1553C22.7277 22.9586 24.0001 21.6862 24.0001 20.1138V4.84483C24.0001 3.27241 22.7277 2 21.1553 2V2.01035Z" fill="#35CCA3"/>
+                            <path d="M14.6483 18.6137V6.37572C14.6483 5.11365 13.6242 4.09985 12.3724 4.09985H11.1828C11.1207 4.33778 11.0793 4.59642 11.0793 4.86539V20.1343C11.0793 20.393 11.1207 20.6516 11.1828 20.8999H12.3724C13.6345 20.8999 14.6483 19.8757 14.6483 18.624V18.6137Z" fill="#1E293B"/>
+                        </svg>
+                        TaskHub (2 casos)
+                    </h4>
+                    <ul>
+                        <li>Pendências não atualizam após pagamento</li>
+                        <li>Configuração de tarefas confusa</li>
+                    </ul>
+                </article>
+
+                <article class="problem-card">
+                    <h4> Falta de Tempo (3 casos)</h4>
+                    <ul>
+                        <li>Não conseguem dedicar tempo à implantação</li>
+                        <li>Sobrecarga de trabalho (início de ano)</li>
+                        <li>Pessoa responsável saiu da empresa</li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+
+        <!-- Gráficos Secundários -->
+        <section class="charts-row">
+            <div class="chart-card">
+                <h3>Cancelamentos por Tempo de Uso</h3>
+                <canvas id="tempoChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Módulos Mais Problemáticos</h3>
+                <canvas id="moduloChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Concorrentes -->
+        <section class="section">
+            <h2> Concorrentes Mencionados</h2>
+            <p style="margin-bottom: 15px; color: #aaa;">Clientes estão migrando para:</p>
+            <div>
+                <span class="competitor-tag">SIEG (6 menções)</span>
+                <span class="competitor-tag">VERI (11 menções)</span>
+                <span class="competitor-tag">CALIMA (2 menções)</span>
+                <span class="competitor-tag">ÍRIS (1 menção)</span>
+                <span class="competitor-tag">QUESTOR (1 menção)</span>
+                <span class="competitor-tag">ACESSÓRIAS (1 menção)</span>
+                <span class="competitor-tag">DOMÍNIO (1 menção)</span>
+            </div>
+        </section>
+
+        <!-- Insights -->
+        <section class="section">
+            <h2> INSIGHTS PRINCIPAIS</h2>
+            <ul class="insight-list">
+                <li>
+                    <strong>🔴 ConnectHub é o maior vilão:</strong> Problemas de estabilidade com WhatsApp, bloqueios da Meta, e falta de métricas são as principais reclamações. Clientes estão frustrados porque a ferramenta que deveria facilitar a comunicação está causando problemas com seus próprios clientes.
+                </li>
+                <li>
+                    <strong>🟡 Período crítico nos primeiros 6 meses:</strong> 21 de 33 cancelamentos (63%) acontecem nos primeiros 6 meses de uso. Isso indica problemas no onboarding e na adaptação inicial.
+                </li>
+                <li>
+                    <strong>🟡 Funcionalidades básicas faltando:</strong> Personalização de mensagens, edição de PDFs, e métricas são demandas recorrentes que parecem não estar disponíveis ou são difíceis de usar.
+                </li>
+                <li>
+                    <strong>🟢 Oportunidade de reversão:</strong> 32% das solicitações foram revertidas, principalmente com descontos (15%) e ofertas de treinamento. Isso mostra que muitos clientes podem ser retidos com atenção adequada.
+                </li>
+                <li>
+                    <strong>🔴 Concorrência forte:</strong> SIEG e VERI são os principais concorrentes para onde os clientes estão migrando, especialmente para funcionalidades de XML.
+                </li>
+            </ul>
+        </section>
+
+        <!-- Recomendações -->
+        <section class="section">
+            <h2> RECOMENDAÇÕES</h2>
+
+            <article class="recommendation-card">
+                <h4>1. Priorizar estabilidade do ConnectHub</h4>
+                <p>Investir em infraestrutura e comunicação proativa sobre instabilidades. Criar documentação clara sobre políticas da Meta e como evitar bloqueios.</p>
+            </article>
+
+            <article class="recommendation-card">
+                <h4>2. Melhorar onboarding nos primeiros 90 dias</h4>
+                <p>Criar programa de acompanhamento intensivo com treinamentos obrigatórios e check-ins semanais. A maioria dos cancelamentos ocorre por falta de adaptação.</p>
+            </article>
+
+            <article class="recommendation-card">
+                <h4>3. Adicionar métricas de atendimento</h4>
+                <p>Funcionalidade solicitada por vários clientes. Métricas de atendimento no ConnectHub podem ser um diferencial competitivo.</p>
+            </article>
+
+            <article class="recommendation-card">
+                <h4>4. Permitir personalização de comunicações</h4>
+                <p>Edição de PDFs, personalização de mensagens por cliente, e nomes de arquivos customizados são demandas recorrentes.</p>
+            </article>
+
+            <article class="recommendation-card">
+                <h4>5. Programa de retenção proativo</h4>
+                <p>Monitorar clientes com baixa utilização e entrar em contato antes que solicitem cancelamento. Descontos de 10-15% estão funcionando para reversão.</p>
+            </article>
+        </section>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/charts.js"></script>
+</body>
+</html>

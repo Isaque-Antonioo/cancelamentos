@@ -1,0 +1,12 @@
+{
+  "name": "analise-cancelamentos",
+  "version": "1.0.0",
+  "description": "Dashboard de análise de cancelamentos",
+  "scripts": {
+    "start": "npx serve -l 3000",
+    "dev": "npx live-server --port=3000"
+  },
+  "keywords": ["dashboard", "analytics", "cancelamentos"],
+  "author": "",
+  "license": "MIT"
+}
