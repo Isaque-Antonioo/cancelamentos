@@ -81,15 +81,23 @@
             </p>
         </div>
 
-        <!-- Gráficos Principais -->
-        <section class="charts-row">
-            <div class="chart-card">
+        <!-- Todos os 4 Gráficos Juntos -->
+        <section class="charts-grid-4">
+            <div class="chart-card chart-small">
                 <h3>Distribuição por Motivo Principal</h3>
                 <canvas id="motivoChart"></canvas>
             </div>
-            <div class="chart-card">
+            <div class="chart-card chart-small">
                 <h3>Status das Solicitações</h3>
                 <canvas id="statusChart"></canvas>
+            </div>
+            <div class="chart-card chart-small">
+                <h3>Cancelamentos por Tempo de Uso</h3>
+                <canvas id="tempoChart"></canvas>
+            </div>
+            <div class="chart-card chart-small">
+                <h3>Módulos Mais Problemáticos</h3>
+                <canvas id="moduloChart"></canvas>
             </div>
         </section>
 
@@ -181,18 +189,6 @@
                         <li>Pessoa responsável saiu da empresa</li>
                     </ul>
                 </article>
-            </div>
-        </section>
-
-        <!-- Gráficos Secundários -->
-        <section class="charts-row">
-            <div class="chart-card">
-                <h3>Cancelamentos por Tempo de Uso</h3>
-                <canvas id="tempoChart"></canvas>
-            </div>
-            <div class="chart-card">
-                <h3>Módulos Mais Problemáticos</h3>
-                <canvas id="moduloChart"></canvas>
             </div>
         </section>
 

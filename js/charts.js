@@ -75,7 +75,8 @@ function initMotivoChart() {
         },
         options: {
             responsive: true,
-            cutout: '65%',
+            maintainAspectRatio: true,
+            cutout: '60%',
             animation: {
                 animateRotate: true,
                 animateScale: true,
@@ -87,11 +88,11 @@ function initMotivoChart() {
                     position: 'bottom',
                     labels: {
                         color: hubstromColors.textSecondary,
-                        padding: 20,
+                        padding: 12,
                         usePointStyle: true,
                         pointStyle: 'circle',
                         font: {
-                            size: 12,
+                            size: 11,
                             weight: '500'
                         }
                     }
@@ -142,7 +143,8 @@ function initStatusChart() {
         },
         options: {
             responsive: true,
-            cutout: '65%',
+            maintainAspectRatio: true,
+            cutout: '60%',
             animation: {
                 animateRotate: true,
                 animateScale: true,
@@ -154,11 +156,11 @@ function initStatusChart() {
                     position: 'bottom',
                     labels: {
                         color: hubstromColors.textSecondary,
-                        padding: 20,
+                        padding: 12,
                         usePointStyle: true,
                         pointStyle: 'circle',
                         font: {
-                            size: 12,
+                            size: 11,
                             weight: '500'
                         }
                     }
@@ -208,6 +210,7 @@ function initTempoChart() {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: true,
             animation: {
                 duration: 1500,
                 easing: 'easeOutQuart'
@@ -218,9 +221,9 @@ function initTempoChart() {
                         color: hubstromColors.textSecondary,
                         usePointStyle: true,
                         pointStyle: 'rect',
-                        padding: 20,
+                        padding: 12,
                         font: {
-                            size: 12,
+                            size: 11,
                             weight: '500'
                         }
                     }
@@ -237,7 +240,7 @@ function initTempoChart() {
                     beginAtZero: true,
                     ticks: {
                         color: hubstromColors.textSecondary,
-                        font: { weight: '500' }
+                        font: { size: 10, weight: '500' }
                     },
                     grid: {
                         color: 'rgba(255, 255, 255, 0.06)',
@@ -247,7 +250,7 @@ function initTempoChart() {
                 x: {
                     ticks: {
                         color: hubstromColors.textSecondary,
-                        font: { weight: '500' }
+                        font: { size: 10, weight: '500' }
                     },
                     grid: {
                         display: false
@@ -282,14 +285,15 @@ function initModuloChart() {
                     hubstromColors.infoLight,
                     hubstromColors.accentLight
                 ],
-                borderRadius: 8,
+                borderRadius: 6,
                 borderSkipped: false,
-                barThickness: 32
+                barThickness: 24
             }]
         },
         options: {
             indexAxis: 'y',
             responsive: true,
+            maintainAspectRatio: true,
             animation: {
                 duration: 1500,
                 easing: 'easeOutQuart',
@@ -309,7 +313,7 @@ function initModuloChart() {
                     beginAtZero: true,
                     ticks: {
                         color: hubstromColors.textSecondary,
-                        font: { weight: '500' }
+                        font: { size: 10, weight: '500' }
                     },
                     grid: {
                         color: 'rgba(255, 255, 255, 0.06)',
@@ -321,7 +325,7 @@ function initModuloChart() {
                         color: hubstromColors.textSecondary,
                         font: {
                             weight: '600',
-                            size: 13
+                            size: 11
                         }
                     },
                     grid: {
