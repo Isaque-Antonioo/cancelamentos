@@ -1,18 +1,38 @@
 // Hubstrom Authentication System
-// Credenciais de acesso ao painel
+// Sistema de autenticacao seguro
 
 (function() {
     'use strict';
 
-    // Configuracao de credenciais (hash simples para nao expor em texto puro)
-    const AUTH_CONFIG = {
-        user: 'admin',
-        // Hash da senha para comparacao
-        passHash: btoa('nSHGqbsgqa0@hub')
-    };
+    // Hashes SHA-256 pre-calculados (impossivel reverter para texto original)
+    const _0x3d2f = [0x38,0x63,0x36,0x39,0x37,0x36,0x65,0x35,0x62,0x35,
+                     0x34,0x31,0x30,0x34,0x31,0x35,0x62,0x64,0x65,0x39,
+                     0x30,0x38,0x62,0x64,0x34,0x64,0x65,0x65,0x31,0x35,
+                     0x64,0x66,0x62,0x31,0x36,0x37,0x61,0x39,0x63,0x38,
+                     0x37,0x33,0x66,0x63,0x34,0x62,0x62,0x38,0x61,0x38,
+                     0x31,0x66,0x36,0x66,0x32,0x61,0x62,0x34,0x34,0x38,
+                     0x61,0x39,0x31,0x38];
+    const _0x4f2a = [0x34,0x65,0x38,0x61,0x39,0x32,0x66,0x30,0x32,0x62,
+                     0x39,0x30,0x36,0x62,0x64,0x31,0x65,0x39,0x38,0x66,
+                     0x39,0x31,0x32,0x35,0x39,0x62,0x37,0x64,0x36,0x36,
+                     0x63,0x63,0x37,0x37,0x65,0x31,0x38,0x63,0x37,0x38,
+                     0x33,0x64,0x63,0x38,0x38,0x35,0x36,0x38,0x35,0x32,
+                     0x65,0x39,0x36,0x63,0x31,0x62,0x66,0x31,0x38,0x30,
+                     0x38,0x61,0x62,0x64];
+    const _u = _0x3d2f.map(c => String.fromCharCode(c)).join('');
+    const _p = _0x4f2a.map(c => String.fromCharCode(c)).join('');
 
     const SESSION_KEY = 'hubstrom_auth_session';
-    const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 horas em millisegundos
+    const SESSION_DURATION = 8 * 60 * 60 * 1000;
+
+    // Funcao para gerar hash SHA-256
+    async function sha256(message) {
+        const msgBuffer = new TextEncoder().encode(message);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }
 
     // Verificar se esta na pagina de login
     const isLoginPage = window.location.pathname.includes('login.html') ||
@@ -63,9 +83,11 @@
     // Expor funcao de logout globalmente
     window.hubstromLogout = logout;
 
-    // Funcao para validar credenciais
-    function validateCredentials(username, password) {
-        return username === AUTH_CONFIG.user && btoa(password) === AUTH_CONFIG.passHash;
+    // Funcao para validar credenciais (assincrona por causa do hash)
+    async function validateCredentials(username, password) {
+        const userHash = await sha256(username);
+        const passHash = await sha256(password);
+        return userHash === _u && passHash === _p;
     }
 
     // Se estiver na pagina de login
@@ -109,7 +131,7 @@
 
             // Form submit handler
             if (loginForm) {
-                loginForm.addEventListener('submit', function(e) {
+                loginForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
 
                     const username = document.getElementById('username').value.trim();
@@ -122,9 +144,11 @@
                     submitBtn.classList.add('loading');
                     submitBtn.disabled = true;
 
-                    // Simular delay de autenticacao para UX
-                    setTimeout(function() {
-                        if (validateCredentials(username, password)) {
+                    // Validar com delay para UX
+                    setTimeout(async function() {
+                        const isValid = await validateCredentials(username, password);
+
+                        if (isValid) {
                             // Login bem-sucedido
                             createSession();
 
