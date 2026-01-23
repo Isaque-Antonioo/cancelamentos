@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx serve -l 3000)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(npx vercel:*)",
+      "Bash(npx surge:*)",
+      "Bash(vercel --version:*)",
+      "Bash(npm install:*)",
+      "Bash(vercel:*)",
+      "Bash(git --version:*)",
+      "Bash(gh auth status:*)",
+      "Bash(git init:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nDashboard de Análise de Cancelamentos\n\nDashboard interativo com métricas, gráficos e insights sobre cancelamentos de Janeiro 2026.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(winget install:*)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth login --web)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" repo create cancelamentos --public --source=. --remote=origin --push)"
+    ]
+  }
+}
