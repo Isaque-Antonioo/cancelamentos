@@ -15,7 +15,8 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nDashboard de Análise de Cancelamentos\n\nDashboard interativo com métricas, gráficos e insights sobre cancelamentos de Janeiro 2026.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(winget install:*)",
       "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth login --web)",
-      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" repo create cancelamentos --public --source=. --remote=origin --push)"
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" repo create cancelamentos --public --source=. --remote=origin --push)",
+      "Bash(git commit:*)"
     ]
   }
 }
