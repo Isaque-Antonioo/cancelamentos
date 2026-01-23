@@ -120,20 +120,22 @@ function initStatusChart() {
     new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Cancelado', 'Revertido', 'Desistência', 'Em negociação'],
+            labels: ['Cancelado', 'Revertido', 'Desistência', 'Em negociação', 'Primeiro Contato'],
             datasets: [{
-                data: [33, 13, 4, 3],
+                data: [34, 13, 4, 1, 1],
                 backgroundColor: [
                     hubstromColors.danger,
                     hubstromColors.accent,
                     hubstromColors.info,
-                    hubstromColors.warning
+                    hubstromColors.warning,
+                    hubstromColors.darkLight
                 ],
                 hoverBackgroundColor: [
                     hubstromColors.dangerLight,
                     hubstromColors.accentLight,
                     hubstromColors.infoLight,
-                    hubstromColors.warningLight
+                    hubstromColors.warningLight,
+                    hubstromColors.dark
                 ],
                 borderWidth: 0,
                 hoverBorderWidth: 3,
@@ -188,11 +190,11 @@ function initTempoChart() {
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['0-3 meses', '4-6 meses', '7-12 meses', '+12 meses'],
+            labels: ['0-3 meses', '3-6 meses', '6-12 meses', '+12 meses'],
             datasets: [
                 {
                     label: 'Cancelados',
-                    data: [9, 12, 5, 7],
+                    data: [12, 12, 4, 6],
                     backgroundColor: createGradient(ctx, hubstromColors.danger, hubstromColors.dangerLight),
                     hoverBackgroundColor: hubstromColors.dangerLight,
                     borderRadius: 8,
@@ -272,7 +274,7 @@ function initModuloChart() {
             labels: ['ConnectHub', 'XMLHub', 'TaskHub', 'MonitorHub'],
             datasets: [{
                 label: 'Reclamações',
-                data: [10, 5, 4, 1],
+                data: [7, 5, 4, 2],
                 backgroundColor: [
                     hubstromColors.danger,
                     hubstromColors.warning,
