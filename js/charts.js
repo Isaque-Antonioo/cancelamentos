@@ -54,9 +54,9 @@ function initMotivoChart() {
     new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Usabilidade (46%)', 'Financeiro (37%)', 'Migração (18%)'],
+            labels: ['Usabilidade (47%)', 'Financeiro (36%)', 'Migração (17%)'],
             datasets: [{
-                data: [26, 21, 10],
+                data: [28, 21, 10],
                 backgroundColor: [
                     hubstromColors.danger,
                     hubstromColors.warning,
@@ -122,7 +122,7 @@ function initStatusChart() {
         data: {
             labels: ['Cancelado', 'Revertido', 'Desistência', 'Em negociação'],
             datasets: [{
-                data: [32, 20, 4, 1],
+                data: [35, 19, 4, 1],
                 backgroundColor: [
                     hubstromColors.danger,
                     hubstromColors.accent,
@@ -192,7 +192,7 @@ function initTempoChart() {
             datasets: [
                 {
                     label: 'Cancelados',
-                    data: [13, 12, 4, 7],
+                    data: [14, 13, 5, 7],
                     backgroundColor: createGradient(ctx, hubstromColors.danger, hubstromColors.dangerLight),
                     hoverBackgroundColor: hubstromColors.dangerLight,
                     borderRadius: 8,
@@ -200,7 +200,7 @@ function initTempoChart() {
                 },
                 {
                     label: 'Revertidos',
-                    data: [5, 8, 4, 3],
+                    data: [5, 8, 3, 3],
                     backgroundColor: createGradient(ctx, hubstromColors.accent, hubstromColors.accentLight),
                     hoverBackgroundColor: hubstromColors.accentLight,
                     borderRadius: 8,
@@ -272,7 +272,7 @@ function initModuloChart() {
             labels: ['ConnectHub', 'XMLHub', 'TaskHub', 'MonitorHub'],
             datasets: [{
                 label: 'Reclamações',
-                data: [7, 5, 4, 2],
+                data: [8, 4, 4, 2],
                 backgroundColor: [
                     hubstromColors.danger,
                     hubstromColors.warning,
