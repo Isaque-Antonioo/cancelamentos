@@ -266,9 +266,22 @@ body::before {
    =================================== */
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: var(--spacing-md);
     margin-bottom: var(--spacing-xl);
+}
+
+/* Segunda linha centralizada com 3 cards */
+.kpi-grid .kpi-card:nth-child(5) {
+    grid-column: 1 / 2;
+}
+
+.kpi-grid .kpi-card:nth-child(6) {
+    grid-column: 2 / 3;
+}
+
+.kpi-grid .kpi-card:nth-child(7) {
+    grid-column: 3 / 4;
 }
 
 .kpi-card {
@@ -290,6 +303,7 @@ body::before {
 .kpi-card:nth-child(4) { animation-delay: 0.25s; }
 .kpi-card:nth-child(5) { animation-delay: 0.3s; }
 .kpi-card:nth-child(6) { animation-delay: 0.35s; }
+.kpi-card:nth-child(7) { animation-delay: 0.4s; }
 
 .kpi-card::before {
     content: '';
@@ -735,7 +749,13 @@ body::before {
    =================================== */
 @media (max-width: 1200px) {
     .kpi-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .kpi-grid .kpi-card:nth-child(5),
+    .kpi-grid .kpi-card:nth-child(6),
+    .kpi-grid .kpi-card:nth-child(7) {
+        grid-column: auto;
     }
 
     .charts-grid-4 {
@@ -757,8 +777,14 @@ body::before {
     }
 
     .kpi-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: var(--spacing-sm);
+    }
+
+    .kpi-grid .kpi-card:nth-child(5),
+    .kpi-grid .kpi-card:nth-child(6),
+    .kpi-grid .kpi-card:nth-child(7) {
+        grid-column: auto;
     }
 
     .header {
@@ -814,6 +840,12 @@ body::before {
     .kpi-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: var(--spacing-xs);
+    }
+
+    .kpi-grid .kpi-card:nth-child(5),
+    .kpi-grid .kpi-card:nth-child(6),
+    .kpi-grid .kpi-card:nth-child(7) {
+        grid-column: auto;
     }
 
     .kpi-card {
