@@ -54,9 +54,9 @@ function initMotivoChart() {
     new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Usabilidade (49%)', 'Financeiro (32%)', 'Migração (19%)'],
+            labels: ['Usabilidade (46%)', 'Financeiro (37%)', 'Migração (18%)'],
             datasets: [{
-                data: [26, 17, 10],
+                data: [26, 21, 10],
                 backgroundColor: [
                     hubstromColors.danger,
                     hubstromColors.warning,
@@ -69,7 +69,7 @@ function initMotivoChart() {
                 ],
                 borderWidth: 0,
                 hoverBorderWidth: 3,
-                hoverBorderColor: hubstromColors.dark,
+                hoverBorderColor: hubstromColors.Write,
                 spacing: 4
             }]
         },
@@ -120,26 +120,24 @@ function initStatusChart() {
     new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Cancelado', 'Revertido', 'Desistência', 'Em negociação', 'Primeiro Contato'],
+            labels: ['Cancelado', 'Revertido', 'Desistência', 'Em negociação'],
             datasets: [{
-                data: [34, 13, 4, 1, 1],
+                data: [32, 20, 4, 1],
                 backgroundColor: [
                     hubstromColors.danger,
                     hubstromColors.accent,
                     hubstromColors.info,
-                    hubstromColors.warning,
-                    hubstromColors.darkLight
+                    hubstromColors.warning
                 ],
                 hoverBackgroundColor: [
                     hubstromColors.dangerLight,
                     hubstromColors.accentLight,
                     hubstromColors.infoLight,
-                    hubstromColors.warningLight,
-                    hubstromColors.dark
+                    hubstromColors.warningLight
                 ],
                 borderWidth: 0,
                 hoverBorderWidth: 3,
-                hoverBorderColor: hubstromColors.dark,
+                hoverBorderColor: hubstromColors.Write,
                 spacing: 4
             }]
         },
@@ -194,7 +192,7 @@ function initTempoChart() {
             datasets: [
                 {
                     label: 'Cancelados',
-                    data: [12, 12, 4, 6],
+                    data: [13, 12, 4, 7],
                     backgroundColor: createGradient(ctx, hubstromColors.danger, hubstromColors.dangerLight),
                     hoverBackgroundColor: hubstromColors.dangerLight,
                     borderRadius: 8,
@@ -202,7 +200,7 @@ function initTempoChart() {
                 },
                 {
                     label: 'Revertidos',
-                    data: [4, 5, 2, 2],
+                    data: [5, 8, 4, 3],
                     backgroundColor: createGradient(ctx, hubstromColors.accent, hubstromColors.accentLight),
                     hoverBackgroundColor: hubstromColors.accentLight,
                     borderRadius: 8,
