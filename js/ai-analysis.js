@@ -5,12 +5,21 @@
 
 // Variáveis globais
 let csvData = null;
-let apiKey = localStorage.getItem('anthropic_api_key') || '';
+
+// Função getter para API Key - SEMPRE lê do localStorage para evitar dessincronização
+function getApiKey() {
+    return localStorage.getItem('anthropic_api_key') || '';
+}
+
+// Função para verificar se API Key está configurada
+function hasApiKeyConfigured() {
+    const key = getApiKey();
+    return key && key.length > 0 && key.startsWith('sk-ant-');
+}
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
-    // Garantir que apiKey está sincronizada com localStorage
-    apiKey = localStorage.getItem('anthropic_api_key') || '';
+    console.log('DOMContentLoaded - Verificando API Key...');
 
     // Configurar input de arquivo CSV
     const csvInput = document.getElementById('csvFileInput');
@@ -18,12 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
         csvInput.addEventListener('change', handleCSVUpload);
     }
 
-    // Verificar se já tem API key salva
-    if (apiKey) {
-        updateApiStatus(true);
-    } else {
-        updateApiStatus(false);
-    }
+    // Verificar se já tem API key salva e atualizar status
+    const hasKey = hasApiKeyConfigured();
+    console.log('API Key configurada:', hasKey);
+    updateApiStatus(hasKey);
 });
 
 // Upload e parse do CSV
@@ -46,11 +53,16 @@ function handleCSVUpload(event) {
         updateKPIs(summary);
         updateCharts(summary);
 
-        // Habilitar botão de gerar análise (verificar apiKey na variável e localStorage)
+        // Verificar API Key usando a função getter (sempre lê do localStorage)
+        const hasApiKey = hasApiKeyConfigured();
+        console.log('CSV carregado - API Key configurada:', hasApiKey);
+        console.log('API Key value:', getApiKey() ? 'Existe (ocultada)' : 'Não existe');
+
+        // Habilitar botão de gerar análise
         const btnGenerate = document.getElementById('btnGenerate');
         if (btnGenerate) {
-            const hasApiKey = apiKey || localStorage.getItem('anthropic_api_key');
             btnGenerate.disabled = !hasApiKey;
+            console.log('Botão disabled:', btnGenerate.disabled);
 
             // Se não tem API key, mostrar aviso
             if (!hasApiKey) {
@@ -58,8 +70,10 @@ function handleCSVUpload(event) {
             }
         }
 
+        // Atualizar status da API
+        updateApiStatus(hasApiKey);
+
         // Mostrar notificação de sucesso
-        const hasApiKey = apiKey || localStorage.getItem('anthropic_api_key');
         if (hasApiKey) {
             showNotification(`CSV carregado com ${csvData.length} registros. Clique em "Gerar Análise" para insights!`);
         } else {
@@ -123,7 +137,7 @@ async function generateAIAnalysis() {
         return;
     }
 
-    if (!apiKey) {
+    if (!hasApiKeyConfigured()) {
         openConfigModal();
         return;
     }
@@ -528,7 +542,7 @@ async function callClaudeAPI(dataSummary) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'x-api-key': apiKey,
+            'x-api-key': getApiKey(),
             'anthropic-version': '2023-06-01',
             'anthropic-dangerous-direct-browser-access': 'true'
         },
@@ -703,8 +717,9 @@ function openConfigModal() {
 
     if (modal) {
         modal.style.display = 'flex';
-        if (input && apiKey) {
-            input.value = apiKey;
+        const currentKey = getApiKey();
+        if (input && currentKey) {
+            input.value = currentKey;
         }
     }
 }
@@ -727,8 +742,9 @@ function saveApiKey() {
         return;
     }
 
-    apiKey = newKey;
-    localStorage.setItem('anthropic_api_key', apiKey);
+    // Salvar diretamente no localStorage (a função getter vai ler de lá)
+    localStorage.setItem('anthropic_api_key', newKey);
+    console.log('API Key salva no localStorage');
 
     updateApiStatus(true);
 
