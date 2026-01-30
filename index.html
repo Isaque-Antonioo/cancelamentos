@@ -210,6 +210,47 @@
             </div>
         </section>
 
+        <!-- Botão Gerar Análise com IA -->
+        <section class="section ai-analysis-section">
+            <div class="ai-header">
+                <h2> Análise com Inteligência Artificial</h2>
+                <p style="color: #aaa; margin-bottom: 20px;">
+                    Carregue seu CSV de cancelamentos e gere insights personalizados usando Claude AI.
+                </p>
+            </div>
+            <div class="ai-controls">
+                <div class="csv-upload-area">
+                    <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+                    <button class="btn-upload" onclick="document.getElementById('csvFileInput').click()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <span id="csvFileName">Carregar CSV</span>
+                    </button>
+                </div>
+                <button class="btn-generate" onclick="generateAIAnalysis()" id="btnGenerate" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <span>Gerar Análise com IA</span>
+                </button>
+                <button class="btn-config" onclick="openConfigModal()" title="Configurar API Key">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="aiLoadingIndicator" class="ai-loading" style="display: none;">
+                <div class="spinner"></div>
+                <span>Analisando dados com Claude AI...</span>
+            </div>
+        </section>
+
         <!-- Concorrentes -->
         <section class="section">
             <h2> Concorrentes Mencionados</h2>
@@ -230,9 +271,9 @@
         </section>
 
         <!-- Insights -->
-        <section class="section">
+        <section class="section" id="insightsSection">
             <h2> INSIGHTS PRINCIPAIS</h2>
-            <ul class="insight-list">
+            <ul class="insight-list" id="insightsList">
                 <li>
                     <strong>🔴 ConnectHub é o maior vilão:</strong> Problemas de estabilidade com WhatsApp, bloqueios da Meta, e falta de métricas são as principais reclamações. Clientes estão frustrados porque a ferramenta que deveria facilitar a comunicação está causando problemas com seus próprios clientes.
                 </li>
@@ -252,9 +293,9 @@
         </section>
 
         <!-- Recomendações -->
-        <section class="section">
+        <section class="section" id="recommendationsSection">
             <h2> RECOMENDAÇÕES</h2>
-
+            <div id="recommendationsList">
             <article class="recommendation-card">
                 <h4>1. Priorizar estabilidade do ConnectHub</h4>
                 <p>Investir em infraestrutura e comunicação proativa sobre instabilidades. Criar documentação clara sobre políticas da Meta e como evitar bloqueios.</p>
@@ -279,11 +320,35 @@
                 <h4>5. Programa de retenção proativo</h4>
                 <p>Monitorar clientes com baixa utilização e entrar em contato antes que solicitem cancelamento. Descontos de 10-15% estão funcionando para reversão.</p>
             </article>
+            </div>
         </section>
+    </div>
+
+    <!-- Modal de Configuração -->
+    <div id="configModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Configuração da API</h3>
+                <button class="modal-close" onclick="closeConfigModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label for="apiKeyInput">Chave da API Anthropic (Claude)</label>
+                <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." />
+                <p class="api-help">
+                    Obtenha sua chave em: <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>
+                </p>
+                <div class="api-status" id="apiStatus"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeConfigModal()">Cancelar</button>
+                <button class="btn-primary" onclick="saveApiKey()">Salvar</button>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/charts.js"></script>
+    <script src="js/ai-analysis.js"></script>
 </body>
 </html>
