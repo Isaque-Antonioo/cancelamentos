@@ -1348,10 +1348,47 @@ canvas {
     box-shadow: 0 4px 15px rgba(53, 204, 163, 0.3);
 }
 
+/* Notification Toast */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, var(--hubstrom-accent) 0%, var(--hubstrom-accent-dark) 100%);
+    color: var(--hubstrom-dark);
+    padding: 16px 24px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    box-shadow: 0 10px 40px rgba(53, 204, 163, 0.4);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 1001;
+    max-width: 90vw;
+}
+
+.notification.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.notification svg {
+    flex-shrink: 0;
+}
+
 /* Mobile Responsive para AI Section */
 @media (max-width: 768px) {
     .ai-controls {
         flex-direction: column;
+    }
+
+    .notification {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: unset;
     }
 
     .btn-upload,

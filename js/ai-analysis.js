@@ -34,13 +34,21 @@ function handleCSVUpload(event) {
         const text = e.target.result;
         csvData = parseCSV(text);
 
+        console.log('CSV carregado:', csvData.length, 'registros');
+
+        // Atualizar KPIs e gráficos automaticamente
+        const summary = prepareDataSummary(csvData);
+        updateKPIs(summary);
+        updateCharts(summary);
+
         // Habilitar botão de gerar análise
         const btnGenerate = document.getElementById('btnGenerate');
-        if (btnGenerate && apiKey) {
-            btnGenerate.disabled = false;
+        if (btnGenerate) {
+            btnGenerate.disabled = !apiKey;
         }
 
-        console.log('CSV carregado:', csvData.length, 'registros');
+        // Mostrar notificação de sucesso
+        showNotification(`CSV carregado com ${csvData.length} registros. KPIs e gráficos atualizados!`);
     };
     reader.readAsText(file, 'UTF-8');
 }
@@ -203,6 +211,271 @@ function parseMoneyValue(value) {
              .replace(',', '.')
              .trim()
     ) || 0;
+}
+
+// Formatar valor monetário
+function formatMoney(value) {
+    return 'R$ ' + value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+// Atualizar KPIs na interface
+function updateKPIs(summary) {
+    const total = summary.total;
+    const cancelados = (summary.status['Cancelado'] || 0) + (summary.status['Desistência'] || 0);
+    const revertidos = summary.status['Revertido'] || 0;
+    const emTratativa = summary.status['Em negociação'] || 0;
+
+    const percCancelados = ((cancelados / total) * 100).toFixed(1);
+    const percRevertidos = ((revertidos / total) * 100).toFixed(1);
+    const percTratativa = ((emTratativa / total) * 100).toFixed(1);
+
+    // Atualizar cards de KPI
+    const kpiCards = document.querySelectorAll('.kpi-card');
+    if (kpiCards.length >= 8) {
+        // Linha 1: Quantidades
+        kpiCards[0].querySelector('.kpi-value').textContent = total;
+        kpiCards[1].querySelector('.kpi-value').textContent = cancelados;
+        kpiCards[1].querySelector('.kpi-label').textContent = `Cancelados (${percCancelados}%)`;
+        kpiCards[2].querySelector('.kpi-value').textContent = revertidos;
+        kpiCards[2].querySelector('.kpi-label').textContent = `Revertidos (${percRevertidos}%)`;
+        kpiCards[3].querySelector('.kpi-value').textContent = emTratativa;
+        kpiCards[3].querySelector('.kpi-label').textContent = `Em Tratativa (${percTratativa}%)`;
+
+        // Linha 2: Valores
+        kpiCards[4].querySelector('.kpi-value').textContent = formatMoney(summary.valorTotal);
+        kpiCards[5].querySelector('.kpi-value').textContent = formatMoney(summary.valorCancelado);
+        kpiCards[6].querySelector('.kpi-value').textContent = formatMoney(summary.valorRevertido);
+        kpiCards[7].querySelector('.kpi-value').textContent = percRevertidos + '%';
+    }
+
+    // Atualizar alerta crítico
+    const highlightBox = document.querySelector('.highlight-box p strong');
+    if (highlightBox) {
+        const motivoUsabilidade = summary.motivos['Usabilidade'] || 0;
+        const percUsabilidade = ((motivoUsabilidade / total) * 100).toFixed(0);
+        highlightBox.textContent = `${percUsabilidade}% dos cancelamentos`;
+
+        const highlightText = document.querySelector('.highlight-box p');
+        if (highlightText) {
+            highlightText.innerHTML = `<strong>${percUsabilidade}% dos cancelamentos</strong> (${motivoUsabilidade} de ${total}) são por problemas de USABILIDADE.`;
+        }
+    }
+}
+
+// Atualizar gráficos
+function updateCharts(summary) {
+    // Destruir gráficos existentes e recriar
+    const chartInstances = Chart.instances;
+    Object.values(chartInstances).forEach(chart => chart.destroy());
+
+    // Dados para gráfico de motivos
+    const motivoLabels = Object.keys(summary.motivos);
+    const motivoData = Object.values(summary.motivos);
+    const total = summary.total;
+
+    // Recriar gráfico de motivos
+    const motivoCtx = document.getElementById('motivoChart');
+    if (motivoCtx) {
+        new Chart(motivoCtx, {
+            type: 'doughnut',
+            data: {
+                labels: motivoLabels.map((label, i) => `${label} (${((motivoData[i] / total) * 100).toFixed(0)}%)`),
+                datasets: [{
+                    data: motivoData,
+                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#35cca3'],
+                    borderWidth: 0,
+                    spacing: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '60%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 12, usePointStyle: true } }
+                }
+            }
+        });
+    }
+
+    // Recriar gráfico de status
+    const statusCtx = document.getElementById('statusChart');
+    if (statusCtx) {
+        const statusLabels = ['Cancelado', 'Revertido', 'Desistência', 'Em negociação'];
+        const statusData = statusLabels.map(s => summary.status[s] || 0);
+
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: ['#ef4444', '#35cca3', '#3b82f6', '#f59e0b'],
+                    borderWidth: 0,
+                    spacing: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '60%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 12, usePointStyle: true } }
+                }
+            }
+        });
+    }
+
+    // Recriar gráfico de tempo
+    const tempoCtx = document.getElementById('tempoChart');
+    if (tempoCtx) {
+        // Calcular cancelados e revertidos por tempo
+        const canceladosPorTempo = { '0-3': 0, '3-6': 0, '6-12': 0, '+12': 0 };
+        const revertidosPorTempo = { '0-3': 0, '3-6': 0, '6-12': 0, '+12': 0 };
+
+        csvData.forEach(row => {
+            const tempo = parseFloat((row['Tempo de uso em meses'] || '0').replace(',', '.'));
+            const status = row['Status'] || '';
+            let faixa = '+12';
+            if (tempo <= 3) faixa = '0-3';
+            else if (tempo <= 6) faixa = '3-6';
+            else if (tempo <= 12) faixa = '6-12';
+
+            if (status === 'Cancelado' || status === 'Desistência') {
+                canceladosPorTempo[faixa]++;
+            } else if (status === 'Revertido') {
+                revertidosPorTempo[faixa]++;
+            }
+        });
+
+        new Chart(tempoCtx, {
+            type: 'bar',
+            data: {
+                labels: ['0-3 meses', '3-6 meses', '6-12 meses', '+12 meses'],
+                datasets: [
+                    {
+                        label: 'Cancelados',
+                        data: [canceladosPorTempo['0-3'], canceladosPorTempo['3-6'], canceladosPorTempo['6-12'], canceladosPorTempo['+12']],
+                        backgroundColor: '#ef4444',
+                        borderRadius: 8
+                    },
+                    {
+                        label: 'Revertidos',
+                        data: [revertidosPorTempo['0-3'], revertidosPorTempo['3-6'], revertidosPorTempo['6-12'], revertidosPorTempo['+12']],
+                        backgroundColor: '#35cca3',
+                        borderRadius: 8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { labels: { color: '#94a3b8' } } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+                    x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // Recriar gráfico de módulos
+    const moduloCtx = document.getElementById('moduloChart');
+    if (moduloCtx && Object.keys(summary.modulos).length > 0) {
+        const moduloLabels = Object.keys(summary.modulos).slice(0, 5);
+        const moduloData = moduloLabels.map(m => summary.modulos[m]);
+
+        new Chart(moduloCtx, {
+            type: 'bar',
+            data: {
+                labels: moduloLabels,
+                datasets: [{
+                    label: 'Reclamações',
+                    data: moduloData,
+                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#35cca3', '#8b5cf6'],
+                    borderRadius: 6,
+                    barThickness: 24
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // Atualizar concorrentes
+    updateCompetitors(summary);
+}
+
+// Atualizar lista de concorrentes (extraindo do CSV)
+function updateCompetitors(summary) {
+    const competitorContainer = document.querySelector('.section:has(h2:contains("Concorrentes")) > div:last-child');
+    // Buscar concorrentes mencionados nos dados
+    const competitors = {};
+
+    csvData.forEach(row => {
+        const causa = (row['Causa'] || '') + ' ' + (row['Tratativa (Resumo das ações realizadas)'] || '');
+        const concorrentes = ['SIEG', 'VERI', 'ACESSÓRIAS', 'Acessorias', 'CALIMA', 'Calima', 'GOB', 'NIBO', 'Nibo', 'DIGILIZA', 'Digiliza', 'QUESTOR', 'Questor', 'TRON', 'Tron', 'Domínio', 'Dominio', 'Makro', 'MAKRO'];
+
+        concorrentes.forEach(c => {
+            if (causa.toLowerCase().includes(c.toLowerCase())) {
+                const normalized = c.toUpperCase().replace('ACESSORIAS', 'ACESSÓRIAS').replace('DOMINIO', 'Domínio');
+                competitors[normalized] = (competitors[normalized] || 0) + 1;
+            }
+        });
+    });
+
+    // Atualizar HTML dos concorrentes se encontrou algum
+    const competitorSection = document.querySelector('.section h2');
+    if (competitorSection && Object.keys(competitors).length > 0) {
+        const sections = document.querySelectorAll('.section');
+        sections.forEach(section => {
+            const h2 = section.querySelector('h2');
+            if (h2 && h2.textContent.includes('Concorrentes')) {
+                const container = section.querySelector('div:last-of-type');
+                if (container && container.classList.length === 0) {
+                    container.innerHTML = Object.entries(competitors)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([name, count]) => `<span class="competitor-tag">${name} (${count} ${count === 1 ? 'menção' : 'menções'})</span>`)
+                        .join('');
+                }
+            }
+        });
+    }
+}
+
+// Mostrar notificação
+function showNotification(message) {
+    // Remover notificação existente
+    const existing = document.querySelector('.notification');
+    if (existing) existing.remove();
+
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span>${message}</span>
+    `;
+    document.body.appendChild(notification);
+
+    // Animar entrada
+    setTimeout(() => notification.classList.add('show'), 10);
+
+    // Remover após 4 segundos
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 4000);
 }
 
 // Chamar API do Claude
