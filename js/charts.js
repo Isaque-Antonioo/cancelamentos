@@ -54,9 +54,9 @@ function initMotivoChart() {
     new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Usabilidade (46%)', 'Financeiro (34%)', 'Migração (20%)'],
+            labels: ['Usabilidade (48%)', 'Financeiro (33%)', 'Migração (19%)'],
             datasets: [{
-                data: [28, 21, 12],
+                data: [31, 21, 12],
                 backgroundColor: [
                     hubstromColors.danger,
                     hubstromColors.warning,
@@ -122,7 +122,7 @@ function initStatusChart() {
         data: {
             labels: ['Cancelado', 'Revertido', 'Desistência', 'Em negociação'],
             datasets: [{
-                data: [36, 20, 4, 1],
+                data: [39, 20, 5, 0],
                 backgroundColor: [
                     hubstromColors.danger,
                     hubstromColors.accent,
@@ -192,7 +192,7 @@ function initTempoChart() {
             datasets: [
                 {
                     label: 'Cancelados',
-                    data: [14, 14, 5, 7],
+                    data: [16, 16, 5, 7],
                     backgroundColor: createGradient(ctx, hubstromColors.danger, hubstromColors.dangerLight),
                     hoverBackgroundColor: hubstromColors.dangerLight,
                     borderRadius: 8,
