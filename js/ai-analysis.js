@@ -697,6 +697,9 @@ function saveApiKey() {
     }
 
     closeConfigModal();
+
+    // Mostrar notificação de sucesso
+    showNotification('API Key configurada com sucesso!');
 }
 
 function updateApiStatus(configured) {
