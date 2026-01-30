@@ -9,6 +9,9 @@ let apiKey = localStorage.getItem('anthropic_api_key') || '';
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
+    // Garantir que apiKey está sincronizada com localStorage
+    apiKey = localStorage.getItem('anthropic_api_key') || '';
+
     // Configurar input de arquivo CSV
     const csvInput = document.getElementById('csvFileInput');
     if (csvInput) {
@@ -18,6 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Verificar se já tem API key salva
     if (apiKey) {
         updateApiStatus(true);
+    } else {
+        updateApiStatus(false);
     }
 });
 
@@ -41,14 +46,25 @@ function handleCSVUpload(event) {
         updateKPIs(summary);
         updateCharts(summary);
 
-        // Habilitar botão de gerar análise
+        // Habilitar botão de gerar análise (verificar apiKey na variável e localStorage)
         const btnGenerate = document.getElementById('btnGenerate');
         if (btnGenerate) {
-            btnGenerate.disabled = !apiKey;
+            const hasApiKey = apiKey || localStorage.getItem('anthropic_api_key');
+            btnGenerate.disabled = !hasApiKey;
+
+            // Se não tem API key, mostrar aviso
+            if (!hasApiKey) {
+                console.warn('API Key não configurada. Configure clicando no botão de engrenagem.');
+            }
         }
 
         // Mostrar notificação de sucesso
-        showNotification(`CSV carregado com ${csvData.length} registros. KPIs e gráficos atualizados!`);
+        const hasApiKey = apiKey || localStorage.getItem('anthropic_api_key');
+        if (hasApiKey) {
+            showNotification(`CSV carregado com ${csvData.length} registros. Clique em "Gerar Análise" para insights!`);
+        } else {
+            showNotification(`CSV carregado! Configure a API Key (engrenagem) para gerar análises.`);
+        }
     };
     reader.readAsText(file, 'UTF-8');
 }
@@ -56,7 +72,8 @@ function handleCSVUpload(event) {
 // Parser de CSV simples
 function parseCSV(text) {
     const lines = text.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    // Usar parser robusto para o cabeçalho também (pode ter vírgulas em aspas)
+    const headers = parseCSVLine(lines[0]).map(h => h.trim());
     const data = [];
 
     for (let i = 1; i < lines.length; i++) {
@@ -136,6 +153,23 @@ async function generateAIAnalysis() {
     }
 }
 
+// Função auxiliar para buscar valor em colunas com variações de nome
+function getColumn(row, ...possibleNames) {
+    for (const name of possibleNames) {
+        // Buscar nome exato
+        if (row[name] !== undefined && row[name] !== '') return row[name];
+        // Buscar com espaço extra no final
+        if (row[name + ' '] !== undefined && row[name + ' '] !== '') return row[name + ' '];
+        // Buscar ignorando espaços extras
+        for (const key of Object.keys(row)) {
+            if (key.trim().toLowerCase() === name.toLowerCase()) {
+                return row[key];
+            }
+        }
+    }
+    return '';
+}
+
 // Preparar resumo dos dados
 function prepareDataSummary(data) {
     const summary = {
@@ -153,48 +187,49 @@ function prepareDataSummary(data) {
 
     data.forEach(row => {
         // Contagem de status
-        const status = row['Status'] || row['status'] || '';
+        const status = getColumn(row, 'Status', 'status').trim();
         if (status) {
             summary.status[status] = (summary.status[status] || 0) + 1;
         }
 
         // Contagem de motivos
-        const motivo = row['Principal motivo'] || row['Principal motivo '] || row['Motivo'] || '';
+        const motivo = getColumn(row, 'Principal motivo', 'Motivo').trim();
         if (motivo) {
             summary.motivos[motivo] = (summary.motivos[motivo] || 0) + 1;
         }
 
         // Módulos envolvidos
-        const modulo = row['Módulo Envolvido'] || row['Modulo Envolvido'] || '';
+        const modulo = getColumn(row, 'Módulo Envolvido', 'Modulo Envolvido').trim();
         if (modulo && modulo !== 'N/A') {
             summary.modulos[modulo] = (summary.modulos[modulo] || 0) + 1;
         }
 
         // Tempo de uso
-        const tempo = parseFloat((row['Tempo de uso em meses'] || '0').replace(',', '.'));
+        const tempoStr = getColumn(row, 'Tempo de uso em meses', 'Tempo de uso');
+        const tempo = parseFloat((tempoStr || '0').replace(',', '.'));
         if (tempo <= 3) summary.tempoUso['0-3']++;
         else if (tempo <= 6) summary.tempoUso['3-6']++;
         else if (tempo <= 12) summary.tempoUso['6-12']++;
         else summary.tempoUso['+12']++;
 
-        // Valores
-        const valorSolicitado = parseMoneyValue(row['Valor / Solicitado'] || row['Valor'] || '0');
-        const valorCanc = parseMoneyValue(row['Valor  cancelado'] || row['Valor cancelado'] || '0');
-        const valorRev = parseMoneyValue(row['Valor revertido'] || '0');
+        // Valores (nomes com espaços variados)
+        const valorSolicitado = parseMoneyValue(getColumn(row, 'Valor / Solicitado', 'Valor'));
+        const valorCanc = parseMoneyValue(getColumn(row, 'Valor  cancelado', 'Valor cancelado'));
+        const valorRev = parseMoneyValue(getColumn(row, 'Valor revertido'));
 
         summary.valorTotal += valorSolicitado;
         summary.valorCancelado += valorCanc;
         summary.valorRevertido += valorRev;
 
         // Causas detalhadas (para análise qualitativa)
-        const causa = row['Causa'] || row['Motivo  da solicitação (ABERTURA *Hubspot)'] || '';
-        const tratativa = row['Tratativa (Resumo das ações realizadas)'] || '';
+        const causa = getColumn(row, 'Causa', 'Motivo  da solicitação (ABERTURA *Hubspot)');
+        const tratativa = getColumn(row, 'Tratativa (Resumo das ações realizadas)', 'Tratativa');
         if (causa || tratativa) {
             summary.causasDetalhadas.push({
                 status: status,
                 motivo: motivo,
-                causa: causa.substring(0, 500),
-                tratativa: tratativa.substring(0, 300)
+                causa: (causa || '').substring(0, 500),
+                tratativa: (tratativa || '').substring(0, 300)
             });
         }
     });
@@ -334,8 +369,9 @@ function updateCharts(summary) {
         const revertidosPorTempo = { '0-3': 0, '3-6': 0, '6-12': 0, '+12': 0 };
 
         csvData.forEach(row => {
-            const tempo = parseFloat((row['Tempo de uso em meses'] || '0').replace(',', '.'));
-            const status = row['Status'] || '';
+            const tempoStr = getColumn(row, 'Tempo de uso em meses', 'Tempo de uso');
+            const tempo = parseFloat((tempoStr || '0').replace(',', '.'));
+            const status = getColumn(row, 'Status', 'status').trim();
             let faixa = '+12';
             if (tempo <= 3) faixa = '0-3';
             else if (tempo <= 6) faixa = '3-6';
@@ -421,12 +457,18 @@ function updateCompetitors(summary) {
     const competitors = {};
 
     csvData.forEach(row => {
-        const causa = (row['Causa'] || '') + ' ' + (row['Tratativa (Resumo das ações realizadas)'] || '');
-        const concorrentes = ['SIEG', 'VERI', 'ACESSÓRIAS', 'Acessorias', 'CALIMA', 'Calima', 'GOB', 'NIBO', 'Nibo', 'DIGILIZA', 'Digiliza', 'QUESTOR', 'Questor', 'TRON', 'Tron', 'Domínio', 'Dominio', 'Makro', 'MAKRO'];
+        const causa = getColumn(row, 'Causa', 'Motivo  da solicitação (ABERTURA *Hubspot)');
+        const tratativa = getColumn(row, 'Tratativa (Resumo das ações realizadas)', 'Tratativa');
+        const textoCompleto = (causa || '') + ' ' + (tratativa || '');
+        const concorrentes = ['SIEG', 'VERI', 'ACESSÓRIAS', 'Acessorias', 'CALIMA', 'Calima', 'GOB', 'NIBO', 'Nibo', 'DIGILIZA', 'Digiliza', 'QUESTOR', 'Questor', 'TRON', 'Tron', 'Domínio', 'Dominio', 'Makro', 'MAKRO', 'ÍRIS', 'Iris'];
 
         concorrentes.forEach(c => {
-            if (causa.toLowerCase().includes(c.toLowerCase())) {
-                const normalized = c.toUpperCase().replace('ACESSORIAS', 'ACESSÓRIAS').replace('DOMINIO', 'Domínio');
+            if (textoCompleto.toLowerCase().includes(c.toLowerCase())) {
+                const normalized = c.toUpperCase()
+                    .replace('ACESSORIAS', 'ACESSÓRIAS')
+                    .replace('DOMINIO', 'DOMÍNIO')
+                    .replace('ÍRIS', 'ÍRIS')
+                    .replace('IRIS', 'ÍRIS');
                 competitors[normalized] = (competitors[normalized] || 0) + 1;
             }
         });
