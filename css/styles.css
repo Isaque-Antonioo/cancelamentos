@@ -1462,14 +1462,23 @@ canvas {
     background: linear-gradient(180deg, var(--hubstrom-dark) 0%, #0f172a 100%);
     border-right: 1px solid rgba(53, 204, 163, 0.2);
     z-index: 1000;
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     box-shadow: 4px 0 30px rgba(0, 0, 0, 0.5);
+    visibility: hidden;
+    opacity: 0;
+}
+
+.sidebar.ready {
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0.3s,
+                opacity 0.3s;
 }
 
 .sidebar.active {
     left: 0;
+    visibility: visible;
+    opacity: 1;
 }
 
 .sidebar-header {
@@ -1608,6 +1617,10 @@ canvas {
     .sidebar {
         width: 100%;
         left: -100%;
+    }
+
+    .sidebar.active {
+        left: 0;
     }
 
     .hamburger-btn {

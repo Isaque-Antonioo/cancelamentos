@@ -415,6 +415,14 @@
 
     <!-- Controle do Menu Sidebar -->
     <script>
+        // Habilitar transições apenas após o carregamento completo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Pequeno delay para garantir que o CSS foi aplicado
+            setTimeout(function() {
+                document.getElementById('sidebar').classList.add('ready');
+            }, 50);
+        });
+
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
