@@ -90,12 +90,21 @@ function parseCSV(text) {
     const headers = parseCSVLine(lines[0]).map(h => h.trim());
     const data = [];
 
+    // Encontrar o índice da coluna "Nº" (primeira coluna)
+    const numColumnIndex = headers.findIndex(h => h === 'Nº' || h === 'N°' || h === 'No' || h === 'Nro');
+    const colIndexToCheck = numColumnIndex >= 0 ? numColumnIndex : 0; // Se não encontrar, usa a primeira coluna
+
     for (let i = 1; i < lines.length; i++) {
         if (lines[i].trim() === '') continue;
 
         // Parser mais robusto para lidar com vírgulas dentro de aspas
         const values = parseCSVLine(lines[i]);
-        if (values.length >= 5) {
+
+        // Validar: só incluir se a coluna Nº (primeira coluna) tiver um número válido
+        const numValue = values[colIndexToCheck] ? values[colIndexToCheck].trim() : '';
+        const isValidRow = numValue !== '' && !isNaN(parseInt(numValue));
+
+        if (isValidRow && values.length >= 5) {
             const row = {};
             headers.forEach((header, index) => {
                 row[header] = values[index] || '';
@@ -104,6 +113,7 @@ function parseCSV(text) {
         }
     }
 
+    console.log('CSV parseado: ' + data.length + ' linhas válidas (com Nº preenchido)');
     return data;
 }
 
