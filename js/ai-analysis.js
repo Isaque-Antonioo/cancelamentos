@@ -268,6 +268,56 @@ function getValueColumn(row, exactName) {
     return '';
 }
 
+// Normalizar nome do módulo para formato padrão
+function normalizeModuleName(name) {
+    if (!name) return '';
+
+    // Remover espaços extras e converter para lowercase para comparação
+    const normalized = name.trim().toLowerCase();
+
+    // Mapeamento de variações para nomes padrão
+    const moduleMap = {
+        'connecthub': 'ConnectHub',
+        'connect hub': 'ConnectHub',
+        'connect': 'ConnectHub',
+        'taskhub': 'TaskHub',
+        'task hub': 'TaskHub',
+        'task': 'TaskHub',
+        'xmlhub': 'XMLHub',
+        'xml hub': 'XMLHub',
+        'xml': 'XMLHub',
+        'monitorhub': 'MonitorHub',
+        'monitor hub': 'MonitorHub',
+        'monitor': 'MonitorHub',
+        'notahub': 'NotaHub',
+        'nota hub': 'NotaHub',
+        'nota': 'NotaHub',
+        'financehub': 'FinanceHub',
+        'finance hub': 'FinanceHub',
+        'finance': 'FinanceHub',
+        'reporthub': 'ReportHub',
+        'report hub': 'ReportHub',
+        'report': 'ReportHub',
+        'dashboardhub': 'DashboardHub',
+        'dashboard hub': 'DashboardHub',
+        'dashboard': 'DashboardHub',
+        'apihub': 'APIHub',
+        'api hub': 'APIHub',
+        'api': 'APIHub',
+        'integrahub': 'IntegraHub',
+        'integra hub': 'IntegraHub',
+        'integra': 'IntegraHub'
+    };
+
+    // Verificar se existe no mapeamento
+    if (moduleMap[normalized]) {
+        return moduleMap[normalized];
+    }
+
+    // Se não encontrou, retorna o nome original com primeira letra maiúscula
+    return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
 // Preparar resumo dos dados
 function prepareDataSummary(data) {
     const summary = {
@@ -296,10 +346,30 @@ function prepareDataSummary(data) {
             summary.motivos[motivo] = (summary.motivos[motivo] || 0) + 1;
         }
 
-        // Módulos envolvidos
-        const modulo = getColumn(row, 'Módulo Envolvido', 'Modulo Envolvido').trim();
-        if (modulo && modulo !== 'N/A') {
-            summary.modulos[modulo] = (summary.modulos[modulo] || 0) + 1;
+        // Módulos envolvidos (várias variações de nome de coluna)
+        const moduloRaw = getColumn(row,
+            'Módulo Envolvido',
+            'Modulo Envolvido',
+            'Módulo envolvido',
+            'Modulo envolvido',
+            'Modulo',
+            'Módulo',
+            'Módulos Envolvidos',
+            'Modulos Envolvidos',
+            'Módulos envolvidos',
+            'Modulos envolvidos'
+        ).trim();
+
+        if (moduloRaw && moduloRaw !== 'N/A' && moduloRaw !== '-' && moduloRaw !== '') {
+            // Separadores: vírgula, ponto e vírgula, barra, " e ", " + "
+            const modulosList = moduloRaw
+                .split(/[,;\/]|\s+e\s+|\s+\+\s+/i)
+                .map(m => normalizeModuleName(m.trim()))
+                .filter(m => m && m !== 'N/A' && m !== '-');
+
+            modulosList.forEach(m => {
+                summary.modulos[m] = (summary.modulos[m] || 0) + 1;
+            });
         }
 
         // Tempo de uso
@@ -336,6 +406,15 @@ function prepareDataSummary(data) {
         }
     });
 
+    // Ordenar módulos por quantidade (decrescente)
+    const modulosOrdenados = {};
+    Object.entries(summary.modulos)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([key, value]) => {
+            modulosOrdenados[key] = value;
+        });
+    summary.modulos = modulosOrdenados;
+
     // Log dos valores calculados
     console.log('=== RESUMO DOS VALORES ===');
     console.log('Total de registros:', summary.total);
@@ -344,6 +423,12 @@ function prepareDataSummary(data) {
     console.log('Valor Revertido:', summary.valorRevertido.toFixed(2));
     console.log('Status:', summary.status);
     console.log('Motivos:', summary.motivos);
+    console.log('Módulos:', summary.modulos);
+
+    // Debug: mostrar colunas disponíveis se módulos estiver vazio
+    if (Object.keys(summary.modulos).length === 0 && data.length > 0) {
+        console.warn('ATENÇÃO: Nenhum módulo encontrado! Colunas disponíveis:', Object.keys(data[0]));
+    }
 
     return summary;
 }
@@ -531,10 +616,44 @@ function updateCharts(summary) {
 
     // Recriar gráfico de módulos
     const moduloCtx = document.getElementById('moduloChart');
-    if (moduloCtx && Object.keys(summary.modulos).length > 0) {
+    if (moduloCtx) {
+        // Destruir gráfico existente
+        if (window.hubstromCharts && window.hubstromCharts.moduloChart) {
+            window.hubstromCharts.moduloChart.destroy();
+        }
+
         const moduloLabels = Object.keys(summary.modulos).slice(0, 5);
         const moduloData = moduloLabels.map(m => summary.modulos[m]);
 
+        // Se não tiver módulos, mostrar gráfico vazio
+        if (moduloLabels.length === 0) {
+            window.hubstromCharts.moduloChart = new Chart(moduloCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Sem dados de módulos'],
+                    datasets: [{
+                        label: 'Reclamações',
+                        data: [0],
+                        backgroundColor: ['rgba(100, 116, 139, 0.3)'],
+                        borderRadius: 6,
+                        barThickness: 24
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                    }
+                }
+            });
+            return;
+        }
+
+        // Gráfico com dados reais
         window.hubstromCharts.moduloChart = new Chart(moduloCtx, {
             type: 'bar',
             data: {
