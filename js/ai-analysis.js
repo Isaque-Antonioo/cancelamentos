@@ -85,22 +85,26 @@ function handleCSVUpload(event) {
 
 // Parser de CSV simples
 function parseCSV(text) {
-    const lines = text.split('\n');
-    // Usar parser robusto para o cabeçalho também (pode ter vírgulas em aspas)
-    const headers = parseCSVLine(lines[0]).map(h => h.trim());
+    // Normalizar quebras de linha e juntar linhas que estão dentro de aspas
+    const normalizedText = normalizeCSVText(text);
+    const lines = normalizedText.split('\n');
+
+    // Usar parser robusto para o cabeçalho
+    const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/\s+/g, ' '));
+    console.log('Headers encontrados:', headers);
+
     const data = [];
 
     // Encontrar o índice da coluna "Nº" (primeira coluna)
     const numColumnIndex = headers.findIndex(h => h === 'Nº' || h === 'N°' || h === 'No' || h === 'Nro');
-    const colIndexToCheck = numColumnIndex >= 0 ? numColumnIndex : 0; // Se não encontrar, usa a primeira coluna
+    const colIndexToCheck = numColumnIndex >= 0 ? numColumnIndex : 0;
 
     for (let i = 1; i < lines.length; i++) {
         if (lines[i].trim() === '') continue;
 
-        // Parser mais robusto para lidar com vírgulas dentro de aspas
         const values = parseCSVLine(lines[i]);
 
-        // Validar: só incluir se a coluna Nº (primeira coluna) tiver um número válido
+        // Validar: só incluir se a coluna Nº tiver um número válido
         const numValue = values[colIndexToCheck] ? values[colIndexToCheck].trim() : '';
         const isValidRow = numValue !== '' && !isNaN(parseInt(numValue));
 
@@ -114,7 +118,53 @@ function parseCSV(text) {
     }
 
     console.log('CSV parseado: ' + data.length + ' linhas válidas (com Nº preenchido)');
+
+    // Debug: mostrar primeira linha para verificar valores
+    if (data.length > 0) {
+        console.log('Primeira linha - Valor Solicitado:', data[0]['Valor / Solicitado']);
+        console.log('Primeira linha - Valor revertido:', data[0]['Valor revertido']);
+        console.log('Primeira linha - Valor cancelado:', data[0]['Valor  cancelado']);
+    }
+
     return data;
+}
+
+// Normaliza o texto CSV juntando linhas que estão dentro de aspas
+function normalizeCSVText(text) {
+    const result = [];
+    let currentLine = '';
+    let inQuotes = false;
+
+    const lines = text.split('\n');
+
+    for (const line of lines) {
+        // Contar aspas na linha atual
+        const quoteCount = (line.match(/"/g) || []).length;
+
+        if (inQuotes) {
+            // Continuação de campo com aspas
+            currentLine += ' ' + line;
+            if (quoteCount % 2 === 1) {
+                inQuotes = false;
+                result.push(currentLine);
+                currentLine = '';
+            }
+        } else {
+            if (quoteCount % 2 === 1) {
+                // Início de campo com aspas que continua na próxima linha
+                currentLine = line;
+                inQuotes = true;
+            } else {
+                result.push(line);
+            }
+        }
+    }
+
+    if (currentLine) {
+        result.push(currentLine);
+    }
+
+    return result.join('\n');
 }
 
 // Parser de linha CSV que respeita aspas
@@ -179,16 +229,34 @@ async function generateAIAnalysis() {
 
 // Função auxiliar para buscar valor em colunas com variações de nome
 function getColumn(row, ...possibleNames) {
+    const keys = Object.keys(row);
+
     for (const name of possibleNames) {
-        // Buscar nome exato
+        // 1. Buscar nome exato
         if (row[name] !== undefined && row[name] !== '') return row[name];
-        // Buscar com espaço extra no final
+
+        // 2. Buscar com espaço extra no final
         if (row[name + ' '] !== undefined && row[name + ' '] !== '') return row[name + ' '];
-        // Buscar ignorando espaços extras
-        for (const key of Object.keys(row)) {
+
+        // 3. Buscar ignorando espaços extras (trim) - comparação exata
+        for (const key of keys) {
             if (key.trim().toLowerCase() === name.toLowerCase()) {
-                return row[key];
+                if (row[key] !== undefined && row[key] !== '') return row[key];
             }
+        }
+    }
+    return '';
+}
+
+// Função específica para buscar colunas de VALOR (mais restritiva)
+function getValueColumn(row, exactName) {
+    const keys = Object.keys(row);
+
+    // Buscar pelo nome exato ou com variações de espaço
+    for (const key of keys) {
+        const keyNormalized = key.trim().replace(/\s+/g, ' ');
+        if (keyNormalized === exactName || keyNormalized === exactName + ' ') {
+            return row[key] || '';
         }
     }
     return '';
@@ -236,10 +304,14 @@ function prepareDataSummary(data) {
         else if (tempo <= 12) summary.tempoUso['6-12']++;
         else summary.tempoUso['+12']++;
 
-        // Valores (nomes com espaços variados)
-        const valorSolicitado = parseMoneyValue(getColumn(row, 'Valor / Solicitado', 'Valor'));
-        const valorCanc = parseMoneyValue(getColumn(row, 'Valor  cancelado', 'Valor cancelado'));
-        const valorRev = parseMoneyValue(getColumn(row, 'Valor revertido'));
+        // Valores - usar busca específica para evitar pegar colunas de resumo
+        const valorSolicitadoStr = getValueColumn(row, 'Valor / Solicitado');
+        const valorCancStr = getValueColumn(row, 'Valor  cancelado') || getValueColumn(row, 'Valor cancelado');
+        const valorRevStr = getValueColumn(row, 'Valor revertido');
+
+        const valorSolicitado = parseMoneyValue(valorSolicitadoStr);
+        const valorCanc = parseMoneyValue(valorCancStr);
+        const valorRev = parseMoneyValue(valorRevStr);
 
         summary.valorTotal += valorSolicitado;
         summary.valorCancelado += valorCanc;
@@ -257,6 +329,15 @@ function prepareDataSummary(data) {
             });
         }
     });
+
+    // Log dos valores calculados
+    console.log('=== RESUMO DOS VALORES ===');
+    console.log('Total de registros:', summary.total);
+    console.log('Valor Total Solicitado:', summary.valorTotal.toFixed(2));
+    console.log('Valor Cancelado:', summary.valorCancelado.toFixed(2));
+    console.log('Valor Revertido:', summary.valorRevertido.toFixed(2));
+    console.log('Status:', summary.status);
+    console.log('Motivos:', summary.motivos);
 
     return summary;
 }
