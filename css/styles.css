@@ -319,27 +319,47 @@ body::before {
 }
 
 .btn-save-month {
-    background: var(--surface-glass);
-    border: 1px solid rgba(53, 204, 163, 0.3);
-    border-radius: 8px;
-    padding: 8px 10px;
-    color: var(--hubstrom-accent);
+    background: linear-gradient(135deg, var(--hubstrom-accent) 0%, var(--hubstrom-accent-dark) 100%);
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    color: var(--hubstrom-dark);
     cursor: pointer;
     transition: all var(--transition-fast);
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.9em;
+    font-family: inherit;
+    box-shadow: 0 2px 10px rgba(53, 204, 163, 0.3);
+    white-space: nowrap;
+}
+
+.btn-save-month span {
+    display: inline;
 }
 
 .btn-save-month:hover {
-    background: var(--hubstrom-accent);
+    background: linear-gradient(135deg, var(--hubstrom-accent-light) 0%, var(--hubstrom-accent) 100%);
     color: var(--hubstrom-dark);
-    border-color: var(--hubstrom-accent);
-    transform: scale(1.05);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(53, 204, 163, 0.4);
 }
 
 .btn-save-month:active {
     transform: scale(0.95);
+}
+
+/* Mobile: esconder texto, mostrar só ícone */
+@media (max-width: 480px) {
+    .btn-save-month span {
+        display: none;
+    }
+    .btn-save-month {
+        padding: 10px 12px;
+    }
 }
 
 @media (max-width: 600px) {
