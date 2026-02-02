@@ -304,11 +304,17 @@ function updateHeaderTitle(monthKey) {
 async function handleMonthChange(newMonthKey) {
     const previousMonth = getCurrentMonth();
 
-    // Se há dados não salvos no mês atual, perguntar se quer salvar
-    if (window.csvData && window.csvData.length > 0 && previousMonth !== newMonthKey) {
-        const shouldSave = confirm(`Deseja salvar os dados atuais de ${formatMonthDisplay(previousMonth)} antes de trocar?`);
-        if (shouldSave) {
-            await saveCurrentData(previousMonth);
+    // Se está mudando de mês e há dados na tela, salvar automaticamente
+    if (previousMonth !== newMonthKey) {
+        const screenKpis = captureKPIsFromScreen();
+        if (screenKpis.total > 0) {
+            console.log(`Salvando dados de ${previousMonth} antes de trocar...`);
+            try {
+                await saveCurrentData(previousMonth);
+                console.log(`Dados de ${previousMonth} salvos automaticamente`);
+            } catch (e) {
+                console.error('Erro ao salvar automaticamente:', e);
+            }
         }
     }
 
@@ -327,7 +333,7 @@ async function handleMonthChange(newMonthKey) {
         showNotification(`Dados de ${formatMonthDisplay(newMonthKey)} carregados!`, 'success');
     } else {
         clearDashboard();
-        showNotification(`${formatMonthDisplay(newMonthKey)} - Sem dados. Carregue um CSV.`);
+        showNotification(`${formatMonthDisplay(newMonthKey)} - Sem dados. Sincronize com a planilha.`);
     }
 
     // Atualizar seletor para mostrar indicadores atualizados
@@ -439,9 +445,19 @@ async function saveCurrentData(monthKey) {
     // Capturar KPIs da tela
     const screenKpis = captureKPIsFromScreen();
 
-    // Verificar se há dados na tela (pelo menos o total deve ser > 0)
-    if (screenKpis.total === 0) {
-        console.warn('Nenhum dado para salvar (KPIs zerados)');
+    // Capturar seções para verificar se há conteúdo
+    const sections = captureSectionsFromScreen();
+
+    // Verificar se há dados na tela de várias formas
+    const hasKpiData = screenKpis.total > 0;
+    const hasSectionData = sections.alertBox && !sections.alertBox.includes('AGUARDANDO DADOS');
+    const hasChartData = Object.keys(captureChartsData()).length > 0;
+
+    console.log('Verificação de dados:', { hasKpiData, hasSectionData, hasChartData, screenKpis });
+
+    // Se não tem nenhum tipo de dado, não salvar
+    if (!hasKpiData && !hasSectionData && !hasChartData) {
+        console.warn('Nenhum dado para salvar');
         showNotification('Nenhum dado para salvar. Carregue dados primeiro.', 'warning');
         return;
     }
@@ -478,11 +494,10 @@ async function saveCurrentData(monthKey) {
         };
     }
 
-    // Capturar seções HTML
-    const sections = captureSectionsFromScreen();
-
-    // Capturar dados dos gráficos
+    // Capturar dados dos gráficos (sections já foi capturado acima)
     const chartsData = captureChartsData();
+
+    console.log('Salvando dados:', { kpis, chartsData: Object.keys(chartsData), sections: Object.keys(sections) });
 
     await saveMonthData(monthKey, {
         summary: summary,
@@ -499,67 +514,81 @@ async function saveCurrentData(monthKey) {
 function loadMonthData(monthData) {
     if (!monthData) return;
 
+    console.log('Carregando dados do mês:', monthData);
+
     // Restaurar csvData global
-    window.csvData = monthData.csvData;
+    window.csvData = monthData.csvData || null;
 
-    // Atualizar KPIs - usar summary ou kpis dependendo do que estiver disponível
-    if (monthData.summary) {
-        updateKPIs(monthData.summary);
-
-        // Se tiver csvData ou summary completo, atualizar gráficos normalmente
-        if (monthData.csvData || monthData.summary.motivos) {
-            updateCharts(monthData.summary);
-        }
-    } else if (monthData.kpis) {
-        // Fallback: atualizar KPIs diretamente dos valores salvos
+    // Atualizar KPIs - usar kpis primeiro, depois summary
+    if (monthData.kpis) {
         updateKPIsFromValues(monthData.kpis);
+    } else if (monthData.summary) {
+        updateKPIs(monthData.summary);
     }
 
-    // Restaurar gráficos salvos (se não tiver csvData)
-    if (monthData.chartsData && !monthData.csvData) {
+    // Restaurar gráficos
+    // Prioridade: 1) csvData + summary, 2) chartsData salvos
+    if (monthData.csvData && monthData.summary && monthData.summary.motivos) {
+        // Se tiver CSV completo, usar updateCharts normal
+        updateCharts(monthData.summary);
+    } else if (monthData.chartsData && Object.keys(monthData.chartsData).length > 0) {
+        // Se tiver chartsData salvos, restaurar deles
+        console.log('Restaurando gráficos de chartsData:', monthData.chartsData);
         restoreChartsFromData(monthData.chartsData);
+    } else {
+        // Se não tiver nada, mostrar gráficos vazios
+        console.log('Sem dados de gráficos para restaurar');
     }
 
     // Restaurar seções salvas
     if (monthData.sections) {
+        console.log('Restaurando seções:', Object.keys(monthData.sections));
+
         // Restaurar alerta crítico
         const alertBox = document.querySelector('.highlight-box');
-        if (alertBox && monthData.sections.alertBox) {
+        if (alertBox && monthData.sections.alertBox && monthData.sections.alertBox.length > 0) {
             alertBox.innerHTML = monthData.sections.alertBox;
+            console.log('Alerta restaurado');
         }
 
         // Restaurar insights
         const insightsList = document.getElementById('insightsList');
-        if (insightsList && monthData.sections.insights) {
+        if (insightsList && monthData.sections.insights && monthData.sections.insights.length > 0) {
             insightsList.innerHTML = monthData.sections.insights;
+            console.log('Insights restaurados');
         }
 
         // Restaurar recomendações
         const recommendationsList = document.getElementById('recommendationsList');
-        if (recommendationsList && monthData.sections.recommendations) {
+        if (recommendationsList && monthData.sections.recommendations && monthData.sections.recommendations.length > 0) {
             recommendationsList.innerHTML = monthData.sections.recommendations;
+            console.log('Recomendações restauradas');
         }
 
         // Restaurar concorrentes
-        if (monthData.sections.competitors) {
+        if (monthData.sections.competitors && monthData.sections.competitors.length > 0) {
             document.querySelectorAll('.section').forEach(section => {
                 const h2 = section.querySelector('h2');
                 if (h2 && h2.textContent.includes('Concorrentes')) {
                     const tagsContainer = section.querySelector('div');
                     if (tagsContainer) {
                         tagsContainer.innerHTML = monthData.sections.competitors;
+                        console.log('Concorrentes restaurados');
                     }
                 }
             });
         }
 
         // Restaurar análise de usabilidade
-        if (monthData.sections.usabilityAnalysis) {
+        if (monthData.sections.usabilityAnalysis && monthData.sections.usabilityAnalysis.length > 0) {
             const problemGrid = document.querySelector('.problem-grid');
             if (problemGrid) {
                 problemGrid.innerHTML = monthData.sections.usabilityAnalysis;
+                console.log('Análise de usabilidade restaurada');
             }
         }
+    } else {
+        console.log('Nenhuma seção para restaurar');
     }
 
     // Habilitar botão de análise se API está configurada
@@ -700,10 +729,10 @@ function clearDashboard() {
         alertBox.innerHTML = `
             <h3>📊 AGUARDANDO DADOS</h3>
             <p style="font-size: 1.2em; margin-bottom: 10px;">
-                <strong>Carregue um CSV</strong> para visualizar os dados deste mês.
+                <strong>Sincronize com a planilha</strong> para visualizar os dados deste mês.
             </p>
             <p style="color: #ffffff;">
-                Selecione o arquivo CSV com os dados de cancelamentos para gerar a análise completa.
+                Clique no botão "Sincronizar" para carregar os dados do Google Sheets.
             </p>
         `;
     }
@@ -713,7 +742,7 @@ function clearDashboard() {
     if (insightsList) {
         insightsList.innerHTML = `
             <li style="color: var(--text-secondary); font-style: italic;">
-                Nenhum insight disponível. Carregue um CSV para gerar análises.
+                Aguardando dados... Sincronize com a planilha para gerar análises.
             </li>
         `;
     }
@@ -724,7 +753,7 @@ function clearDashboard() {
         recommendationsList.innerHTML = `
             <article class="recommendation-card" style="opacity: 0.5;">
                 <h4>Aguardando dados...</h4>
-                <p>Carregue um arquivo CSV para visualizar as recomendações baseadas nos dados de cancelamento.</p>
+                <p>Sincronize com a planilha do Google Sheets para visualizar as recomendações.</p>
             </article>
         `;
     }
@@ -751,7 +780,18 @@ function clearDashboard() {
     // Resetar nome do arquivo
     const csvFileName = document.getElementById('csvFileName');
     if (csvFileName) {
-        csvFileName.textContent = 'Carregar CSV';
+        csvFileName.textContent = 'Sem dados';
+    }
+
+    // Limpar análise de usabilidade
+    const problemGrid = document.querySelector('.problem-grid');
+    if (problemGrid) {
+        problemGrid.innerHTML = `
+            <article class="problem-card" style="opacity: 0.5; grid-column: 1 / -1;">
+                <h4>Aguardando dados...</h4>
+                <p>Sincronize com a planilha para visualizar a análise detalhada.</p>
+            </article>
+        `;
     }
 
     // Destruir e recriar gráficos vazios
