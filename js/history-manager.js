@@ -1,20 +1,43 @@
 /* ===================================
    Hubstrom - Gerenciador de Histórico
    Controle de dados mensais
+   Integrado com Firebase Realtime Database
    =================================== */
 
-// Chave base para localStorage
+// Chave base para localStorage (fallback)
 const HISTORY_KEY = 'hubstrom_cancelamentos_history';
 const CURRENT_MONTH_KEY = 'hubstrom_current_month';
 
+// Cache local para evitar múltiplas requisições
+let monthsCache = {};
+let firebaseMonthsList = null;
+
+// ==========================================
+// FUNÇÕES DE DADOS (COM FIREBASE)
+// ==========================================
+
 // Obter lista de meses com dados salvos
-function getHistoryMonths() {
+async function getHistoryMonths() {
+    // Tentar Firebase primeiro
+    if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
+        try {
+            const firebaseMonths = await getHistoryMonthsFromFirebase();
+            if (firebaseMonths.length > 0) {
+                firebaseMonthsList = firebaseMonths;
+                return firebaseMonths;
+            }
+        } catch (e) {
+            console.warn('Erro ao buscar do Firebase, usando localStorage:', e);
+        }
+    }
+
+    // Fallback para localStorage
     const history = localStorage.getItem(HISTORY_KEY);
     if (!history) return [];
 
     try {
         const data = JSON.parse(history);
-        return Object.keys(data).sort().reverse(); // Mais recente primeiro
+        return Object.keys(data).sort().reverse();
     } catch (e) {
         console.error('Erro ao ler histórico:', e);
         return [];
@@ -22,7 +45,26 @@ function getHistoryMonths() {
 }
 
 // Obter dados de um mês específico
-function getMonthData(monthKey) {
+async function getMonthData(monthKey) {
+    // Verificar cache primeiro
+    if (monthsCache[monthKey]) {
+        return monthsCache[monthKey];
+    }
+
+    // Tentar Firebase primeiro
+    if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
+        try {
+            const firebaseData = await getMonthDataFromFirebase(monthKey);
+            if (firebaseData) {
+                monthsCache[monthKey] = firebaseData;
+                return firebaseData;
+            }
+        } catch (e) {
+            console.warn('Erro ao buscar do Firebase:', e);
+        }
+    }
+
+    // Fallback para localStorage
     const history = localStorage.getItem(HISTORY_KEY);
     if (!history) return null;
 
@@ -36,9 +78,31 @@ function getMonthData(monthKey) {
 }
 
 // Salvar dados do mês atual
-function saveMonthData(monthKey, data) {
-    let history = {};
+async function saveMonthData(monthKey, data) {
+    const dataToSave = {
+        savedAt: new Date().toISOString(),
+        summary: data.summary,
+        kpis: data.kpis,
+        sections: data.sections,
+        csvData: data.csvData
+    };
 
+    // Salvar no Firebase se disponível
+    if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
+        try {
+            const success = await saveMonthDataToFirebase(monthKey, dataToSave);
+            if (success) {
+                // Atualizar cache
+                monthsCache[monthKey] = dataToSave;
+                console.log('Dados salvos no Firebase:', monthKey);
+            }
+        } catch (e) {
+            console.error('Erro ao salvar no Firebase:', e);
+        }
+    }
+
+    // Sempre salvar também no localStorage como backup
+    let history = {};
     const stored = localStorage.getItem(HISTORY_KEY);
     if (stored) {
         try {
@@ -48,17 +112,86 @@ function saveMonthData(monthKey, data) {
         }
     }
 
-    history[monthKey] = {
-        savedAt: new Date().toISOString(),
-        summary: data.summary,
-        kpis: data.kpis,
-        charts: data.charts,
-        csvData: data.csvData // Dados brutos do CSV
-    };
-
+    history[monthKey] = dataToSave;
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-    console.log('Dados salvos para:', monthKey);
+    console.log('Dados salvos localmente:', monthKey);
 }
+
+// Verificar se há dados para um mês (versão síncrona para UI)
+function hasDataForMonth(monthKey) {
+    // Verificar cache
+    if (monthsCache[monthKey]) {
+        return true;
+    }
+
+    // Verificar lista do Firebase em cache
+    if (firebaseMonthsList && firebaseMonthsList.includes(monthKey)) {
+        return true;
+    }
+
+    // Verificar localStorage
+    const history = localStorage.getItem(HISTORY_KEY);
+    if (!history) return false;
+
+    try {
+        const data = JSON.parse(history);
+        return data[monthKey] !== undefined;
+    } catch (e) {
+        return false;
+    }
+}
+
+// Verificar se há dados para um mês (versão assíncrona)
+async function hasDataForMonthAsync(monthKey) {
+    // Verificar cache
+    if (monthsCache[monthKey]) {
+        return true;
+    }
+
+    // Tentar Firebase
+    if (typeof hasDataForMonthInFirebase === 'function' && isFirebaseReady()) {
+        try {
+            return await hasDataForMonthInFirebase(monthKey);
+        } catch (e) {
+            console.warn('Erro ao verificar Firebase:', e);
+        }
+    }
+
+    // Fallback para localStorage
+    return hasDataForMonth(monthKey);
+}
+
+// Deletar dados de um mês
+async function deleteMonthData(monthKey) {
+    // Deletar do Firebase
+    if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
+        try {
+            await deleteMonthDataFromFirebase(monthKey);
+        } catch (e) {
+            console.error('Erro ao deletar do Firebase:', e);
+        }
+    }
+
+    // Deletar do localStorage
+    const stored = localStorage.getItem(HISTORY_KEY);
+    if (stored) {
+        try {
+            const history = JSON.parse(stored);
+            delete history[monthKey];
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        } catch (e) {
+            console.error('Erro ao deletar dados:', e);
+        }
+    }
+
+    // Limpar cache
+    delete monthsCache[monthKey];
+    console.log('Dados deletados para:', monthKey);
+}
+
+// ==========================================
+// FUNÇÕES DE MÊS
+// ==========================================
 
 // Obter mês atual selecionado
 function getCurrentMonth() {
@@ -110,31 +243,23 @@ function getAvailableMonths() {
     return months;
 }
 
-// Verificar se há dados para um mês
-function hasDataForMonth(monthKey) {
-    const data = getMonthData(monthKey);
-    return data !== null;
-}
-
-// Deletar dados de um mês
-function deleteMonthData(monthKey) {
-    const stored = localStorage.getItem(HISTORY_KEY);
-    if (!stored) return;
-
-    try {
-        const history = JSON.parse(stored);
-        delete history[monthKey];
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-        console.log('Dados deletados para:', monthKey);
-    } catch (e) {
-        console.error('Erro ao deletar dados:', e);
-    }
-}
+// ==========================================
+// FUNÇÕES DE UI
+// ==========================================
 
 // Inicializar seletor de mês
-function initMonthSelector() {
+async function initMonthSelector() {
     const selector = document.getElementById('monthSelector');
     if (!selector) return;
+
+    // Buscar meses do Firebase para atualizar cache
+    if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
+        try {
+            firebaseMonthsList = await getHistoryMonthsFromFirebase();
+        } catch (e) {
+            console.warn('Erro ao buscar meses do Firebase:', e);
+        }
+    }
 
     const currentMonth = getCurrentMonth();
     const availableMonths = getAvailableMonths();
@@ -148,7 +273,10 @@ function initMonthSelector() {
         option.value = month.key;
         option.textContent = month.display;
 
-        if (month.hasData) {
+        // Verificar se tem dados (cache local + Firebase)
+        const hasData = month.hasData || (firebaseMonthsList && firebaseMonthsList.includes(month.key));
+
+        if (hasData) {
             option.textContent += ' ✓';
             option.classList.add('has-data');
         }
@@ -173,14 +301,14 @@ function updateHeaderTitle(monthKey) {
 }
 
 // Manipular mudança de mês
-function handleMonthChange(newMonthKey) {
+async function handleMonthChange(newMonthKey) {
     const previousMonth = getCurrentMonth();
 
     // Se há dados não salvos no mês atual, perguntar se quer salvar
     if (window.csvData && window.csvData.length > 0 && previousMonth !== newMonthKey) {
         const shouldSave = confirm(`Deseja salvar os dados atuais de ${formatMonthDisplay(previousMonth)} antes de trocar?`);
         if (shouldSave) {
-            saveCurrentData(previousMonth);
+            await saveCurrentData(previousMonth);
         }
     }
 
@@ -188,23 +316,26 @@ function handleMonthChange(newMonthKey) {
     setCurrentMonth(newMonthKey);
     updateHeaderTitle(newMonthKey);
 
+    // Mostrar loading
+    showNotification('Carregando dados...', 'info');
+
     // Carregar dados do novo mês se existirem
-    const monthData = getMonthData(newMonthKey);
+    const monthData = await getMonthData(newMonthKey);
 
     if (monthData) {
         loadMonthData(monthData);
-        showNotification(`Dados de ${formatMonthDisplay(newMonthKey)} carregados!`);
+        showNotification(`Dados de ${formatMonthDisplay(newMonthKey)} carregados!`, 'success');
     } else {
         clearDashboard();
         showNotification(`${formatMonthDisplay(newMonthKey)} - Sem dados. Carregue um CSV.`);
     }
 
     // Atualizar seletor para mostrar indicadores atualizados
-    initMonthSelector();
+    await initMonthSelector();
 }
 
 // Salvar dados atuais
-function saveCurrentData(monthKey) {
+async function saveCurrentData(monthKey) {
     if (!window.csvData || window.csvData.length === 0) {
         console.warn('Nenhum dado para salvar');
         return;
@@ -228,7 +359,6 @@ function saveCurrentData(monthKey) {
     const alertBox = document.querySelector('.highlight-box');
     const insightsList = document.getElementById('insightsList');
     const recommendationsList = document.getElementById('recommendationsList');
-    const competitorsSection = document.querySelector('.section:has(h2)');
 
     // Encontrar seção de concorrentes corretamente
     let competitorsHTML = '';
@@ -242,11 +372,10 @@ function saveCurrentData(monthKey) {
         }
     });
 
-    saveMonthData(monthKey, {
+    await saveMonthData(monthKey, {
         summary: summary,
         kpis: kpis,
         csvData: window.csvData,
-        // Salvar HTML das seções
         sections: {
             alertBox: alertBox ? alertBox.innerHTML : '',
             insights: insightsList ? insightsList.innerHTML : '',
@@ -450,7 +579,7 @@ function clearCharts() {
 }
 
 // Botão para salvar manualmente
-function saveCurrentMonth() {
+async function saveCurrentMonth() {
     const currentMonth = getCurrentMonth();
 
     if (!window.csvData || window.csvData.length === 0) {
@@ -458,25 +587,57 @@ function saveCurrentMonth() {
         return;
     }
 
-    saveCurrentData(currentMonth);
-    initMonthSelector(); // Atualizar indicador de dados
+    await saveCurrentData(currentMonth);
+    await initMonthSelector(); // Atualizar indicador de dados
 }
+
+// ==========================================
+// INICIALIZAÇÃO
+// ==========================================
 
 // Inicialização quando DOM carrega
 document.addEventListener('DOMContentLoaded', () => {
     // Pequeno delay para garantir que outros scripts carregaram
-    setTimeout(() => {
+    setTimeout(async () => {
         // Inicializar seletor de mês
-        initMonthSelector();
+        await initMonthSelector();
 
         // Verificar se há dados para o mês atual
         const currentMonth = getCurrentMonth();
-        const monthData = getMonthData(currentMonth);
+        const monthData = await getMonthData(currentMonth);
 
         if (monthData) {
             // Carregar dados automaticamente
             loadMonthData(monthData);
             showNotification(`Dados de ${formatMonthDisplay(currentMonth)} carregados do histórico.`);
         }
-    }, 100);
+    }, 500); // Delay maior para esperar Firebase inicializar
+});
+
+// Escutar quando Firebase estiver pronto
+window.addEventListener('firebaseReady', async () => {
+    console.log('Firebase pronto! Atualizando seletor de meses...');
+
+    // Verificar se há dados locais para sincronizar
+    const localHistory = localStorage.getItem(HISTORY_KEY);
+    if (localHistory) {
+        try {
+            const history = JSON.parse(localHistory);
+            const localMonths = Object.keys(history);
+            const firebaseMonths = await getHistoryMonthsFromFirebase();
+
+            // Sincronizar meses que estão apenas localmente
+            for (const month of localMonths) {
+                if (!firebaseMonths.includes(month)) {
+                    console.log(`Sincronizando ${month} para o Firebase...`);
+                    await saveMonthDataToFirebase(month, history[month]);
+                }
+            }
+        } catch (e) {
+            console.error('Erro ao sincronizar dados locais:', e);
+        }
+    }
+
+    // Atualizar seletor
+    await initMonthSelector();
 });
