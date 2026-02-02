@@ -334,33 +334,79 @@ async function handleMonthChange(newMonthKey) {
     await initMonthSelector();
 }
 
-// Salvar dados atuais
-async function saveCurrentData(monthKey) {
-    if (!window.csvData || window.csvData.length === 0) {
-        console.warn('Nenhum dado para salvar');
-        return;
-    }
+// Capturar KPIs diretamente da tela
+function captureKPIsFromScreen() {
+    const kpiValues = document.querySelectorAll('.kpi-value');
+    const kpiLabels = document.querySelectorAll('.kpi-label');
 
-    const summary = prepareDataSummary(window.csvData);
-
-    // Coletar KPIs atuais
-    const kpis = {
-        total: summary.total,
-        cancelados: summary.status['Cancelado'] || 0,
-        revertidos: summary.status['Revertido'] || 0,
-        desistencia: summary.status['Desistência'] || 0,
-        emTratativa: summary.status['Em negociação'] || 0,
-        valorTotal: summary.valorTotal,
-        valorCancelado: summary.valorCancelado,
-        valorRevertido: summary.valorRevertido
+    // Função para extrair número de texto
+    const extractNumber = (text) => {
+        if (!text) return 0;
+        // Remove R$, %, pontos de milhar e converte vírgula para ponto
+        const cleaned = text.replace(/[R$%\s]/g, '').replace(/\./g, '').replace(',', '.');
+        return parseFloat(cleaned) || 0;
     };
 
-    // Capturar HTML das seções dinâmicas
+    // Extrair porcentagem do label
+    const extractPercentage = (text) => {
+        const match = text.match(/\((\d+\.?\d*)%\)/);
+        return match ? parseFloat(match[1]) : 0;
+    };
+
+    const total = extractNumber(kpiValues[0]?.textContent);
+    const cancelados = extractNumber(kpiValues[1]?.textContent);
+    const revertidos = extractNumber(kpiValues[2]?.textContent);
+    const emTratativa = extractNumber(kpiValues[3]?.textContent);
+    const valorTotal = extractNumber(kpiValues[4]?.textContent);
+    const valorCancelado = extractNumber(kpiValues[5]?.textContent);
+    const valorRevertido = extractNumber(kpiValues[6]?.textContent);
+    const taxaReversao = extractNumber(kpiValues[7]?.textContent);
+
+    return {
+        total,
+        cancelados,
+        revertidos,
+        emTratativa,
+        valorTotal,
+        valorCancelado,
+        valorRevertido,
+        taxaReversao
+    };
+}
+
+// Capturar dados dos gráficos
+function captureChartsData() {
+    const chartsData = {};
+
+    const chartIds = ['motivoChart', 'statusChart', 'tempoChart', 'moduloChart'];
+
+    chartIds.forEach(id => {
+        const canvas = document.getElementById(id);
+        if (canvas) {
+            const chartInstance = Chart.getChart(canvas);
+            if (chartInstance && chartInstance.data) {
+                chartsData[id] = {
+                    labels: chartInstance.data.labels,
+                    datasets: chartInstance.data.datasets.map(ds => ({
+                        data: ds.data,
+                        backgroundColor: ds.backgroundColor,
+                        borderColor: ds.borderColor
+                    }))
+                };
+            }
+        }
+    });
+
+    return chartsData;
+}
+
+// Capturar todas as seções da tela
+function captureSectionsFromScreen() {
     const alertBox = document.querySelector('.highlight-box');
     const insightsList = document.getElementById('insightsList');
     const recommendationsList = document.getElementById('recommendationsList');
 
-    // Encontrar seção de concorrentes corretamente
+    // Capturar seção de concorrentes
     let competitorsHTML = '';
     document.querySelectorAll('.section').forEach(section => {
         const h2 = section.querySelector('h2');
@@ -372,16 +418,78 @@ async function saveCurrentData(monthKey) {
         }
     });
 
+    // Capturar seção de análise de usabilidade
+    let usabilityHTML = '';
+    const problemGrid = document.querySelector('.problem-grid');
+    if (problemGrid) {
+        usabilityHTML = problemGrid.innerHTML;
+    }
+
+    return {
+        alertBox: alertBox ? alertBox.innerHTML : '',
+        insights: insightsList ? insightsList.innerHTML : '',
+        recommendations: recommendationsList ? recommendationsList.innerHTML : '',
+        competitors: competitorsHTML,
+        usabilityAnalysis: usabilityHTML
+    };
+}
+
+// Salvar dados atuais (versão melhorada que funciona com ou sem CSV)
+async function saveCurrentData(monthKey) {
+    // Capturar KPIs da tela
+    const screenKpis = captureKPIsFromScreen();
+
+    // Verificar se há dados na tela (pelo menos o total deve ser > 0)
+    if (screenKpis.total === 0) {
+        console.warn('Nenhum dado para salvar (KPIs zerados)');
+        showNotification('Nenhum dado para salvar. Carregue dados primeiro.', 'warning');
+        return;
+    }
+
+    let summary;
+    let kpis;
+
+    // Se tiver csvData, usar o método tradicional para summary
+    if (window.csvData && window.csvData.length > 0) {
+        summary = prepareDataSummary(window.csvData);
+        kpis = {
+            total: summary.total,
+            cancelados: summary.status['Cancelado'] || 0,
+            revertidos: summary.status['Revertido'] || 0,
+            desistencia: summary.status['Desistência'] || 0,
+            emTratativa: summary.status['Em negociação'] || 0,
+            valorTotal: summary.valorTotal,
+            valorCancelado: summary.valorCancelado,
+            valorRevertido: summary.valorRevertido
+        };
+    } else {
+        // Usar dados capturados da tela
+        kpis = screenKpis;
+        summary = {
+            total: screenKpis.total,
+            status: {
+                'Cancelado': screenKpis.cancelados,
+                'Revertido': screenKpis.revertidos,
+                'Em negociação': screenKpis.emTratativa
+            },
+            valorTotal: screenKpis.valorTotal,
+            valorCancelado: screenKpis.valorCancelado,
+            valorRevertido: screenKpis.valorRevertido
+        };
+    }
+
+    // Capturar seções HTML
+    const sections = captureSectionsFromScreen();
+
+    // Capturar dados dos gráficos
+    const chartsData = captureChartsData();
+
     await saveMonthData(monthKey, {
         summary: summary,
         kpis: kpis,
-        csvData: window.csvData,
-        sections: {
-            alertBox: alertBox ? alertBox.innerHTML : '',
-            insights: insightsList ? insightsList.innerHTML : '',
-            recommendations: recommendationsList ? recommendationsList.innerHTML : '',
-            competitors: competitorsHTML
-        }
+        csvData: window.csvData || null,
+        chartsData: chartsData,
+        sections: sections
     });
 
     showNotification(`Dados de ${formatMonthDisplay(monthKey)} salvos!`, 'success');
@@ -394,10 +502,22 @@ function loadMonthData(monthData) {
     // Restaurar csvData global
     window.csvData = monthData.csvData;
 
-    // Atualizar KPIs
+    // Atualizar KPIs - usar summary ou kpis dependendo do que estiver disponível
     if (monthData.summary) {
         updateKPIs(monthData.summary);
-        updateCharts(monthData.summary);
+
+        // Se tiver csvData ou summary completo, atualizar gráficos normalmente
+        if (monthData.csvData || monthData.summary.motivos) {
+            updateCharts(monthData.summary);
+        }
+    } else if (monthData.kpis) {
+        // Fallback: atualizar KPIs diretamente dos valores salvos
+        updateKPIsFromValues(monthData.kpis);
+    }
+
+    // Restaurar gráficos salvos (se não tiver csvData)
+    if (monthData.chartsData && !monthData.csvData) {
+        restoreChartsFromData(monthData.chartsData);
     }
 
     // Restaurar seções salvas
@@ -432,6 +552,14 @@ function loadMonthData(monthData) {
                 }
             });
         }
+
+        // Restaurar análise de usabilidade
+        if (monthData.sections.usabilityAnalysis) {
+            const problemGrid = document.querySelector('.problem-grid');
+            if (problemGrid) {
+                problemGrid.innerHTML = monthData.sections.usabilityAnalysis;
+            }
+        }
     }
 
     // Habilitar botão de análise se API está configurada
@@ -445,6 +573,95 @@ function loadMonthData(monthData) {
     if (csvFileName) {
         csvFileName.textContent = 'Dados do histórico';
     }
+}
+
+// Atualizar KPIs diretamente dos valores (quando não há summary completo)
+function updateKPIsFromValues(kpis) {
+    const kpiValues = document.querySelectorAll('.kpi-value');
+    const kpiLabels = document.querySelectorAll('.kpi-label');
+
+    if (kpiValues.length >= 8) {
+        kpiValues[0].textContent = kpis.total || 0;
+        kpiValues[1].textContent = kpis.cancelados || 0;
+        kpiValues[2].textContent = kpis.revertidos || 0;
+        kpiValues[3].textContent = kpis.emTratativa || 0;
+
+        // Formatar valores monetários
+        const formatMoney = (val) => {
+            if (!val) return 'R$ 0';
+            return 'R$ ' + val.toLocaleString('pt-BR');
+        };
+
+        kpiValues[4].textContent = formatMoney(kpis.valorTotal);
+        kpiValues[5].textContent = formatMoney(kpis.valorCancelado);
+        kpiValues[6].textContent = formatMoney(kpis.valorRevertido);
+
+        // Taxa de reversão
+        const taxaReversao = kpis.taxaReversao ||
+            (kpis.valorTotal > 0 ? ((kpis.valorRevertido / kpis.valorTotal) * 100).toFixed(1) : 0);
+        kpiValues[7].textContent = taxaReversao + '%';
+
+        // Atualizar labels com porcentagens
+        const total = kpis.total || 1;
+        const pctCancelados = ((kpis.cancelados / total) * 100).toFixed(1);
+        const pctRevertidos = ((kpis.revertidos / total) * 100).toFixed(1);
+        const pctEmTratativa = ((kpis.emTratativa / total) * 100).toFixed(1);
+
+        if (kpiLabels[1]) kpiLabels[1].textContent = `Cancelados (${pctCancelados}%)`;
+        if (kpiLabels[2]) kpiLabels[2].textContent = `Revertidos (${pctRevertidos}%)`;
+        if (kpiLabels[3]) kpiLabels[3].textContent = `Em Tratativa (${pctEmTratativa}%)`;
+    }
+}
+
+// Restaurar gráficos a partir dos dados salvos
+function restoreChartsFromData(chartsData) {
+    if (!chartsData) return;
+
+    Object.keys(chartsData).forEach(chartId => {
+        const canvas = document.getElementById(chartId);
+        if (!canvas) return;
+
+        const savedData = chartsData[chartId];
+        if (!savedData || !savedData.labels) return;
+
+        // Destruir gráfico existente
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
+        // Determinar tipo de gráfico
+        const chartType = (chartId === 'tempoChart' || chartId === 'moduloChart') ? 'bar' : 'doughnut';
+
+        // Recriar gráfico
+        new Chart(canvas, {
+            type: chartType,
+            data: {
+                labels: savedData.labels,
+                datasets: savedData.datasets.map(ds => ({
+                    data: ds.data,
+                    backgroundColor: ds.backgroundColor,
+                    borderColor: ds.borderColor || 'transparent',
+                    borderWidth: 1
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: chartType === 'doughnut',
+                        position: 'bottom',
+                        labels: { color: '#94a3b8', padding: 10, font: { size: 11 } }
+                    }
+                },
+                scales: chartType === 'bar' ? {
+                    y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                } : {}
+            }
+        });
+    });
 }
 
 // Limpar dashboard para novo mês
