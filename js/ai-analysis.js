@@ -685,7 +685,6 @@ function updateCharts(summary) {
 
 // Atualizar lista de concorrentes (extraindo do CSV)
 function updateCompetitors(summary) {
-    const competitorContainer = document.querySelector('.section:has(h2:contains("Concorrentes")) > div:last-child');
     // Buscar concorrentes mencionados nos dados
     const competitors = {};
 
