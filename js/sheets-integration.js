@@ -140,7 +140,22 @@ async function syncFromSheets() {
         saveSheetsConfig(config);
 
         updateSyncStatus();
-        showNotification(`Sincronizado! ${window.csvData.length} registros carregados.`, 'success');
+
+        // === AUTO-SAVE NO FIREBASE ===
+        // Salvar automaticamente no Firebase após sincronizar
+        const currentMonth = getCurrentMonth();
+        if (typeof saveCurrentData === 'function') {
+            try {
+                await saveCurrentData(currentMonth);
+                console.log(`Dados salvos automaticamente no Firebase para ${currentMonth}`);
+                showNotification(`Sincronizado e salvo! ${window.csvData.length} registros em ${formatMonthDisplay(currentMonth)}.`, 'success');
+            } catch (firebaseError) {
+                console.error('Erro ao salvar no Firebase:', firebaseError);
+                showNotification(`Sincronizado! ${window.csvData.length} registros (erro ao salvar no Firebase).`, 'warning');
+            }
+        } else {
+            showNotification(`Sincronizado! ${window.csvData.length} registros carregados.`, 'success');
+        }
 
         return true;
     } catch (error) {
