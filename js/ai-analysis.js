@@ -3,8 +3,8 @@
    Integração com Anthropic API
    =================================== */
 
-// Variáveis globais
-let csvData = null;
+// Variáveis globais (usando window para compartilhar entre scripts)
+window.csvData = null;
 
 // Função getter para API Key - SEMPRE lê do localStorage para evitar dessincronização
 function getApiKey() {
@@ -44,12 +44,12 @@ function handleCSVUpload(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         const text = e.target.result;
-        csvData = parseCSV(text);
+        window.csvData = parseCSV(text);
 
-        console.log('CSV carregado:', csvData.length, 'registros');
+        console.log('CSV carregado:', window.csvData.length, 'registros');
 
         // Atualizar KPIs e gráficos automaticamente
-        const summary = prepareDataSummary(csvData);
+        const summary = prepareDataSummary(window.csvData);
         updateKPIs(summary);
         updateCharts(summary);
 
@@ -75,9 +75,15 @@ function handleCSVUpload(event) {
 
         // Mostrar notificação de sucesso
         if (hasApiKey) {
-            showNotification(`CSV carregado com ${csvData.length} registros. Clique em "Gerar Análise" para insights!`);
+            showNotification(`CSV carregado com ${window.csvData.length} registros. Clique em "Gerar Análise" para insights!`);
         } else {
             showNotification(`CSV carregado! Configure a API Key (engrenagem) para gerar análises.`);
+        }
+
+        // Notificar o gerenciador de histórico que há novos dados
+        if (typeof initMonthSelector === 'function') {
+            // Não atualizar o seletor aqui para não mostrar checkmark antes de salvar
+            console.log('CSV carregado - clique no botão salvar para guardar no histórico');
         }
     };
     reader.readAsText(file, 'UTF-8');
@@ -192,7 +198,7 @@ function parseCSVLine(line) {
 
 // Gerar análise com Claude
 async function generateAIAnalysis() {
-    if (!csvData || csvData.length === 0) {
+    if (!window.csvData || window.csvData.length === 0) {
         alert('Por favor, carregue um arquivo CSV primeiro.');
         return;
     }
@@ -207,7 +213,7 @@ async function generateAIAnalysis() {
 
     try {
         // Preparar resumo dos dados para o Claude
-        const dataSummary = prepareDataSummary(csvData);
+        const dataSummary = prepareDataSummary(window.csvData);
 
         // Chamar API do Claude
         const analysis = await callClaudeAPI(dataSummary);
@@ -473,7 +479,7 @@ function updateCharts(summary) {
         const canceladosPorTempo = { '0-3': 0, '3-6': 0, '6-12': 0, '+12': 0 };
         const revertidosPorTempo = { '0-3': 0, '3-6': 0, '6-12': 0, '+12': 0 };
 
-        csvData.forEach(row => {
+        window.csvData.forEach(row => {
             const tempoStr = getColumn(row, 'Tempo de uso em meses', 'Tempo de uso');
             const tempo = parseFloat((tempoStr || '0').replace(',', '.'));
             const status = getColumn(row, 'Status', 'status').trim();
@@ -561,7 +567,7 @@ function updateCompetitors(summary) {
     // Buscar concorrentes mencionados nos dados
     const competitors = {};
 
-    csvData.forEach(row => {
+    window.csvData.forEach(row => {
         const causa = getColumn(row, 'Causa', 'Motivo  da solicitação (ABERTURA *Hubspot)');
         const tratativa = getColumn(row, 'Tratativa (Resumo das ações realizadas)', 'Tratativa');
         const textoCompleto = (causa || '') + ' ' + (tratativa || '');
@@ -841,7 +847,7 @@ function saveApiKey() {
 
     // Habilitar botão se CSV já foi carregado
     const btnGenerate = document.getElementById('btnGenerate');
-    if (btnGenerate && csvData) {
+    if (btnGenerate && window.csvData) {
         btnGenerate.disabled = false;
     }
 

@@ -261,6 +261,102 @@ body::before {
     font-weight: 500;
 }
 
+/* Header Title Row com Seletor de Mês */
+.header-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 5px;
+}
+
+.header-title-row h1 {
+    margin: 0;
+}
+
+.month-selector-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.month-selector {
+    background: var(--surface-glass);
+    border: 1px solid rgba(53, 204, 163, 0.3);
+    border-radius: 8px;
+    padding: 8px 35px 8px 12px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2335cca3' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+}
+
+.month-selector:hover {
+    border-color: var(--hubstrom-accent);
+    background-color: var(--surface-glass-hover);
+}
+
+.month-selector:focus {
+    outline: none;
+    border-color: var(--hubstrom-accent);
+    box-shadow: 0 0 0 3px var(--hubstrom-accent-glow);
+}
+
+.month-selector option {
+    background: var(--hubstrom-dark);
+    color: var(--text-primary);
+    padding: 10px;
+}
+
+.month-selector option.has-data {
+    color: var(--hubstrom-accent);
+}
+
+.btn-save-month {
+    background: var(--surface-glass);
+    border: 1px solid rgba(53, 204, 163, 0.3);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--hubstrom-accent);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-save-month:hover {
+    background: var(--hubstrom-accent);
+    color: var(--hubstrom-dark);
+    border-color: var(--hubstrom-accent);
+    transform: scale(1.05);
+}
+
+.btn-save-month:active {
+    transform: scale(0.95);
+}
+
+@media (max-width: 600px) {
+    .header-title-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .month-selector-container {
+        width: 100%;
+    }
+
+    .month-selector {
+        flex: 1;
+    }
+}
+
 /* ===================================
    KPI GRID - Layout Responsivo
    =================================== */
