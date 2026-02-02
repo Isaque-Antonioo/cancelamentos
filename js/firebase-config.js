@@ -71,6 +71,7 @@ async function saveMonthDataToFirebase(monthKey, data) {
             summary: data.summary || null,
             kpis: data.kpis || null,
             sections: data.sections || null,
+            chartsData: data.chartsData || null,
             // csvData pode ser grande, vamos comprimir ou limitar
             csvDataCount: data.csvData ? data.csvData.length : 0,
             csvData: data.csvData || null

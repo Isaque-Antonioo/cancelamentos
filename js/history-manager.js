@@ -84,6 +84,7 @@ async function saveMonthData(monthKey, data) {
         summary: data.summary,
         kpis: data.kpis,
         sections: data.sections,
+        chartsData: data.chartsData,
         csvData: data.csvData
     };
 
@@ -897,6 +898,36 @@ async function saveCurrentMonth() {
 
     await saveCurrentData(currentMonth);
     await initMonthSelector(); // Atualizar indicador de dados
+}
+
+// Botão para excluir dados do mês
+async function deleteCurrentMonth() {
+    const currentMonth = getCurrentMonth();
+    const monthDisplay = formatMonthDisplay(currentMonth);
+
+    // Confirmar exclusão
+    if (!confirm(`Tem certeza que deseja excluir todos os dados de ${monthDisplay}?\n\nEsta ação não pode ser desfeita.`)) {
+        return;
+    }
+
+    try {
+        // Deletar do Firebase e localStorage
+        await deleteMonthData(currentMonth);
+
+        // Limpar cache
+        delete monthsCache[currentMonth];
+
+        // Limpar dashboard
+        clearDashboard();
+
+        // Atualizar seletor
+        await initMonthSelector();
+
+        showNotification(`Dados de ${monthDisplay} excluídos com sucesso!`, 'success');
+    } catch (error) {
+        console.error('Erro ao excluir dados:', error);
+        showNotification('Erro ao excluir dados. Tente novamente.', 'error');
+    }
 }
 
 // ==========================================
