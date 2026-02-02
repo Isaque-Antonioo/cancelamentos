@@ -294,17 +294,44 @@
                 </p>
             </div>
             <div class="ai-controls">
+                <!-- Google Sheets Sync -->
+                <div class="sheets-sync-area">
+                    <button class="btn-sync" id="btnSyncSheets" onclick="syncFromSheets()" title="Sincronizar com Google Sheets">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/>
+                        </svg>
+                        <span>Sincronizar</span>
+                    </button>
+                    <button class="btn-sheets-config" onclick="openSheetsConfigModal()" title="Configurar Google Sheets">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="3" y1="9" x2="21" y2="9"/>
+                            <line x1="3" y1="15" x2="21" y2="15"/>
+                            <line x1="9" y1="3" x2="9" y2="21"/>
+                            <line x1="15" y1="3" x2="15" y2="21"/>
+                        </svg>
+                    </button>
+                    <span id="syncStatus" class="sync-status">Não configurado</span>
+                </div>
+
+                <div class="controls-divider"></div>
+
+                <!-- Upload CSV Manual (alternativa) -->
                 <div class="csv-upload-area">
                     <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
-                    <button class="btn-upload" onclick="document.getElementById('csvFileInput').click()">
+                    <button class="btn-upload" onclick="document.getElementById('csvFileInput').click()" title="Upload manual de CSV">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                             <polyline points="17 8 12 3 7 8"/>
                             <line x1="12" y1="3" x2="12" y2="15"/>
                         </svg>
-                        <span id="csvFileName">Carregar CSV</span>
+                        <span id="csvFileName">CSV Manual</span>
                     </button>
                 </div>
+
+                <div class="controls-divider"></div>
+
+                <!-- Análise IA -->
                 <button class="btn-generate" onclick="generateAIAnalysis()" id="btnGenerate" disabled>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
@@ -399,7 +426,7 @@
         </section>
     </div>
 
-    <!-- Modal de Configuração -->
+    <!-- Modal de Configuração API -->
     <div id="configModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -421,11 +448,54 @@
         </div>
     </div>
 
+    <!-- Modal de Configuração Google Sheets -->
+    <div id="sheetsConfigModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📊 Configurar Google Sheets</h3>
+                <button class="modal-close" onclick="closeSheetsConfigModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label for="sheetsUrlInput">URL da Planilha Google Sheets</label>
+                <input type="text" id="sheetsUrlInput" placeholder="https://docs.google.com/spreadsheets/d/..." />
+                <p class="api-help">
+                    <strong>Importante:</strong> A planilha precisa estar publicada na web.<br>
+                    Vá em <strong>Arquivo → Compartilhar → Publicar na web</strong> e publique como página da web.
+                </p>
+
+                <label for="sheetsGidInput" style="margin-top: 20px; display: block;">ID da Aba (gid) - Opcional</label>
+                <input type="text" id="sheetsGidInput" placeholder="Ex: 609733249 (deixe vazio para usar a aba da URL)" />
+                <p class="api-help">
+                    <strong>Como encontrar o gid:</strong> Abra a aba desejada na planilha e veja na URL: <code>gid=XXXXXXX</code><br>
+                    Cada aba tem um gid diferente. Quando criar uma nova aba mensal, basta atualizar este número aqui.
+                </p>
+
+                <label for="refreshIntervalSelect" style="margin-top: 20px; display: block;">Atualização Automática</label>
+                <select id="refreshIntervalSelect" class="select-input">
+                    <option value="0">Desativada (manual)</option>
+                    <option value="5">A cada 5 minutos</option>
+                    <option value="15">A cada 15 minutos</option>
+                    <option value="30">A cada 30 minutos</option>
+                    <option value="60">A cada 1 hora</option>
+                </select>
+                <p class="api-help">
+                    Se ativado, os dados serão sincronizados automaticamente no intervalo selecionado.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-danger" onclick="removeSheetsConfiguration()" style="margin-right: auto;">Remover</button>
+                <button class="btn-secondary" onclick="closeSheetsConfigModal()">Cancelar</button>
+                <button class="btn-primary" onclick="saveSheetsConfiguration()">Salvar e Sincronizar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/charts.js"></script>
     <script src="js/ai-analysis.js"></script>
     <script src="js/history-manager.js"></script>
+    <script src="js/sheets-integration.js"></script>
 
     <!-- Controle do Menu Sidebar -->
     <script>

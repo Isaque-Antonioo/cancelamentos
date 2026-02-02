@@ -1254,6 +1254,163 @@ canvas {
     transform: rotate(90deg);
 }
 
+/* ===================================
+   GOOGLE SHEETS SYNC
+   =================================== */
+.sheets-sync-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-sync {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.9em;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-smooth);
+    min-height: 46px;
+    border: none;
+    background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3);
+}
+
+.btn-sync:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(66, 133, 244, 0.4);
+}
+
+.btn-sync:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-sync.syncing svg {
+    animation: spin 1s linear infinite;
+}
+
+.btn-sheets-config {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-smooth);
+    min-height: 46px;
+    width: 46px;
+    border: 1px solid rgba(66, 133, 244, 0.3);
+    background: var(--surface-glass);
+    color: #4285f4;
+}
+
+.btn-sheets-config:hover {
+    background: rgba(66, 133, 244, 0.1);
+    border-color: #4285f4;
+    transform: scale(1.05);
+}
+
+.sync-status {
+    font-size: 0.75em;
+    color: var(--text-muted);
+    padding: 4px 8px;
+    background: var(--surface-glass);
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.sync-status.synced {
+    color: var(--hubstrom-accent);
+    background: rgba(53, 204, 163, 0.1);
+}
+
+.controls-divider {
+    width: 1px;
+    height: 30px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0 5px;
+}
+
+/* Select Input (para modal) */
+.select-input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-glass);
+    color: var(--text-primary);
+    font-size: 1em;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+}
+
+.select-input:hover {
+    border-color: var(--hubstrom-accent);
+}
+
+.select-input:focus {
+    outline: none;
+    border-color: var(--hubstrom-accent);
+    box-shadow: 0 0 0 3px var(--hubstrom-accent-glow);
+}
+
+.select-input option {
+    background: var(--hubstrom-dark);
+    color: var(--text-primary);
+}
+
+/* Botão Danger para modais */
+.btn-danger {
+    background: transparent;
+    border: 1px solid var(--color-danger);
+    color: var(--color-danger);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-danger:hover {
+    background: var(--color-danger);
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .sheets-sync-area {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .btn-sync {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .sync-status {
+        width: 100%;
+        text-align: center;
+    }
+
+    .controls-divider {
+        display: none;
+    }
+}
+
 /* AI Loading */
 .ai-loading {
     display: flex;
@@ -1393,6 +1550,15 @@ canvas {
 
 .api-help a:hover {
     text-decoration: underline;
+}
+
+.api-help code {
+    background: rgba(53, 204, 163, 0.15);
+    color: var(--hubstrom-accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9em;
 }
 
 .api-status {
