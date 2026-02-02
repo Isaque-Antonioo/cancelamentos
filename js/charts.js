@@ -3,6 +3,9 @@
    Identidade Visual
    =================================== */
 
+// Variável global para armazenar instâncias dos gráficos
+window.hubstromCharts = window.hubstromCharts || {};
+
 // Paleta de Cores Hubstrom
 const hubstromColors = {
     dark: '#1e293b',
@@ -51,7 +54,7 @@ function initMotivoChart() {
     const ctx = document.getElementById('motivoChart');
     if (!ctx) return;
 
-    new Chart(ctx, {
+    window.hubstromCharts.motivoChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Usabilidade (48%)', 'Financeiro (32%)', 'Migração (20%)'],
@@ -117,7 +120,7 @@ function initStatusChart() {
     const ctx = document.getElementById('statusChart');
     if (!ctx) return;
 
-    new Chart(ctx, {
+    window.hubstromCharts.statusChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Cancelado', 'Revertido', 'Desistência', 'Em negociação'],
@@ -185,7 +188,7 @@ function initTempoChart() {
     const ctx = document.getElementById('tempoChart');
     if (!ctx) return;
 
-    new Chart(ctx, {
+    window.hubstromCharts.tempoChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: ['0-3 meses', '3-6 meses', '6-12 meses', '+12 meses'],
@@ -266,7 +269,7 @@ function initModuloChart() {
     const ctx = document.getElementById('moduloChart');
     if (!ctx) return;
 
-    new Chart(ctx, {
+    window.hubstromCharts.moduloChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: ['ConnectHub', 'XMLHub', 'TaskHub', 'MonitorHub'],

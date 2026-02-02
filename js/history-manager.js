@@ -345,11 +345,20 @@ function captureKPIsFromScreen() {
     const kpiValues = document.querySelectorAll('.kpi-value');
     const kpiLabels = document.querySelectorAll('.kpi-label');
 
-    // Função para extrair número de texto
+    // Função para extrair número de texto (valores monetários e contagens)
     const extractNumber = (text) => {
         if (!text) return 0;
-        // Remove R$, %, pontos de milhar e converte vírgula para ponto
+        // Remove R$, %, espaços e converte formato brasileiro para número
+        // Formato: 1.234,56 -> 1234.56
         const cleaned = text.replace(/[R$%\s]/g, '').replace(/\./g, '').replace(',', '.');
+        return parseFloat(cleaned) || 0;
+    };
+
+    // Função específica para extrair porcentagem (preserva ponto decimal)
+    const extractPercent = (text) => {
+        if (!text) return 0;
+        // Remove apenas % e espaços, converte vírgula para ponto se necessário
+        const cleaned = text.replace(/[%\s]/g, '').replace(',', '.');
         return parseFloat(cleaned) || 0;
     };
 
@@ -366,7 +375,7 @@ function captureKPIsFromScreen() {
     const valorTotal = extractNumber(kpiValues[4]?.textContent);
     const valorCancelado = extractNumber(kpiValues[5]?.textContent);
     const valorRevertido = extractNumber(kpiValues[6]?.textContent);
-    const taxaReversao = extractNumber(kpiValues[7]?.textContent);
+    const taxaReversao = extractPercent(kpiValues[7]?.textContent);
 
     return {
         total,
@@ -383,26 +392,48 @@ function captureKPIsFromScreen() {
 // Capturar dados dos gráficos
 function captureChartsData() {
     const chartsData = {};
-
     const chartIds = ['motivoChart', 'statusChart', 'tempoChart', 'moduloChart'];
 
-    chartIds.forEach(id => {
-        const canvas = document.getElementById(id);
-        if (canvas) {
-            const chartInstance = Chart.getChart(canvas);
+    // Usar variável global hubstromCharts (mais confiável)
+    if (window.hubstromCharts) {
+        chartIds.forEach(id => {
+            const chartInstance = window.hubstromCharts[id];
             if (chartInstance && chartInstance.data) {
                 chartsData[id] = {
                     labels: chartInstance.data.labels,
                     datasets: chartInstance.data.datasets.map(ds => ({
-                        data: ds.data,
+                        data: Array.isArray(ds.data) ? [...ds.data] : ds.data,
                         backgroundColor: ds.backgroundColor,
                         borderColor: ds.borderColor
                     }))
                 };
+                console.log(`Gráfico ${id} capturado:`, chartsData[id].labels);
             }
-        }
-    });
+        });
+    }
 
+    // Fallback: tentar Chart.getChart se hubstromCharts não funcionou
+    if (Object.keys(chartsData).length === 0) {
+        console.log('Tentando fallback com Chart.getChart...');
+        chartIds.forEach(id => {
+            const canvas = document.getElementById(id);
+            if (canvas) {
+                const chartInstance = Chart.getChart(canvas);
+                if (chartInstance && chartInstance.data) {
+                    chartsData[id] = {
+                        labels: chartInstance.data.labels,
+                        datasets: chartInstance.data.datasets.map(ds => ({
+                            data: Array.isArray(ds.data) ? [...ds.data] : ds.data,
+                            backgroundColor: ds.backgroundColor,
+                            borderColor: ds.borderColor
+                        }))
+                    };
+                }
+            }
+        });
+    }
+
+    console.log('Total de gráficos capturados:', Object.keys(chartsData).length);
     return chartsData;
 }
 
@@ -625,9 +656,14 @@ function updateKPIsFromValues(kpis) {
         kpiValues[5].textContent = formatMoney(kpis.valorCancelado);
         kpiValues[6].textContent = formatMoney(kpis.valorRevertido);
 
-        // Taxa de reversão
-        const taxaReversao = kpis.taxaReversao ||
+        // Taxa de reversão (corrige valores salvos incorretamente acima de 100%)
+        let taxaReversao = kpis.taxaReversao ||
             (kpis.valorTotal > 0 ? ((kpis.valorRevertido / kpis.valorTotal) * 100).toFixed(1) : 0);
+
+        // Correção para dados salvos com erro (ex: 378 em vez de 37.8)
+        if (taxaReversao > 100) {
+            taxaReversao = (taxaReversao / 10).toFixed(1);
+        }
         kpiValues[7].textContent = taxaReversao + '%';
 
         // Atualizar labels com porcentagens
@@ -646,6 +682,9 @@ function updateKPIsFromValues(kpis) {
 function restoreChartsFromData(chartsData) {
     if (!chartsData) return;
 
+    // Inicializar variável global
+    window.hubstromCharts = window.hubstromCharts || {};
+
     Object.keys(chartsData).forEach(chartId => {
         const canvas = document.getElementById(chartId);
         if (!canvas) return;
@@ -653,17 +692,22 @@ function restoreChartsFromData(chartsData) {
         const savedData = chartsData[chartId];
         if (!savedData || !savedData.labels) return;
 
-        // Destruir gráfico existente
-        const existingChart = Chart.getChart(canvas);
-        if (existingChart) {
-            existingChart.destroy();
+        // Destruir gráfico existente (da variável global ou via Chart.getChart)
+        if (window.hubstromCharts[chartId]) {
+            window.hubstromCharts[chartId].destroy();
+        } else {
+            const existingChart = Chart.getChart(canvas);
+            if (existingChart) {
+                existingChart.destroy();
+            }
         }
 
         // Determinar tipo de gráfico
         const chartType = (chartId === 'tempoChart' || chartId === 'moduloChart') ? 'bar' : 'doughnut';
+        const isHorizontal = chartId === 'moduloChart';
 
-        // Recriar gráfico
-        new Chart(canvas, {
+        // Recriar gráfico e salvar na variável global
+        window.hubstromCharts[chartId] = new Chart(canvas, {
             type: chartType,
             data: {
                 labels: savedData.labels,
@@ -802,17 +846,24 @@ function clearDashboard() {
 function clearCharts() {
     const chartIds = ['motivoChart', 'statusChart', 'tempoChart', 'moduloChart'];
 
+    // Inicializar variável global
+    window.hubstromCharts = window.hubstromCharts || {};
+
     chartIds.forEach(id => {
         const canvas = document.getElementById(id);
         if (canvas) {
-            // Obter instância do Chart.js e destruir
-            const chartInstance = Chart.getChart(canvas);
-            if (chartInstance) {
-                chartInstance.destroy();
+            // Destruir gráfico existente (da variável global ou via Chart.getChart)
+            if (window.hubstromCharts[id]) {
+                window.hubstromCharts[id].destroy();
+            } else {
+                const chartInstance = Chart.getChart(canvas);
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
             }
 
-            // Criar gráfico vazio
-            new Chart(canvas, {
+            // Criar gráfico vazio e salvar na variável global
+            window.hubstromCharts[id] = new Chart(canvas, {
                 type: id.includes('tempo') || id.includes('modulo') ? 'bar' : 'doughnut',
                 data: {
                     labels: ['Sem dados'],

@@ -410,6 +410,9 @@ function updateKPIs(summary) {
 
 // Atualizar gráficos
 function updateCharts(summary) {
+    // Inicializar objeto global se não existir
+    window.hubstromCharts = window.hubstromCharts || {};
+
     // Destruir gráficos existentes e recriar
     const chartInstances = Chart.instances;
     Object.values(chartInstances).forEach(chart => chart.destroy());
@@ -422,7 +425,7 @@ function updateCharts(summary) {
     // Recriar gráfico de motivos
     const motivoCtx = document.getElementById('motivoChart');
     if (motivoCtx) {
-        new Chart(motivoCtx, {
+        window.hubstromCharts.motivoChart = new Chart(motivoCtx, {
             type: 'doughnut',
             data: {
                 labels: motivoLabels.map((label, i) => `${label} (${((motivoData[i] / total) * 100).toFixed(0)}%)`),
@@ -450,7 +453,7 @@ function updateCharts(summary) {
         const statusLabels = ['Cancelado', 'Revertido', 'Desistência', 'Em negociação'];
         const statusData = statusLabels.map(s => summary.status[s] || 0);
 
-        new Chart(statusCtx, {
+        window.hubstromCharts.statusChart = new Chart(statusCtx, {
             type: 'doughnut',
             data: {
                 labels: statusLabels,
@@ -495,7 +498,7 @@ function updateCharts(summary) {
             }
         });
 
-        new Chart(tempoCtx, {
+        window.hubstromCharts.tempoChart = new Chart(tempoCtx, {
             type: 'bar',
             data: {
                 labels: ['0-3 meses', '3-6 meses', '6-12 meses', '+12 meses'],
@@ -532,7 +535,7 @@ function updateCharts(summary) {
         const moduloLabels = Object.keys(summary.modulos).slice(0, 5);
         const moduloData = moduloLabels.map(m => summary.modulos[m]);
 
-        new Chart(moduloCtx, {
+        window.hubstromCharts.moduloChart = new Chart(moduloCtx, {
             type: 'bar',
             data: {
                 labels: moduloLabels,
