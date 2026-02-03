@@ -141,13 +141,22 @@ async function syncFromSheets() {
 
         updateSyncStatus();
 
-        // === AUTO-SAVE NO FIREBASE ===
-        // Salvar automaticamente no Firebase após sincronizar
+        // === AUTO-SAVE NO FIREBASE COM HISTÓRICO ===
+        // Salvar automaticamente no Firebase após sincronizar (com backup no histórico)
         const currentMonth = getCurrentMonth();
-        if (typeof saveCurrentData === 'function') {
+        if (typeof saveCurrentDataWithHistory === 'function') {
+            try {
+                await saveCurrentDataWithHistory(currentMonth);
+                console.log(`Dados salvos automaticamente no Firebase para ${currentMonth}`);
+                showNotification(`Sincronizado e salvo! ${window.csvData.length} registros em ${formatMonthDisplay(currentMonth)}. Versão anterior salva no histórico.`, 'success');
+            } catch (firebaseError) {
+                console.error('Erro ao salvar no Firebase:', firebaseError);
+                showNotification(`Sincronizado! ${window.csvData.length} registros (erro ao salvar no Firebase).`, 'warning');
+            }
+        } else if (typeof saveCurrentData === 'function') {
+            // Fallback para função antiga
             try {
                 await saveCurrentData(currentMonth);
-                console.log(`Dados salvos automaticamente no Firebase para ${currentMonth}`);
                 showNotification(`Sincronizado e salvo! ${window.csvData.length} registros em ${formatMonthDisplay(currentMonth)}.`, 'success');
             } catch (firebaseError) {
                 console.error('Erro ao salvar no Firebase:', firebaseError);

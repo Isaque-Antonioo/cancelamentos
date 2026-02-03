@@ -54,6 +54,31 @@
     --spacing-2xl: 40px;
 }
 
+/* Loading State - Evitar flash de conteúdo */
+.dashboard-loading .kpi-value,
+.dashboard-loading .kpi-label,
+.dashboard-loading .chart-card canvas,
+.dashboard-loading .highlight-box,
+.dashboard-loading .insight-list,
+.dashboard-loading .recommendation-card,
+.dashboard-loading .problem-grid,
+.dashboard-loading .competitor-tag {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.dashboard-loaded .kpi-value,
+.dashboard-loaded .kpi-label,
+.dashboard-loaded .chart-card canvas,
+.dashboard-loaded .highlight-box,
+.dashboard-loaded .insight-list,
+.dashboard-loaded .recommendation-card,
+.dashboard-loaded .problem-grid,
+.dashboard-loaded .competitor-tag {
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
 /* Reset e Base */
 * {
     margin: 0;
@@ -1303,7 +1328,8 @@ canvas {
 /* ===================================
    GOOGLE SHEETS SYNC
    =================================== */
-.sheets-sync-area {
+.sheets-sync-area,
+.history-area {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1654,6 +1680,214 @@ canvas {
 .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(53, 204, 163, 0.3);
+}
+
+/* Modal Large (para histórico) */
+.modal-large {
+    max-width: 600px;
+}
+
+/* ===================================
+   HISTÓRICO DE VERSÕES
+   =================================== */
+
+/* Botão de Histórico */
+.btn-history {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--surface-glass);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-smooth);
+}
+
+.btn-history:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: var(--color-info);
+    color: var(--color-info);
+}
+
+.btn-history svg {
+    opacity: 0.8;
+}
+
+.btn-history:hover svg {
+    opacity: 1;
+}
+
+/* History Modal Content */
+.history-description {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.5;
+}
+
+.history-list {
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--hubstrom-accent) transparent;
+}
+
+.history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.history-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background: var(--hubstrom-accent);
+    border-radius: 3px;
+}
+
+.history-loading,
+.history-empty {
+    text-align: center;
+    padding: var(--spacing-2xl);
+    color: var(--text-secondary);
+}
+
+.history-empty svg {
+    margin-bottom: var(--spacing-md);
+    opacity: 0.5;
+}
+
+.history-empty p {
+    margin: var(--spacing-xs) 0;
+}
+
+.history-month-title {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--hubstrom-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: var(--border-subtle);
+}
+
+.history-item {
+    background: var(--surface-glass);
+    border-radius: 12px;
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all var(--transition-fast);
+}
+
+.history-item:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--surface-glass-hover);
+}
+
+.history-item.latest {
+    border-color: rgba(53, 204, 163, 0.3);
+    background: rgba(53, 204, 163, 0.05);
+}
+
+.history-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.history-date {
+    font-size: 0.95em;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.history-badge {
+    font-size: 0.7em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 8px;
+    background: rgba(53, 204, 163, 0.2);
+    color: var(--hubstrom-accent);
+    border-radius: 6px;
+}
+
+.history-item-summary {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.history-stat {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+}
+
+.history-stat strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.history-stat.danger strong {
+    color: var(--color-danger);
+}
+
+.history-stat.success strong {
+    color: var(--color-success);
+}
+
+.history-item-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+}
+
+.btn-restore {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: rgba(53, 204, 163, 0.15);
+    border: 1px solid rgba(53, 204, 163, 0.3);
+    border-radius: 8px;
+    color: var(--hubstrom-accent);
+    font-size: 0.85em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-restore:hover {
+    background: rgba(53, 204, 163, 0.25);
+    border-color: var(--hubstrom-accent);
+    transform: translateY(-1px);
+}
+
+.btn-delete-history {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-delete-history:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: var(--color-danger);
 }
 
 /* Notification Toast */

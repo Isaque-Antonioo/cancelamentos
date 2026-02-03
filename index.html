@@ -16,7 +16,7 @@
     <!-- Verificacao de autenticacao -->
     <script src="js/auth.js"></script>
 </head>
-<body>
+<body class="dashboard-loading">
     <div class="container">
         <!-- Menu Lateral -->
         <nav class="sidebar" id="sidebar">
@@ -325,16 +325,14 @@
 
                 <div class="controls-divider"></div>
 
-                <!-- Upload CSV Manual (alternativa) -->
-                <div class="csv-upload-area">
-                    <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
-                    <button class="btn-upload" onclick="document.getElementById('csvFileInput').click()" title="Upload manual de CSV">
+                <!-- Botão Ver Histórico -->
+                <div class="history-area">
+                    <button class="btn-history" onclick="openHistoryModal()" title="Ver histórico de versões">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="17 8 12 3 7 8"/>
-                            <line x1="12" y1="3" x2="12" y2="15"/>
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
                         </svg>
-                        <span id="csvFileName">CSV Manual</span>
+                        <span>Histórico</span>
                     </button>
                 </div>
 
@@ -453,6 +451,25 @@
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeConfigModal()">Cancelar</button>
                 <button class="btn-primary" onclick="saveApiKey()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Histórico de Versões -->
+    <div id="historyModal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Histórico de Versões</h3>
+                <button class="modal-close" onclick="closeHistoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="history-description">Visualize e restaure versões anteriores dos dados. Cada sincronização cria automaticamente uma versão de backup.</p>
+                <div id="historyList" class="history-list">
+                    <div class="history-loading">Carregando histórico...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeHistoryModal()">Fechar</button>
             </div>
         </div>
     </div>

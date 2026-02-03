@@ -42,12 +42,51 @@ const customAnimation = {
 };
 
 // Inicialização quando o DOM estiver pronto
+// NÃO inicializar automaticamente - deixar o history-manager carregar os dados primeiro
 document.addEventListener('DOMContentLoaded', () => {
-    initMotivoChart();
-    initStatusChart();
-    initTempoChart();
-    initModuloChart();
+    // Verificar se há dados salvos - se não houver, inicializar gráficos vazios após delay
+    setTimeout(() => {
+        // Se os gráficos ainda não foram inicializados pelo history-manager
+        if (!window.hubstromCharts.motivoChart) {
+            initEmptyCharts();
+        }
+    }, 1000);
 });
+
+// Inicializar gráficos vazios (placeholder)
+function initEmptyCharts() {
+    const chartConfigs = [
+        { id: 'motivoChart', type: 'doughnut' },
+        { id: 'statusChart', type: 'doughnut' },
+        { id: 'tempoChart', type: 'bar' },
+        { id: 'moduloChart', type: 'bar' }
+    ];
+
+    chartConfigs.forEach(config => {
+        const ctx = document.getElementById(config.id);
+        if (ctx && !window.hubstromCharts[config.id]) {
+            window.hubstromCharts[config.id] = new Chart(ctx, {
+                type: config.type,
+                data: {
+                    labels: ['Aguardando dados...'],
+                    datasets: [{
+                        data: [1],
+                        backgroundColor: ['rgba(100, 116, 139, 0.3)'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
+                }
+            });
+        }
+    });
+}
 
 // Gráfico de Motivos - Doughnut Premium
 function initMotivoChart() {

@@ -319,6 +319,10 @@ async function handleMonthChange(newMonthKey) {
         }
     }
 
+    // Aplicar estado de loading durante a transição
+    document.body.classList.remove('dashboard-loaded');
+    document.body.classList.add('dashboard-loading');
+
     // Atualizar mês atual
     setCurrentMonth(newMonthKey);
     updateHeaderTitle(newMonthKey);
@@ -339,6 +343,9 @@ async function handleMonthChange(newMonthKey) {
 
     // Atualizar seletor para mostrar indicadores atualizados
     await initMonthSelector();
+
+    // Remover estado de loading após carregar
+    markDashboardLoaded();
 }
 
 // Capturar KPIs diretamente da tela
@@ -891,13 +898,44 @@ function clearCharts() {
 async function saveCurrentMonth() {
     const currentMonth = getCurrentMonth();
 
-    if (!window.csvData || window.csvData.length === 0) {
-        showNotification('Nenhum dado para salvar. Carregue um CSV primeiro.', 'warning');
+    // Verificar se há dados na tela (KPIs ou seções)
+    const screenKpis = captureKPIsFromScreen();
+    const sections = captureSectionsFromScreen();
+    const hasKpiData = screenKpis.total > 0;
+    const hasSectionData = sections.alertBox && !sections.alertBox.includes('AGUARDANDO DADOS');
+
+    if (!hasKpiData && !hasSectionData) {
+        showNotification('Nenhum dado para salvar. Sincronize com a planilha primeiro.', 'warning');
         return;
     }
 
-    await saveCurrentData(currentMonth);
+    await saveCurrentDataWithHistory(currentMonth);
     await initMonthSelector(); // Atualizar indicador de dados
+}
+
+// Salvar dados com histórico (nova função principal)
+async function saveCurrentDataWithHistory(monthKey) {
+    // Primeiro, salvar versão atual no histórico (se houver dados existentes)
+    if (typeof saveToHistory === 'function' && isFirebaseReady()) {
+        try {
+            await saveToHistory(monthKey);
+            console.log('Versão anterior salva no histórico');
+        } catch (e) {
+            console.warn('Erro ao salvar no histórico:', e);
+        }
+    }
+
+    // Agora salvar os dados atuais
+    await saveCurrentData(monthKey);
+
+    // Limpar histórico antigo (manter últimas 10 versões)
+    if (typeof cleanOldHistory === 'function') {
+        try {
+            await cleanOldHistory(monthKey, 10);
+        } catch (e) {
+            console.warn('Erro ao limpar histórico antigo:', e);
+        }
+    }
 }
 
 // Botão para excluir dados do mês
@@ -931,8 +969,191 @@ async function deleteCurrentMonth() {
 }
 
 // ==========================================
+// MODAL DE HISTÓRICO DE VERSÕES
+// ==========================================
+
+// Abrir modal de histórico
+async function openHistoryModal() {
+    const modal = document.getElementById('historyModal');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+
+    // Carregar lista de versões
+    await loadHistoryList();
+}
+
+// Fechar modal de histórico
+function closeHistoryModal() {
+    const modal = document.getElementById('historyModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Carregar lista de versões do histórico
+async function loadHistoryList() {
+    const historyList = document.getElementById('historyList');
+    if (!historyList) return;
+
+    historyList.innerHTML = '<div class="history-loading">Carregando histórico...</div>';
+
+    const currentMonth = getCurrentMonth();
+
+    if (!isFirebaseReady()) {
+        historyList.innerHTML = '<div class="history-empty">Firebase não está conectado.</div>';
+        return;
+    }
+
+    try {
+        const versions = await getHistoryVersions(currentMonth);
+
+        if (versions.length === 0) {
+            historyList.innerHTML = `
+                <div class="history-empty">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <p>Nenhuma versão anterior encontrada para <strong>${formatMonthDisplay(currentMonth)}</strong>.</p>
+                    <p style="font-size: 0.9em; color: var(--text-muted);">Versões serão criadas automaticamente quando você sincronizar com a planilha.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Renderizar lista de versões
+        let html = `<div class="history-month-title">Versões de ${formatMonthDisplay(currentMonth)}</div>`;
+
+        versions.forEach((version, index) => {
+            const date = new Date(version.date);
+            const formattedDate = date.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // Extrair resumo dos KPIs
+            const kpis = version.kpis || version.summary || {};
+            const total = kpis.total || 0;
+            const cancelados = kpis.cancelados || kpis.status?.['Cancelado'] || 0;
+            const revertidos = kpis.revertidos || kpis.status?.['Revertido'] || 0;
+
+            html += `
+                <div class="history-item ${index === 0 ? 'latest' : ''}">
+                    <div class="history-item-header">
+                        <span class="history-date">${formattedDate}</span>
+                        ${index === 0 ? '<span class="history-badge">Mais recente</span>' : ''}
+                    </div>
+                    <div class="history-item-summary">
+                        <span class="history-stat"><strong>${total}</strong> solicitações</span>
+                        <span class="history-stat danger"><strong>${cancelados}</strong> cancelados</span>
+                        <span class="history-stat success"><strong>${revertidos}</strong> revertidos</span>
+                    </div>
+                    <div class="history-item-actions">
+                        <button class="btn-restore" onclick="restoreHistoryVersion('${version.key}')" title="Restaurar esta versão">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="1 4 1 10 7 10"/>
+                                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                            </svg>
+                            Restaurar
+                        </button>
+                        <button class="btn-delete-history" onclick="deleteHistoryVersionUI('${version.key}')" title="Excluir esta versão">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        historyList.innerHTML = html;
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
+        historyList.innerHTML = '<div class="history-empty">Erro ao carregar histórico. Tente novamente.</div>';
+    }
+}
+
+// Restaurar versão do histórico
+async function restoreHistoryVersion(versionKey) {
+    const currentMonth = getCurrentMonth();
+    const monthDisplay = formatMonthDisplay(currentMonth);
+
+    if (!confirm(`Deseja restaurar esta versão?\n\nOs dados atuais de ${monthDisplay} serão substituídos pela versão selecionada.\n\n(Uma cópia dos dados atuais será salva no histórico)`)) {
+        return;
+    }
+
+    try {
+        showNotification('Restaurando versão...', 'info');
+
+        const success = await restoreFromHistory(currentMonth, versionKey);
+
+        if (success) {
+            // Limpar cache
+            delete monthsCache[currentMonth];
+
+            // Recarregar dados
+            const monthData = await getMonthData(currentMonth);
+            if (monthData) {
+                loadMonthData(monthData);
+            }
+
+            // Atualizar lista do histórico
+            await loadHistoryList();
+
+            showNotification('Versão restaurada com sucesso!', 'success');
+        } else {
+            showNotification('Erro ao restaurar versão.', 'error');
+        }
+    } catch (error) {
+        console.error('Erro ao restaurar:', error);
+        showNotification('Erro ao restaurar versão. Tente novamente.', 'error');
+    }
+}
+
+// Deletar versão do histórico (UI)
+async function deleteHistoryVersionUI(versionKey) {
+    if (!confirm('Deseja excluir esta versão do histórico?\n\nEsta ação não pode ser desfeita.')) {
+        return;
+    }
+
+    try {
+        const currentMonth = getCurrentMonth();
+        const success = await deleteHistoryVersion(currentMonth, versionKey);
+
+        if (success) {
+            await loadHistoryList();
+            showNotification('Versão excluída do histórico.', 'success');
+        } else {
+            showNotification('Erro ao excluir versão.', 'error');
+        }
+    } catch (error) {
+        console.error('Erro ao excluir versão:', error);
+        showNotification('Erro ao excluir versão. Tente novamente.', 'error');
+    }
+}
+
+// Fechar modal ao clicar fora
+document.addEventListener('click', (e) => {
+    const historyModal = document.getElementById('historyModal');
+    if (e.target === historyModal) {
+        closeHistoryModal();
+    }
+});
+
+// ==========================================
 // INICIALIZAÇÃO
 // ==========================================
+
+// Função para marcar dashboard como carregado (remove flash visual)
+function markDashboardLoaded() {
+    document.body.classList.remove('dashboard-loading');
+    document.body.classList.add('dashboard-loaded');
+}
 
 // Inicialização quando DOM carrega
 document.addEventListener('DOMContentLoaded', () => {
@@ -950,6 +1171,9 @@ document.addEventListener('DOMContentLoaded', () => {
             loadMonthData(monthData);
             showNotification(`Dados de ${formatMonthDisplay(currentMonth)} carregados do histórico.`);
         }
+
+        // Marcar dashboard como carregado (remove o estado de loading)
+        markDashboardLoaded();
     }, 500); // Delay maior para esperar Firebase inicializar
 });
 

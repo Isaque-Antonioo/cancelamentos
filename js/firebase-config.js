@@ -169,6 +169,199 @@ async function hasDataForMonthInFirebase(monthKey) {
     }
 }
 
+// ==========================================
+// FUNÇÕES DE HISTÓRICO DE VERSÕES
+// ==========================================
+
+// Salvar versão atual no histórico antes de atualizar
+async function saveToHistory(monthKey) {
+    if (!isFirebaseReady()) {
+        console.warn('Firebase não está pronto para salvar histórico.');
+        return false;
+    }
+
+    try {
+        const safeKey = monthKey.replace(/[.#$[\]/]/g, '_');
+
+        // Buscar dados atuais
+        const snapshot = await database.ref(`cancelamentos/${safeKey}`).once('value');
+
+        if (!snapshot.exists()) {
+            console.log('Nenhum dado existente para salvar no histórico');
+            return true; // Não é erro, apenas não há dados para backup
+        }
+
+        const currentData = snapshot.val();
+
+        // Criar timestamp único para a versão
+        const timestamp = Date.now();
+        const versionKey = `v_${timestamp}`;
+
+        // Preparar dados do histórico
+        const historyEntry = {
+            ...currentData,
+            versionTimestamp: timestamp,
+            versionDate: new Date().toISOString(),
+            restoredFrom: null
+        };
+
+        // Salvar no histórico
+        await database.ref(`cancelamentos_history/${safeKey}/${versionKey}`).set(historyEntry);
+
+        console.log(`Versão salva no histórico: ${monthKey} - ${versionKey}`);
+        return true;
+    } catch (error) {
+        console.error('Erro ao salvar no histórico:', error);
+        return false;
+    }
+}
+
+// Buscar lista de versões do histórico para um mês
+async function getHistoryVersions(monthKey) {
+    if (!isFirebaseReady()) {
+        console.warn('Firebase não está pronto.');
+        return [];
+    }
+
+    try {
+        const safeKey = monthKey.replace(/[.#$[\]/]/g, '_');
+        const snapshot = await database.ref(`cancelamentos_history/${safeKey}`)
+            .orderByChild('versionTimestamp')
+            .once('value');
+
+        if (!snapshot.exists()) {
+            return [];
+        }
+
+        const versions = [];
+        snapshot.forEach((childSnapshot) => {
+            const data = childSnapshot.val();
+            versions.push({
+                key: childSnapshot.key,
+                timestamp: data.versionTimestamp,
+                date: data.versionDate || data.savedAt,
+                kpis: data.kpis,
+                summary: data.summary
+            });
+        });
+
+        // Ordenar do mais recente para o mais antigo
+        versions.sort((a, b) => b.timestamp - a.timestamp);
+
+        console.log(`${versions.length} versões encontradas para ${monthKey}`);
+        return versions;
+    } catch (error) {
+        console.error('Erro ao buscar histórico:', error);
+        return [];
+    }
+}
+
+// Buscar dados de uma versão específica do histórico
+async function getHistoryVersion(monthKey, versionKey) {
+    if (!isFirebaseReady()) {
+        console.warn('Firebase não está pronto.');
+        return null;
+    }
+
+    try {
+        const safeKey = monthKey.replace(/[.#$[\]/]/g, '_');
+        const snapshot = await database.ref(`cancelamentos_history/${safeKey}/${versionKey}`).once('value');
+
+        if (snapshot.exists()) {
+            return snapshot.val();
+        }
+        return null;
+    } catch (error) {
+        console.error('Erro ao buscar versão do histórico:', error);
+        return null;
+    }
+}
+
+// Restaurar uma versão do histórico (substitui dados atuais)
+async function restoreFromHistory(monthKey, versionKey) {
+    if (!isFirebaseReady()) {
+        console.warn('Firebase não está pronto.');
+        return false;
+    }
+
+    try {
+        // Primeiro, salvar versão atual no histórico
+        await saveToHistory(monthKey);
+
+        // Buscar dados da versão a restaurar
+        const versionData = await getHistoryVersion(monthKey, versionKey);
+
+        if (!versionData) {
+            console.error('Versão não encontrada:', versionKey);
+            return false;
+        }
+
+        const safeKey = monthKey.replace(/[.#$[\]/]/g, '_');
+
+        // Atualizar dados atuais com a versão restaurada
+        const restoredData = {
+            ...versionData,
+            savedAt: new Date().toISOString(),
+            restoredFrom: versionKey,
+            restoredAt: new Date().toISOString()
+        };
+
+        await database.ref(`cancelamentos/${safeKey}`).set(restoredData);
+
+        console.log(`Versão ${versionKey} restaurada com sucesso para ${monthKey}`);
+        return true;
+    } catch (error) {
+        console.error('Erro ao restaurar versão:', error);
+        return false;
+    }
+}
+
+// Deletar uma versão específica do histórico
+async function deleteHistoryVersion(monthKey, versionKey) {
+    if (!isFirebaseReady()) {
+        return false;
+    }
+
+    try {
+        const safeKey = monthKey.replace(/[.#$[\]/]/g, '_');
+        await database.ref(`cancelamentos_history/${safeKey}/${versionKey}`).remove();
+        console.log(`Versão ${versionKey} deletada do histórico`);
+        return true;
+    } catch (error) {
+        console.error('Erro ao deletar versão:', error);
+        return false;
+    }
+}
+
+// Limpar histórico antigo (manter apenas últimas N versões)
+async function cleanOldHistory(monthKey, keepCount = 10) {
+    if (!isFirebaseReady()) {
+        return false;
+    }
+
+    try {
+        const versions = await getHistoryVersions(monthKey);
+
+        if (versions.length <= keepCount) {
+            return true; // Nada para limpar
+        }
+
+        // Deletar versões mais antigas
+        const toDelete = versions.slice(keepCount);
+        const safeKey = monthKey.replace(/[.#$[\]/]/g, '_');
+
+        for (const version of toDelete) {
+            await database.ref(`cancelamentos_history/${safeKey}/${version.key}`).remove();
+        }
+
+        console.log(`${toDelete.length} versões antigas removidas de ${monthKey}`);
+        return true;
+    } catch (error) {
+        console.error('Erro ao limpar histórico:', error);
+        return false;
+    }
+}
+
 // Sincronizar dados locais para o Firebase (migração)
 async function syncLocalToFirebase() {
     const localHistory = localStorage.getItem('hubstrom_cancelamentos_history');
