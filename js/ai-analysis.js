@@ -118,7 +118,10 @@ function parseCSV(text) {
     console.log('  - Valor:', valorIndex >= 0 ? `"${headers[valorIndex]}" (índice ${valorIndex})` : 'NÃO ENCONTRADA');
 
     // Status válidos para considerar a linha como um registro real
+    // IMPORTANTE: A linha SÓ é válida se o campo STATUS tiver um destes valores
     const validStatuses = ['cancelado', 'revertido', 'desistência', 'desistencia', 'em negociação', 'em negociacao', 'em tratativa', 'pendente', 'finalizado'];
+
+    let rejectedCount = 0;
 
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
@@ -126,47 +129,26 @@ function parseCSV(text) {
 
         const values = parseCSVLine(line);
 
-        // VALIDAÇÃO PRINCIPAL: linha deve ter um STATUS válido preenchido
+        // VALIDAÇÃO ÚNICA: linha DEVE ter um STATUS válido preenchido
         let isValidRow = false;
+        let statusStr = '';
 
         if (statusIndex >= 0) {
-            const statusStr = values[statusIndex] ? values[statusIndex].trim().toLowerCase() : '';
-            // Verificar se o status é um dos valores válidos
-            const hasValidStatus = validStatuses.some(s => statusStr.includes(s));
+            statusStr = values[statusIndex] ? values[statusIndex].trim().toLowerCase() : '';
 
-            if (hasValidStatus) {
-                isValidRow = true;
+            // Ignorar valores que são claramente não-status (checkboxes, fórmulas, etc)
+            if (statusStr === 'true' || statusStr === 'false' || statusStr === '' ||
+                statusStr === '-' || statusStr === 'n/a' || statusStr === 'null') {
+                isValidRow = false;
+            } else {
+                // Verificar se o status é exatamente um dos valores válidos
+                isValidRow = validStatuses.some(s => statusStr === s || statusStr.startsWith(s));
             }
         }
 
-        // Se não encontrou status válido, tentar validação alternativa:
-        // Razão Social preenchida E Valor preenchido
-        if (!isValidRow && razaoIndex >= 0 && valorIndex >= 0) {
-            const razaoStr = values[razaoIndex] ? values[razaoIndex].trim() : '';
-            const valorStr = values[valorIndex] ? values[valorIndex].trim() : '';
-
-            // Razão social válida: não vazia, não é placeholder, tem pelo menos 3 caracteres
-            const hasRazao = razaoStr !== '' &&
-                            razaoStr !== '-' &&
-                            razaoStr !== 'N/A' &&
-                            razaoStr.length >= 3;
-
-            // Valor válido: tem R$ ou número real (não zero)
-            const hasValor = valorStr !== '' &&
-                            valorStr !== '-' &&
-                            valorStr !== 'N/A' &&
-                            valorStr !== '0' &&
-                            valorStr !== 'R$ 0' &&
-                            valorStr !== 'R$ 0,00' &&
-                            /[1-9]/.test(valorStr); // Tem algum dígito diferente de zero
-
-            isValidRow = hasRazao && hasValor;
-        }
-
-        // Debug para primeiras linhas (válidas e rejeitadas)
-        if (i <= 5) {
-            const statusStr = statusIndex >= 0 ? (values[statusIndex] || '').trim() : 'N/A';
-            console.log(`Linha ${i}: Status="${statusStr}" -> ${isValidRow ? 'VÁLIDA' : 'rejeitada'}`);
+        // Debug para primeiras 10 linhas (mostrar o que está acontecendo)
+        if (i <= 10) {
+            console.log(`Linha ${i}: Status="${statusStr}" -> ${isValidRow ? 'VÁLIDA ✓' : 'rejeitada ✗'}`);
         }
 
         if (isValidRow && values.length >= 3) {
@@ -175,8 +157,12 @@ function parseCSV(text) {
                 row[header] = values[index] || '';
             });
             data.push(row);
+        } else {
+            rejectedCount++;
         }
     }
+
+    console.log(`CSV parseado: ${data.length} registros válidos, ${rejectedCount} rejeitados (sem status válido)`);
 
     console.log('CSV parseado:', data.length, 'registros válidos (com status) de', lines.length - 1, 'linhas totais');
 
