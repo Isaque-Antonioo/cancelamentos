@@ -1682,9 +1682,66 @@ canvas {
     box-shadow: 0 4px 15px rgba(53, 204, 163, 0.3);
 }
 
-/* Modal Large (para histórico) */
+/* Modal Large (para histórico e configurações) */
 .modal-large {
-    max-width: 600px;
+    max-width: 650px;
+}
+
+/* Grid de GIDs dos Meses */
+.month-gids-section {
+    margin-top: var(--spacing-md);
+}
+
+.month-gids-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-sm);
+}
+
+.month-gid-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.month-gid-item label {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.month-gid-item input {
+    padding: 8px 10px;
+    font-size: 0.85em;
+    background: var(--surface-glass);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: 'Consolas', monospace;
+    transition: all var(--transition-fast);
+}
+
+.month-gid-item input:focus {
+    outline: none;
+    border-color: var(--hubstrom-accent);
+    box-shadow: 0 0 0 2px rgba(53, 204, 163, 0.2);
+}
+
+.month-gid-item input::placeholder {
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+@media (max-width: 600px) {
+    .month-gids-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .month-gids-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 /* ===================================

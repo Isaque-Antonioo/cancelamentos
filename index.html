@@ -476,9 +476,9 @@
 
     <!-- Modal de Configuração Google Sheets -->
     <div id="sheetsConfigModal" class="modal" style="display: none;">
-        <div class="modal-content">
+        <div class="modal-content modal-large">
             <div class="modal-header">
-                <h3>📊 Configurar Google Sheets</h3>
+                <h3>Configurar Google Sheets</h3>
                 <button class="modal-close" onclick="closeSheetsConfigModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -489,12 +489,64 @@
                     Vá em <strong>Arquivo → Compartilhar → Publicar na web</strong> e publique como página da web.
                 </p>
 
-                <label for="sheetsGidInput" style="margin-top: 20px; display: block;">ID da Aba (gid) - Opcional</label>
-                <input type="text" id="sheetsGidInput" placeholder="Ex: 609733249 (deixe vazio para usar a aba da URL)" />
-                <p class="api-help">
-                    <strong>Como encontrar o gid:</strong> Abra a aba desejada na planilha e veja na URL: <code>gid=XXXXXXX</code><br>
-                    Cada aba tem um gid diferente. Quando criar uma nova aba mensal, basta atualizar este número aqui.
-                </p>
+                <div class="month-gids-section">
+                    <label style="margin-top: 20px; display: block;">GID de cada Aba (Mês)</label>
+                    <p class="api-help" style="margin-bottom: 15px;">
+                        <strong>Como encontrar o gid:</strong> Clique na aba do mês na planilha e veja na URL: <code>gid=XXXXXXX</code><br>
+                        Configure apenas os meses que você usa.
+                    </p>
+
+                    <div class="month-gids-grid">
+                        <div class="month-gid-item">
+                            <label for="gid_Janeiro">Janeiro</label>
+                            <input type="text" id="gid_Janeiro" placeholder="gid" />
+                        </div>
+                        <div class="month-gid-item">
+                            <label for="gid_Fevereiro">Fevereiro</label>
+                            <input type="text" id="gid_Fevereiro" placeholder="gid" />
+                        </div>
+                        <div class="month-gid-item">
+                            <label for="gid_Março">Março</label>
+                            <input type="text" id="gid_Março" placeholder="gid" />
+                        </div>
+                        <div class="month-gid-item">
+                            <label for="gid_Abril">Abril</label>
+                            <input type="text" id="gid_Abril" placeholder="gid" />
+                        </div>
+                        <div class="month-gid-item">
+                            <label for="gid_Maio">Maio</label>
+                            <input type="text" id="gid_Maio" placeholder="gid" />
+                        </div>
+                        <div class="month-gid-item">
+                            <label for="gid_Junho">Junho</label>
+                            <input type="text" id="gid_Junho" placeholder="gid" />
+                        </div>
+                        <div class="month-gid-item">
+                            <label for="gid_Julho">Julho</label>
+                            <input type="text" id="gid_Julho" placeholder="gid" />
+                        </div>
+                        <div class="month-gid-item">
+                            <label for="gid_Agosto">Agosto</label>
+                            <input type="text" id="gid_Agosto" placeholder="gid" />
+                        </div>
+                        <div class="month-gid-item">
+                            <label for="gid_Setembro">Setembro</label>
+                            <input type="text" id="gid_Setembro" placeholder="gid" />
+                        </div>
+                        <div class="month-gid-item">
+                            <label for="gid_Outubro">Outubro</label>
+                            <input type="text" id="gid_Outubro" placeholder="gid" />
+                        </div>
+                        <div class="month-gid-item">
+                            <label for="gid_Novembro">Novembro</label>
+                            <input type="text" id="gid_Novembro" placeholder="gid" />
+                        </div>
+                        <div class="month-gid-item">
+                            <label for="gid_Dezembro">Dezembro</label>
+                            <input type="text" id="gid_Dezembro" placeholder="gid" />
+                        </div>
+                    </div>
+                </div>
 
                 <label for="refreshIntervalSelect" style="margin-top: 20px; display: block;">Atualização Automática</label>
                 <select id="refreshIntervalSelect" class="select-input">
@@ -504,9 +556,6 @@
                     <option value="30">A cada 30 minutos</option>
                     <option value="60">A cada 1 hora</option>
                 </select>
-                <p class="api-help">
-                    Se ativado, os dados serão sincronizados automaticamente no intervalo selecionado.
-                </p>
             </div>
             <div class="modal-footer">
                 <button class="btn-danger" onclick="removeSheetsConfiguration()" style="margin-right: auto;">Remover</button>

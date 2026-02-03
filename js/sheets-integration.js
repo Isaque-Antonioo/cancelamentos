@@ -1,11 +1,28 @@
 /* ===================================
    Hubstrom - Integração Google Sheets
    Sincronização automática de dados
+   Suporte a múltiplas abas por mês
    =================================== */
 
 // Configurações
 const SHEETS_CONFIG_KEY = 'hubstrom_sheets_config';
 let autoRefreshInterval = null;
+
+// Mapeamento de meses para nomes em português (usado para identificar abas)
+const MONTH_NAMES_PT = {
+    '01': 'Janeiro',
+    '02': 'Fevereiro',
+    '03': 'Março',
+    '04': 'Abril',
+    '05': 'Maio',
+    '06': 'Junho',
+    '07': 'Julho',
+    '08': 'Agosto',
+    '09': 'Setembro',
+    '10': 'Outubro',
+    '11': 'Novembro',
+    '12': 'Dezembro'
+};
 
 // Obter configuração salva
 function getSheetsConfig() {
@@ -24,13 +41,27 @@ function saveSheetsConfig(config) {
     localStorage.setItem(SHEETS_CONFIG_KEY, JSON.stringify(config));
 }
 
+// Obter gid para um mês específico
+function getGidForMonth(monthKey) {
+    const config = getSheetsConfig();
+    if (!config || !config.monthGids) return null;
+
+    // monthKey formato: 2025-01
+    const [year, month] = monthKey.split('-');
+    const monthName = MONTH_NAMES_PT[month];
+
+    // Procurar pelo nome do mês (case insensitive)
+    for (const [name, gid] of Object.entries(config.monthGids)) {
+        if (name.toLowerCase() === monthName.toLowerCase()) {
+            return gid;
+        }
+    }
+
+    return null;
+}
+
 // Converter URL do Google Sheets para URL de exportação CSV
 function convertToExportUrl(url, customGid = null) {
-    // Formatos possíveis:
-    // 1. https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit#gid=0
-    // 2. https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit?usp=sharing
-    // 3. https://docs.google.com/spreadsheets/d/e/PUBLISHED_ID/pubhtml?gid=123&single=true (publicado)
-
     let spreadsheetId = null;
     let gid = customGid || '0';
 
@@ -38,11 +69,8 @@ function convertToExportUrl(url, customGid = null) {
     const pubMatch = url.match(/\/spreadsheets\/d\/e\/([a-zA-Z0-9-_]+)/);
     if (pubMatch) {
         spreadsheetId = pubMatch[1];
-        // Para URLs publicadas, usar formato diferente
         const gidMatch = url.match(/gid=(\d+)/);
         if (gidMatch && !customGid) gid = gidMatch[1];
-
-        // URL de exportação para planilhas publicadas
         return `https://docs.google.com/spreadsheets/d/e/${spreadsheetId}/pub?gid=${gid}&single=true&output=csv`;
     }
 
@@ -52,8 +80,6 @@ function convertToExportUrl(url, customGid = null) {
         spreadsheetId = editMatch[1];
         const gidMatch = url.match(/gid=(\d+)/);
         if (gidMatch && !customGid) gid = gidMatch[1];
-
-        // URL de exportação para planilhas normais
         return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
     }
 
@@ -87,11 +113,26 @@ async function fetchFromGoogleSheets(url, customGid = null) {
     }
 }
 
-// Sincronizar dados da planilha
+// Sincronizar dados da planilha para o mês selecionado
 async function syncFromSheets() {
     const config = getSheetsConfig();
     if (!config || !config.url) {
         showNotification('Configure a URL da planilha primeiro.', 'warning');
+        openSheetsConfigModal();
+        return false;
+    }
+
+    // Obter mês atual selecionado
+    const currentMonth = getCurrentMonth();
+    const [year, month] = currentMonth.split('-');
+    const monthName = MONTH_NAMES_PT[month];
+
+    // Obter gid para o mês selecionado
+    const monthGid = getGidForMonth(currentMonth);
+
+    if (!monthGid && config.monthGids && Object.keys(config.monthGids).length > 0) {
+        showNotification(`Aba "${monthName}" não configurada. Configure o gid nas configurações.`, 'warning');
+        openSheetsConfigModal();
         return false;
     }
 
@@ -103,31 +144,25 @@ async function syncFromSheets() {
     }
 
     try {
-        showNotification('Sincronizando dados...', 'info');
+        showNotification(`Sincronizando ${monthName}...`, 'info');
 
-        // Usar gid personalizado se configurado
-        const customGid = config.gid && config.gid.trim() !== '' ? config.gid.trim() : null;
-        const csvText = await fetchFromGoogleSheets(config.url, customGid);
+        // Usar gid do mês ou gid padrão
+        const gidToUse = monthGid || config.gid || null;
+        const csvText = await fetchFromGoogleSheets(config.url, gidToUse);
 
         // Usar o parser existente
         window.csvData = parseCSV(csvText);
 
         if (window.csvData.length === 0) {
-            throw new Error('Nenhum dado válido encontrado na planilha');
+            throw new Error(`Nenhum dado válido encontrado na aba ${monthName}`);
         }
 
-        console.log('Dados sincronizados:', window.csvData.length, 'registros');
+        console.log(`Dados sincronizados de ${monthName}:`, window.csvData.length, 'registros');
 
         // Atualizar dashboard
         const summary = prepareDataSummary(window.csvData);
         updateKPIs(summary);
         updateCharts(summary);
-
-        // Atualizar nome do arquivo
-        const csvFileName = document.getElementById('csvFileName');
-        if (csvFileName) {
-            csvFileName.textContent = `Planilha (${window.csvData.length} registros)`;
-        }
 
         // Habilitar botão de análise
         const btnGenerate = document.getElementById('btnGenerate');
@@ -137,33 +172,36 @@ async function syncFromSheets() {
 
         // Salvar última sincronização
         config.lastSync = new Date().toISOString();
+        config.lastSyncMonth = currentMonth;
         saveSheetsConfig(config);
 
         updateSyncStatus();
 
         // === AUTO-SAVE NO FIREBASE COM HISTÓRICO ===
-        // Salvar automaticamente no Firebase após sincronizar (com backup no histórico)
-        const currentMonth = getCurrentMonth();
         if (typeof saveCurrentDataWithHistory === 'function') {
             try {
                 await saveCurrentDataWithHistory(currentMonth);
                 console.log(`Dados salvos automaticamente no Firebase para ${currentMonth}`);
-                showNotification(`Sincronizado e salvo! ${window.csvData.length} registros em ${formatMonthDisplay(currentMonth)}. Versão anterior salva no histórico.`, 'success');
+                showNotification(`${monthName}: ${window.csvData.length} registros sincronizados e salvos!`, 'success');
             } catch (firebaseError) {
                 console.error('Erro ao salvar no Firebase:', firebaseError);
-                showNotification(`Sincronizado! ${window.csvData.length} registros (erro ao salvar no Firebase).`, 'warning');
+                showNotification(`${monthName}: Sincronizado! (erro ao salvar no Firebase)`, 'warning');
             }
         } else if (typeof saveCurrentData === 'function') {
-            // Fallback para função antiga
             try {
                 await saveCurrentData(currentMonth);
-                showNotification(`Sincronizado e salvo! ${window.csvData.length} registros em ${formatMonthDisplay(currentMonth)}.`, 'success');
+                showNotification(`${monthName}: ${window.csvData.length} registros sincronizados e salvos!`, 'success');
             } catch (firebaseError) {
                 console.error('Erro ao salvar no Firebase:', firebaseError);
-                showNotification(`Sincronizado! ${window.csvData.length} registros (erro ao salvar no Firebase).`, 'warning');
+                showNotification(`${monthName}: Sincronizado! (erro ao salvar no Firebase)`, 'warning');
             }
         } else {
-            showNotification(`Sincronizado! ${window.csvData.length} registros carregados.`, 'success');
+            showNotification(`${monthName}: ${window.csvData.length} registros carregados.`, 'success');
+        }
+
+        // Atualizar seletor de meses
+        if (typeof initMonthSelector === 'function') {
+            await initMonthSelector();
         }
 
         return true;
@@ -182,11 +220,9 @@ async function syncFromSheets() {
 // Iniciar auto-refresh
 function startAutoRefresh(intervalMinutes) {
     stopAutoRefresh();
-
     if (intervalMinutes <= 0) return;
 
     const intervalMs = intervalMinutes * 60 * 1000;
-
     autoRefreshInterval = setInterval(async () => {
         console.log('Auto-refresh: sincronizando...');
         await syncFromSheets();
@@ -200,7 +236,6 @@ function stopAutoRefresh() {
     if (autoRefreshInterval) {
         clearInterval(autoRefreshInterval);
         autoRefreshInterval = null;
-        console.log('Auto-refresh parado');
     }
 }
 
@@ -211,22 +246,27 @@ function updateSyncStatus() {
 
     if (!statusEl) return;
 
-    if (config && config.lastSync) {
-        const lastSync = new Date(config.lastSync);
-        const now = new Date();
-        const diffMinutes = Math.round((now - lastSync) / 60000);
+    if (config && config.url) {
+        if (config.lastSync) {
+            const lastSync = new Date(config.lastSync);
+            const now = new Date();
+            const diffMinutes = Math.round((now - lastSync) / 60000);
 
-        if (diffMinutes < 1) {
-            statusEl.textContent = 'Sincronizado agora';
-        } else if (diffMinutes < 60) {
-            statusEl.textContent = `Sincronizado há ${diffMinutes} min`;
+            if (diffMinutes < 1) {
+                statusEl.textContent = 'Sincronizado agora';
+            } else if (diffMinutes < 60) {
+                statusEl.textContent = `Há ${diffMinutes} min`;
+            } else {
+                const diffHours = Math.round(diffMinutes / 60);
+                statusEl.textContent = `Há ${diffHours}h`;
+            }
+            statusEl.classList.add('synced');
         } else {
-            const diffHours = Math.round(diffMinutes / 60);
-            statusEl.textContent = `Sincronizado há ${diffHours}h`;
+            statusEl.textContent = 'Configurado';
+            statusEl.classList.remove('synced');
         }
-        statusEl.classList.add('synced');
     } else {
-        statusEl.textContent = 'Não sincronizado';
+        statusEl.textContent = 'Não configurado';
         statusEl.classList.remove('synced');
     }
 }
@@ -238,22 +278,27 @@ function openSheetsConfigModal() {
 
     const config = getSheetsConfig() || {};
 
-    // Preencher campos
+    // Preencher URL
     const urlInput = document.getElementById('sheetsUrlInput');
-    const gidInput = document.getElementById('sheetsGidInput');
-    const intervalSelect = document.getElementById('refreshIntervalSelect');
-
     if (urlInput && config.url) {
         urlInput.value = config.url;
     }
 
-    if (gidInput && config.gid) {
-        gidInput.value = config.gid;
-    }
-
+    // Preencher intervalo de atualização
+    const intervalSelect = document.getElementById('refreshIntervalSelect');
     if (intervalSelect && config.refreshInterval !== undefined) {
         intervalSelect.value = config.refreshInterval;
     }
+
+    // Preencher gids dos meses
+    const monthGids = config.monthGids || {};
+    Object.keys(MONTH_NAMES_PT).forEach(monthNum => {
+        const monthName = MONTH_NAMES_PT[monthNum];
+        const input = document.getElementById(`gid_${monthName}`);
+        if (input && monthGids[monthName]) {
+            input.value = monthGids[monthName];
+        }
+    });
 
     modal.style.display = 'flex';
 }
@@ -269,11 +314,9 @@ function closeSheetsConfigModal() {
 // Salvar configuração do Google Sheets
 async function saveSheetsConfiguration() {
     const urlInput = document.getElementById('sheetsUrlInput');
-    const gidInput = document.getElementById('sheetsGidInput');
     const intervalSelect = document.getElementById('refreshIntervalSelect');
 
     const url = urlInput ? urlInput.value.trim() : '';
-    const gid = gidInput ? gidInput.value.trim() : '';
     const refreshInterval = intervalSelect ? parseInt(intervalSelect.value) : 0;
 
     if (!url) {
@@ -287,17 +330,26 @@ async function saveSheetsConfiguration() {
         return;
     }
 
-    // Testar conexão
-    const exportUrl = convertToExportUrl(url, gid || null);
-    if (!exportUrl) {
-        showNotification('Não foi possível processar a URL', 'error');
+    // Coletar gids dos meses
+    const monthGids = {};
+    Object.keys(MONTH_NAMES_PT).forEach(monthNum => {
+        const monthName = MONTH_NAMES_PT[monthNum];
+        const input = document.getElementById(`gid_${monthName}`);
+        if (input && input.value.trim()) {
+            monthGids[monthName] = input.value.trim();
+        }
+    });
+
+    // Verificar se pelo menos um mês foi configurado
+    if (Object.keys(monthGids).length === 0) {
+        showNotification('Configure pelo menos um mês com seu gid', 'warning');
         return;
     }
 
     // Salvar configuração
     const config = {
         url: url,
-        gid: gid,
+        monthGids: monthGids,
         refreshInterval: refreshInterval,
         lastSync: null
     };
@@ -324,10 +376,15 @@ function removeSheetsConfiguration() {
         localStorage.removeItem(SHEETS_CONFIG_KEY);
         stopAutoRefresh();
 
+        // Limpar campos
         const urlInput = document.getElementById('sheetsUrlInput');
-        const gidInput = document.getElementById('sheetsGidInput');
         if (urlInput) urlInput.value = '';
-        if (gidInput) gidInput.value = '';
+
+        Object.keys(MONTH_NAMES_PT).forEach(monthNum => {
+            const monthName = MONTH_NAMES_PT[monthNum];
+            const input = document.getElementById(`gid_${monthName}`);
+            if (input) input.value = '';
+        });
 
         updateSyncStatus();
         closeSheetsConfigModal();
@@ -337,7 +394,6 @@ function removeSheetsConfiguration() {
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
-    // Verificar se há configuração salva
     const config = getSheetsConfig();
 
     if (config && config.url) {
@@ -345,11 +401,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (config.refreshInterval > 0) {
             startAutoRefresh(config.refreshInterval);
         }
-
-        // Sincronizar ao carregar a página
-        setTimeout(async () => {
-            await syncFromSheets();
-        }, 500);
     }
 
     updateSyncStatus();
