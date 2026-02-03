@@ -97,46 +97,39 @@ function parseCSV(text) {
 
     // Usar parser robusto para o cabeçalho
     const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/\s+/g, ' '));
-    console.log('Headers encontrados:', headers);
+    console.log('Headers encontrados:', headers.length, headers);
 
     const data = [];
 
-    // Encontrar uma coluna chave para validar linhas
-    // Prioridade: Razão social > Data de Pedido > qualquer coluna com dados
-    const razaoIndex = headers.findIndex(h =>
-        h.toLowerCase().includes('razão') ||
-        h.toLowerCase().includes('razao') ||
-        h.toLowerCase().includes('empresa') ||
-        h.toLowerCase().includes('cliente')
-    );
-    const dataIndex = headers.findIndex(h =>
-        h.toLowerCase().includes('data') && h.toLowerCase().includes('pedido')
-    );
-
-    // Usar Razão Social ou Data de Pedido como coluna de validação
-    const validationIndex = razaoIndex >= 0 ? razaoIndex : (dataIndex >= 0 ? dataIndex : -1);
-
-    console.log('Coluna de validação:', validationIndex >= 0 ? headers[validationIndex] : 'nenhuma específica');
+    // Debug: mostrar primeiras 3 linhas raw
+    console.log('=== DEBUG CSV ===');
+    for (let i = 0; i < Math.min(4, lines.length); i++) {
+        console.log(`Linha ${i}:`, lines[i].substring(0, 150));
+    }
 
     for (let i = 1; i < lines.length; i++) {
-        if (lines[i].trim() === '') continue;
+        const line = lines[i];
+        if (!line || line.trim() === '') continue;
 
-        const values = parseCSVLine(lines[i]);
+        const values = parseCSVLine(line);
 
-        // Validar: linha tem dados suficientes
-        let isValidRow = false;
+        // Validação simples: linha tem pelo menos 2 colunas com algum valor não vazio
+        const nonEmptyCount = values.filter(v => {
+            if (!v) return false;
+            const trimmed = v.trim();
+            return trimmed !== '' && trimmed !== '-' && trimmed !== 'N/A' && trimmed !== 'null';
+        }).length;
 
-        if (validationIndex >= 0) {
-            // Se encontrou coluna de validação, verificar se tem valor
-            const validationValue = values[validationIndex] ? values[validationIndex].trim() : '';
-            isValidRow = validationValue !== '' && validationValue !== '-' && validationValue !== 'N/A';
-        } else {
-            // Fallback: verificar se tem pelo menos 3 colunas com dados
-            const nonEmptyCount = values.filter(v => v && v.trim() !== '').length;
-            isValidRow = nonEmptyCount >= 3;
+        // Considerar válida se tiver pelo menos 2 valores e a linha não for muito curta
+        const isValidRow = nonEmptyCount >= 2 && values.length >= 3;
+
+        // Debug para primeiras linhas rejeitadas
+        if (!isValidRow && i <= 5) {
+            console.log(`Linha ${i} rejeitada: ${nonEmptyCount} valores válidos, ${values.length} colunas`);
+            console.log(`  Valores:`, values.slice(0, 5));
         }
 
-        if (isValidRow && values.length >= 3) {
+        if (isValidRow) {
             const row = {};
             headers.forEach((header, index) => {
                 row[header] = values[index] || '';
@@ -145,11 +138,19 @@ function parseCSV(text) {
         }
     }
 
-    console.log('CSV parseado: ' + data.length + ' linhas válidas');
+    console.log('CSV parseado:', data.length, 'linhas válidas de', lines.length - 1, 'linhas totais');
 
     // Debug: mostrar primeira linha para verificar valores
     if (data.length > 0) {
-        console.log('Primeira linha:', Object.keys(data[0]).slice(0, 5).map(k => `${k}: ${data[0][k]}`).join(' | '));
+        console.log('Primeira linha parseada:', Object.keys(data[0]).slice(0, 5).map(k => `${k}: "${data[0][k]}"`).join(' | '));
+    } else {
+        console.error('ERRO: Nenhuma linha válida encontrada!');
+        // Tentar entender o porquê
+        if (lines.length > 1) {
+            const testValues = parseCSVLine(lines[1]);
+            console.log('Debug linha 1 - valores:', testValues);
+            console.log('Debug linha 1 - não vazios:', testValues.filter(v => v && v.trim()).length);
+        }
     }
 
     return data;
