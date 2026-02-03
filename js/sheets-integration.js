@@ -148,13 +148,19 @@ async function syncFromSheets() {
 
         // Usar gid do mês ou gid padrão
         const gidToUse = monthGid || config.gid || null;
+        console.log(`Sincronizando ${monthName} com gid: ${gidToUse}`);
+
         const csvText = await fetchFromGoogleSheets(config.url, gidToUse);
+        console.log(`CSV recebido: ${csvText.length} caracteres`);
+        console.log(`Primeiras 500 chars:`, csvText.substring(0, 500));
 
         // Usar o parser existente
         window.csvData = parseCSV(csvText);
+        console.log(`Dados parseados: ${window.csvData.length} registros`);
 
         if (window.csvData.length === 0) {
-            throw new Error(`Nenhum dado válido encontrado na aba ${monthName}`);
+            console.error('Nenhum dado encontrado. CSV raw:', csvText.substring(0, 1000));
+            throw new Error(`Nenhum dado válido encontrado na aba ${monthName}. Verifique se a planilha tem dados.`);
         }
 
         console.log(`Dados sincronizados de ${monthName}:`, window.csvData.length, 'registros');

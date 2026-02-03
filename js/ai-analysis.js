@@ -101,20 +101,42 @@ function parseCSV(text) {
 
     const data = [];
 
-    // Encontrar o índice da coluna "Nº" (primeira coluna)
-    const numColumnIndex = headers.findIndex(h => h === 'Nº' || h === 'N°' || h === 'No' || h === 'Nro');
-    const colIndexToCheck = numColumnIndex >= 0 ? numColumnIndex : 0;
+    // Encontrar uma coluna chave para validar linhas
+    // Prioridade: Razão social > Data de Pedido > qualquer coluna com dados
+    const razaoIndex = headers.findIndex(h =>
+        h.toLowerCase().includes('razão') ||
+        h.toLowerCase().includes('razao') ||
+        h.toLowerCase().includes('empresa') ||
+        h.toLowerCase().includes('cliente')
+    );
+    const dataIndex = headers.findIndex(h =>
+        h.toLowerCase().includes('data') && h.toLowerCase().includes('pedido')
+    );
+
+    // Usar Razão Social ou Data de Pedido como coluna de validação
+    const validationIndex = razaoIndex >= 0 ? razaoIndex : (dataIndex >= 0 ? dataIndex : -1);
+
+    console.log('Coluna de validação:', validationIndex >= 0 ? headers[validationIndex] : 'nenhuma específica');
 
     for (let i = 1; i < lines.length; i++) {
         if (lines[i].trim() === '') continue;
 
         const values = parseCSVLine(lines[i]);
 
-        // Validar: só incluir se a coluna Nº tiver um número válido
-        const numValue = values[colIndexToCheck] ? values[colIndexToCheck].trim() : '';
-        const isValidRow = numValue !== '' && !isNaN(parseInt(numValue));
+        // Validar: linha tem dados suficientes
+        let isValidRow = false;
 
-        if (isValidRow && values.length >= 5) {
+        if (validationIndex >= 0) {
+            // Se encontrou coluna de validação, verificar se tem valor
+            const validationValue = values[validationIndex] ? values[validationIndex].trim() : '';
+            isValidRow = validationValue !== '' && validationValue !== '-' && validationValue !== 'N/A';
+        } else {
+            // Fallback: verificar se tem pelo menos 3 colunas com dados
+            const nonEmptyCount = values.filter(v => v && v.trim() !== '').length;
+            isValidRow = nonEmptyCount >= 3;
+        }
+
+        if (isValidRow && values.length >= 3) {
             const row = {};
             headers.forEach((header, index) => {
                 row[header] = values[index] || '';
@@ -123,13 +145,11 @@ function parseCSV(text) {
         }
     }
 
-    console.log('CSV parseado: ' + data.length + ' linhas válidas (com Nº preenchido)');
+    console.log('CSV parseado: ' + data.length + ' linhas válidas');
 
     // Debug: mostrar primeira linha para verificar valores
     if (data.length > 0) {
-        console.log('Primeira linha - Valor Solicitado:', data[0]['Valor / Solicitado']);
-        console.log('Primeira linha - Valor revertido:', data[0]['Valor revertido']);
-        console.log('Primeira linha - Valor cancelado:', data[0]['Valor  cancelado']);
+        console.log('Primeira linha:', Object.keys(data[0]).slice(0, 5).map(k => `${k}: ${data[0][k]}`).join(' | '));
     }
 
     return data;
