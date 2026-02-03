@@ -99,56 +99,66 @@ function parseCSV(text) {
     const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/\s+/g, ' '));
     console.log('Headers encontrados:', headers.length, headers);
 
+    // Encontrar a coluna AA (índice 26) que contém o total
+    // A coluna AA na planilha = índice 26 (0-indexed: A=0, B=1, ..., Z=25, AA=26)
+    const totalColumnIndex = 26; // Coluna AA
+
+    // Buscar o total na linha 13 (índice 12 no array, pois linha 1 = índice 0 após o header)
+    // Na planilha: linha 1 = header, linha 2 = primeira data, linha 13 = índice 12 nos dados
+    let expectedTotal = 0;
+    const totalRowIndex = 12; // Linha 13 da planilha (0-indexed após header)
+
+    if (lines.length > totalRowIndex + 1) {
+        const totalRowValues = parseCSVLine(lines[totalRowIndex + 1]); // +1 porque linha 0 é header
+        if (totalRowValues[totalColumnIndex]) {
+            const totalStr = totalRowValues[totalColumnIndex].trim();
+            expectedTotal = parseInt(totalStr.replace(/[^\d]/g, '')) || 0;
+            console.log(`Total encontrado na célula AA13: ${expectedTotal}`);
+        }
+    }
+
     const data = [];
 
-    // Encontrar índices das colunas obrigatórias para validação
+    // Se encontrou o total, usar como referência para quantos registros válidos existem
+    // Pegar apenas as linhas com dados reais (antes da linha de totais)
+    const maxDataRows = expectedTotal > 0 ? Math.min(totalRowIndex, lines.length - 1) : lines.length - 1;
+
+    console.log(`Processando até ${maxDataRows} linhas de dados (total esperado: ${expectedTotal})`);
+
+    // Encontrar índice da coluna de Status para validação adicional
     const statusIndex = headers.findIndex(h => h.toLowerCase() === 'status');
-    const razaoIndex = headers.findIndex(h => {
-        const lower = h.toLowerCase();
-        return lower.includes('razão') || lower.includes('razao') || lower === 'empresa' || lower === 'cliente';
-    });
     const valorIndex = headers.findIndex(h => {
         const lower = h.toLowerCase();
         return lower.includes('valor') && (lower.includes('solicitado') || lower.includes('/'));
     });
 
-    console.log('Colunas de validação encontradas:');
-    console.log('  - Status:', statusIndex >= 0 ? `"${headers[statusIndex]}" (índice ${statusIndex})` : 'NÃO ENCONTRADA');
-    console.log('  - Razão Social:', razaoIndex >= 0 ? `"${headers[razaoIndex]}" (índice ${razaoIndex})` : 'NÃO ENCONTRADA');
-    console.log('  - Valor:', valorIndex >= 0 ? `"${headers[valorIndex]}" (índice ${valorIndex})` : 'NÃO ENCONTRADA');
-
-    // Status válidos para considerar a linha como um registro real
-    // IMPORTANTE: A linha SÓ é válida se o campo STATUS tiver um destes valores
+    // Status válidos
     const validStatuses = ['cancelado', 'revertido', 'desistência', 'desistencia', 'em negociação', 'em negociacao', 'em tratativa', 'pendente', 'finalizado'];
 
-    let rejectedCount = 0;
-
-    for (let i = 1; i < lines.length; i++) {
+    for (let i = 1; i <= maxDataRows; i++) {
         const line = lines[i];
         if (!line || line.trim() === '') continue;
 
         const values = parseCSVLine(line);
 
-        // VALIDAÇÃO ÚNICA: linha DEVE ter um STATUS válido preenchido
+        // Validação: Status válido OU tem valor preenchido
         let isValidRow = false;
-        let statusStr = '';
 
+        // Verificar status
         if (statusIndex >= 0) {
-            statusStr = values[statusIndex] ? values[statusIndex].trim().toLowerCase() : '';
-
-            // Ignorar valores que são claramente não-status (checkboxes, fórmulas, etc)
-            if (statusStr === 'true' || statusStr === 'false' || statusStr === '' ||
-                statusStr === '-' || statusStr === 'n/a' || statusStr === 'null') {
-                isValidRow = false;
-            } else {
-                // Verificar se o status é exatamente um dos valores válidos
+            const statusStr = values[statusIndex] ? values[statusIndex].trim().toLowerCase() : '';
+            if (statusStr && statusStr !== 'true' && statusStr !== 'false' && statusStr !== '-' && statusStr !== 'n/a') {
                 isValidRow = validStatuses.some(s => statusStr === s || statusStr.startsWith(s));
             }
         }
 
-        // Debug para primeiras 10 linhas (mostrar o que está acontecendo)
-        if (i <= 10) {
-            console.log(`Linha ${i}: Status="${statusStr}" -> ${isValidRow ? 'VÁLIDA ✓' : 'rejeitada ✗'}`);
+        // Se não tem status válido, verificar se tem valor (backup)
+        if (!isValidRow && valorIndex >= 0) {
+            const valorStr = values[valorIndex] ? values[valorIndex].trim() : '';
+            // Valor válido: tem número diferente de zero
+            if (valorStr && /[1-9]/.test(valorStr)) {
+                isValidRow = true;
+            }
         }
 
         if (isValidRow && values.length >= 3) {
@@ -157,12 +167,21 @@ function parseCSV(text) {
                 row[header] = values[index] || '';
             });
             data.push(row);
-        } else {
-            rejectedCount++;
+        }
+
+        // Debug para primeiras linhas
+        if (i <= 5) {
+            const statusStr = statusIndex >= 0 ? (values[statusIndex] || '').trim() : 'N/A';
+            console.log(`Linha ${i}: Status="${statusStr}" -> ${data.length > 0 && data[data.length-1] === data.find((_, idx) => idx === data.length-1) ? 'incluída' : 'verificando'}`);
         }
     }
 
-    console.log(`CSV parseado: ${data.length} registros válidos, ${rejectedCount} rejeitados (sem status válido)`);
+    // Se o total esperado é maior que os dados encontrados, pode haver problema
+    if (expectedTotal > 0 && data.length !== expectedTotal) {
+        console.warn(`Atenção: Total esperado (${expectedTotal}) diferente do encontrado (${data.length})`);
+    }
+
+    console.log(`CSV parseado: ${data.length} registros (total da planilha: ${expectedTotal})`);
 
     console.log('CSV parseado:', data.length, 'registros válidos (com status) de', lines.length - 1, 'linhas totais');
 
