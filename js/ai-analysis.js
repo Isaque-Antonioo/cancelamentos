@@ -101,11 +101,13 @@ function parseCSV(text) {
 
     const data = [];
 
-    // Debug: mostrar primeiras 3 linhas raw
-    console.log('=== DEBUG CSV ===');
-    for (let i = 0; i < Math.min(4, lines.length); i++) {
-        console.log(`Linha ${i}:`, lines[i].substring(0, 150));
-    }
+    // Encontrar índice da coluna de valor (campo obrigatório para validação)
+    const valorIndex = headers.findIndex(h => {
+        const lower = h.toLowerCase();
+        return lower.includes('valor') && (lower.includes('solicitado') || lower.includes('/'));
+    });
+
+    console.log('Coluna de valor encontrada:', valorIndex >= 0 ? `"${headers[valorIndex]}" (índice ${valorIndex})` : 'NÃO ENCONTRADA');
 
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
@@ -113,20 +115,36 @@ function parseCSV(text) {
 
         const values = parseCSVLine(line);
 
-        // Validação simples: linha tem pelo menos 2 colunas com algum valor não vazio
-        const nonEmptyCount = values.filter(v => {
-            if (!v) return false;
-            const trimmed = v.trim();
-            return trimmed !== '' && trimmed !== '-' && trimmed !== 'N/A' && trimmed !== 'null';
-        }).length;
+        // Validação: linha deve ter valor no campo "Valor / Solicitado"
+        let isValidRow = false;
 
-        // Considerar válida se tiver pelo menos 2 valores e a linha não for muito curta
-        const isValidRow = nonEmptyCount >= 2 && values.length >= 3;
+        if (valorIndex >= 0) {
+            // Verificar se tem valor monetário válido na coluna de valor
+            const valorStr = values[valorIndex] ? values[valorIndex].trim() : '';
+            // Valor válido: não vazio, não é placeholder, e parece ser um número/valor monetário
+            const hasValor = valorStr !== '' &&
+                            valorStr !== '-' &&
+                            valorStr !== 'N/A' &&
+                            valorStr !== 'null' &&
+                            valorStr !== '0' &&
+                            valorStr !== 'R$ 0' &&
+                            valorStr !== 'R$ 0,00' &&
+                            (valorStr.includes('R$') || /\d/.test(valorStr)); // Tem R$ ou algum número
 
-        // Debug para primeiras linhas rejeitadas
-        if (!isValidRow && i <= 5) {
-            console.log(`Linha ${i} rejeitada: ${nonEmptyCount} valores válidos, ${values.length} colunas`);
-            console.log(`  Valores:`, values.slice(0, 5));
+            isValidRow = hasValor && values.length >= 3;
+
+            // Debug para linhas rejeitadas (apenas primeiras 5)
+            if (!isValidRow && i <= 10 && valorStr !== '') {
+                console.log(`Linha ${i} rejeitada - Valor: "${valorStr}"`);
+            }
+        } else {
+            // Fallback: se não encontrou coluna de valor, usar validação mais simples
+            const nonEmptyCount = values.filter(v => {
+                if (!v) return false;
+                const trimmed = v.trim();
+                return trimmed !== '' && trimmed !== '-' && trimmed !== 'N/A';
+            }).length;
+            isValidRow = nonEmptyCount >= 3 && values.length >= 3;
         }
 
         if (isValidRow) {
@@ -138,19 +156,14 @@ function parseCSV(text) {
         }
     }
 
-    console.log('CSV parseado:', data.length, 'linhas válidas de', lines.length - 1, 'linhas totais');
+    console.log('CSV parseado:', data.length, 'linhas válidas (com valor) de', lines.length - 1, 'linhas totais');
 
     // Debug: mostrar primeira linha para verificar valores
     if (data.length > 0) {
         console.log('Primeira linha parseada:', Object.keys(data[0]).slice(0, 5).map(k => `${k}: "${data[0][k]}"`).join(' | '));
     } else {
         console.error('ERRO: Nenhuma linha válida encontrada!');
-        // Tentar entender o porquê
-        if (lines.length > 1) {
-            const testValues = parseCSVLine(lines[1]);
-            console.log('Debug linha 1 - valores:', testValues);
-            console.log('Debug linha 1 - não vazios:', testValues.filter(v => v && v.trim()).length);
-        }
+        console.log('Verifique se existe coluna "Valor / Solicitado" com valores preenchidos.');
     }
 
     return data;
