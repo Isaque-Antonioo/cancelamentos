@@ -101,13 +101,24 @@ function parseCSV(text) {
 
     const data = [];
 
-    // Encontrar índice da coluna de valor (campo obrigatório para validação)
+    // Encontrar índices das colunas obrigatórias para validação
+    const statusIndex = headers.findIndex(h => h.toLowerCase() === 'status');
+    const razaoIndex = headers.findIndex(h => {
+        const lower = h.toLowerCase();
+        return lower.includes('razão') || lower.includes('razao') || lower === 'empresa' || lower === 'cliente';
+    });
     const valorIndex = headers.findIndex(h => {
         const lower = h.toLowerCase();
         return lower.includes('valor') && (lower.includes('solicitado') || lower.includes('/'));
     });
 
-    console.log('Coluna de valor encontrada:', valorIndex >= 0 ? `"${headers[valorIndex]}" (índice ${valorIndex})` : 'NÃO ENCONTRADA');
+    console.log('Colunas de validação encontradas:');
+    console.log('  - Status:', statusIndex >= 0 ? `"${headers[statusIndex]}" (índice ${statusIndex})` : 'NÃO ENCONTRADA');
+    console.log('  - Razão Social:', razaoIndex >= 0 ? `"${headers[razaoIndex]}" (índice ${razaoIndex})` : 'NÃO ENCONTRADA');
+    console.log('  - Valor:', valorIndex >= 0 ? `"${headers[valorIndex]}" (índice ${valorIndex})` : 'NÃO ENCONTRADA');
+
+    // Status válidos para considerar a linha como um registro real
+    const validStatuses = ['cancelado', 'revertido', 'desistência', 'desistencia', 'em negociação', 'em negociacao', 'em tratativa', 'pendente', 'finalizado'];
 
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
@@ -115,39 +126,50 @@ function parseCSV(text) {
 
         const values = parseCSVLine(line);
 
-        // Validação: linha deve ter valor no campo "Valor / Solicitado"
+        // VALIDAÇÃO PRINCIPAL: linha deve ter um STATUS válido preenchido
         let isValidRow = false;
 
-        if (valorIndex >= 0) {
-            // Verificar se tem valor monetário válido na coluna de valor
+        if (statusIndex >= 0) {
+            const statusStr = values[statusIndex] ? values[statusIndex].trim().toLowerCase() : '';
+            // Verificar se o status é um dos valores válidos
+            const hasValidStatus = validStatuses.some(s => statusStr.includes(s));
+
+            if (hasValidStatus) {
+                isValidRow = true;
+            }
+        }
+
+        // Se não encontrou status válido, tentar validação alternativa:
+        // Razão Social preenchida E Valor preenchido
+        if (!isValidRow && razaoIndex >= 0 && valorIndex >= 0) {
+            const razaoStr = values[razaoIndex] ? values[razaoIndex].trim() : '';
             const valorStr = values[valorIndex] ? values[valorIndex].trim() : '';
-            // Valor válido: não vazio, não é placeholder, e parece ser um número/valor monetário
+
+            // Razão social válida: não vazia, não é placeholder, tem pelo menos 3 caracteres
+            const hasRazao = razaoStr !== '' &&
+                            razaoStr !== '-' &&
+                            razaoStr !== 'N/A' &&
+                            razaoStr.length >= 3;
+
+            // Valor válido: tem R$ ou número real (não zero)
             const hasValor = valorStr !== '' &&
                             valorStr !== '-' &&
                             valorStr !== 'N/A' &&
-                            valorStr !== 'null' &&
                             valorStr !== '0' &&
                             valorStr !== 'R$ 0' &&
                             valorStr !== 'R$ 0,00' &&
-                            (valorStr.includes('R$') || /\d/.test(valorStr)); // Tem R$ ou algum número
+                            /[1-9]/.test(valorStr); // Tem algum dígito diferente de zero
 
-            isValidRow = hasValor && values.length >= 3;
-
-            // Debug para linhas rejeitadas (apenas primeiras 5)
-            if (!isValidRow && i <= 10 && valorStr !== '') {
-                console.log(`Linha ${i} rejeitada - Valor: "${valorStr}"`);
-            }
-        } else {
-            // Fallback: se não encontrou coluna de valor, usar validação mais simples
-            const nonEmptyCount = values.filter(v => {
-                if (!v) return false;
-                const trimmed = v.trim();
-                return trimmed !== '' && trimmed !== '-' && trimmed !== 'N/A';
-            }).length;
-            isValidRow = nonEmptyCount >= 3 && values.length >= 3;
+            isValidRow = hasRazao && hasValor;
         }
 
-        if (isValidRow) {
+        // Debug para primeiras linhas (válidas e rejeitadas)
+        if (i <= 5) {
+            const statusStr = statusIndex >= 0 ? (values[statusIndex] || '').trim() : 'N/A';
+            console.log(`Linha ${i}: Status="${statusStr}" -> ${isValidRow ? 'VÁLIDA' : 'rejeitada'}`);
+        }
+
+        if (isValidRow && values.length >= 3) {
             const row = {};
             headers.forEach((header, index) => {
                 row[header] = values[index] || '';
@@ -156,14 +178,14 @@ function parseCSV(text) {
         }
     }
 
-    console.log('CSV parseado:', data.length, 'linhas válidas (com valor) de', lines.length - 1, 'linhas totais');
+    console.log('CSV parseado:', data.length, 'registros válidos (com status) de', lines.length - 1, 'linhas totais');
 
     // Debug: mostrar primeira linha para verificar valores
     if (data.length > 0) {
         console.log('Primeira linha parseada:', Object.keys(data[0]).slice(0, 5).map(k => `${k}: "${data[0][k]}"`).join(' | '));
     } else {
         console.error('ERRO: Nenhuma linha válida encontrada!');
-        console.log('Verifique se existe coluna "Valor / Solicitado" com valores preenchidos.');
+        console.log('Verifique se a coluna "Status" tem valores como: Cancelado, Revertido, Desistência, Em negociação');
     }
 
     return data;
