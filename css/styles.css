@@ -188,7 +188,7 @@ body::before {
 
 /* Título Principal Centralizado */
 .header-main-title {
-    font-size: clamp(1.3em, 3vw, 1.8em);
+    font-size: clamp(1em, 2.5vw, 1.5em);
     font-weight: 700;
     background: linear-gradient(135deg, var(--hubstrom-accent) 0%, var(--hubstrom-accent-light) 100%);
     -webkit-background-clip: text;
@@ -199,9 +199,71 @@ body::before {
     padding: 0;
     border: none;
     flex: 1;
+    white-space: nowrap;
 }
 
-/* Logout Button - Touch friendly */
+/* Controles do Header */
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-icon-small {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.btn-icon-small:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.btn-icon-small.btn-save:hover {
+    background: rgba(53, 204, 163, 0.2);
+    border-color: var(--hubstrom-accent);
+    color: var(--hubstrom-accent);
+}
+
+.btn-icon-small.btn-delete:hover {
+    background: rgba(255, 71, 87, 0.2);
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+}
+
+.btn-icon-small.btn-logout:hover {
+    background: rgba(255, 165, 2, 0.2);
+    border-color: var(--color-warning);
+    color: var(--color-warning);
+}
+
+.month-selector {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    font-size: 0.85em;
+    cursor: pointer;
+    min-width: 130px;
+}
+
+.month-selector:focus {
+    outline: none;
+    border-color: var(--hubstrom-accent);
+}
+
+/* Logout Button - Removido, agora usa btn-icon-small */
 .logout-btn {
     display: flex;
     align-items: center;
@@ -409,29 +471,6 @@ body::before {
 }
 
 /* Mobile: esconder texto, mostrar só ícone */
-@media (max-width: 480px) {
-    .btn-save-month span {
-        display: none;
-    }
-    .btn-save-month {
-        padding: 10px 12px;
-    }
-}
-
-@media (max-width: 600px) {
-    .header-title-row {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .month-selector-container {
-        width: 100%;
-    }
-
-    .month-selector {
-        flex: 1;
-    }
-}
 
 /* ===================================
    KPI GRID - PREMIUM DESIGN
@@ -1173,7 +1212,7 @@ body::before {
 
     /* Header Mobile */
     .header {
-        padding: var(--spacing-md);
+        padding: var(--spacing-sm);
         border-radius: 12px;
         margin-bottom: var(--spacing-md);
     }
@@ -1181,25 +1220,37 @@ body::before {
     .header-top {
         flex-direction: row;
         justify-content: space-between;
-        gap: var(--spacing-sm);
+        align-items: center;
+        gap: 8px;
+        margin-bottom: var(--spacing-sm);
+        padding-bottom: var(--spacing-sm);
     }
 
-    .header-logo svg:first-child {
+    .header-main-title {
+        font-size: 0.95em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .header-controls {
+        gap: 4px;
+    }
+
+    .btn-icon-small {
         width: 32px;
         height: 32px;
     }
 
-    .brand-logo-svg {
-        height: 18px;
+    .month-selector {
+        padding: 6px 8px;
+        min-width: 100px;
+        font-size: 0.8em;
     }
 
-    .logout-btn {
-        padding: 10px 14px;
-        font-size: 0.85em;
-    }
-
-    .logout-btn span {
-        display: none;
+    #headerSubtitle {
+        font-size: 0.75em;
+        text-align: center;
     }
 
     /* KPIs Mobile - 2 colunas */
@@ -1316,19 +1367,51 @@ body::before {
     }
 
     .header {
-        padding: var(--spacing-sm);
+        padding: var(--spacing-xs);
     }
 
-    .header-logo svg:first-child {
+    .header-top {
+        gap: 4px;
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+    }
+
+    .header-main-title {
+        font-size: 0.85em;
+    }
+
+    .hamburger-btn {
+        width: 36px;
+        height: 36px;
+        margin-right: 4px;
+    }
+
+    .header-controls {
+        gap: 3px;
+    }
+
+    .btn-icon-small {
         width: 28px;
         height: 28px;
     }
 
-    .brand-logo-svg {
-        height: 16px;
+    .btn-icon-small svg {
+        width: 14px;
+        height: 14px;
     }
 
-    /* KPIs em 2 colunas ainda, mas mais compactos */
+    .month-selector {
+        padding: 5px 6px;
+        min-width: 85px;
+        font-size: 0.75em;
+    }
+
+    #headerSubtitle {
+        font-size: 0.7em;
+        margin-top: 0;
+    }
+
+    /* KPIs em 2 colunas ainda, mais compactos */
     .kpi-grid {
         gap: 6px;
     }
@@ -1338,11 +1421,11 @@ body::before {
     }
 
     .kpi-value {
-        font-size: 1.4em;
+        font-size: 1.3em;
     }
 
     .kpi-label {
-        font-size: 0.65em;
+        font-size: 0.6em;
         letter-spacing: 0;
     }
 
