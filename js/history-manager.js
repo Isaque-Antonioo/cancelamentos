@@ -714,7 +714,7 @@ function restoreChartsFromData(chartsData) {
         const chartType = (chartId === 'tempoChart' || chartId === 'moduloChart') ? 'bar' : 'doughnut';
         const isHorizontal = chartId === 'moduloChart';
 
-        // Recriar gráfico e salvar na variável global
+        // Recriar gráfico e salvar na variável global com datalabels
         window.hubstromCharts[chartId] = new Chart(canvas, {
             type: chartType,
             data: {
@@ -729,11 +729,33 @@ function restoreChartsFromData(chartsData) {
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
+                cutout: chartType === 'doughnut' ? '55%' : undefined,
                 plugins: {
                     legend: {
                         display: chartType === 'doughnut',
                         position: 'bottom',
                         labels: { color: '#94a3b8', padding: 10, font: { size: 11 } }
+                    },
+                    datalabels: {
+                        display: (context) => context.dataset.data[context.dataIndex] > 0,
+                        color: (context) => {
+                            const bgColors = context.dataset.backgroundColor;
+                            const bgColor = Array.isArray(bgColors) ? bgColors[context.dataIndex] : bgColors;
+                            const lightColors = ['#f59e0b', '#fbbf24', '#fcd34d'];
+                            return lightColors.includes(bgColor) ? '#1a1a2e' : '#ffffff';
+                        },
+                        anchor: 'center',
+                        align: 'center',
+                        font: { weight: 'bold', size: chartType === 'doughnut' ? 13 : 11 },
+                        formatter: (value, context) => {
+                            if (chartType === 'doughnut' && chartId === 'motivoChart') {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
+                                return value > 0 ? `${value}\n(${pct}%)` : '';
+                            }
+                            return value > 0 ? value : '';
+                        },
+                        textAlign: 'center'
                     }
                 },
                 scales: chartType === 'bar' ? {

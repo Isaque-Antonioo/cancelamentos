@@ -568,7 +568,7 @@ function updateCharts(summary) {
     const motivoData = Object.values(summary.motivos);
     const total = summary.total;
 
-    // Recriar gráfico de motivos
+    // Recriar gráfico de motivos com datalabels
     const motivoCtx = document.getElementById('motivoChart');
     if (motivoCtx) {
         window.hubstromCharts.motivoChart = new Chart(motivoCtx, {
@@ -585,15 +585,30 @@ function updateCharts(summary) {
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                cutout: '60%',
+                cutout: '55%',
                 plugins: {
-                    legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 12, usePointStyle: true } }
+                    legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 12, usePointStyle: true } },
+                    datalabels: {
+                        display: true,
+                        color: (context) => {
+                            const bgColor = context.dataset.backgroundColor[context.dataIndex];
+                            const lightColors = ['#f59e0b', '#fbbf24', '#fcd34d'];
+                            return lightColors.includes(bgColor) ? '#1a1a2e' : '#ffffff';
+                        },
+                        font: { weight: 'bold', size: 14 },
+                        formatter: (value, context) => {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const pct = ((value / total) * 100).toFixed(0);
+                            return value > 0 ? `${value}\n(${pct}%)` : '';
+                        },
+                        textAlign: 'center'
+                    }
                 }
             }
         });
     }
 
-    // Recriar gráfico de status
+    // Recriar gráfico de status com datalabels
     const statusCtx = document.getElementById('statusChart');
     if (statusCtx) {
         const statusLabels = ['Cancelado', 'Revertido', 'Desistência', 'Em negociação'];
@@ -613,9 +628,20 @@ function updateCharts(summary) {
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                cutout: '60%',
+                cutout: '55%',
                 plugins: {
-                    legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 12, usePointStyle: true } }
+                    legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 12, usePointStyle: true } },
+                    datalabels: {
+                        display: (context) => context.dataset.data[context.dataIndex] > 0,
+                        color: (context) => {
+                            const bgColor = context.dataset.backgroundColor[context.dataIndex];
+                            const lightColors = ['#f59e0b', '#fbbf24', '#fcd34d'];
+                            return lightColors.includes(bgColor) ? '#1a1a2e' : '#ffffff';
+                        },
+                        font: { weight: 'bold', size: 13 },
+                        formatter: (value) => value > 0 ? value : '',
+                        textAlign: 'center'
+                    }
                 }
             }
         });
@@ -666,7 +692,21 @@ function updateCharts(summary) {
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                plugins: { legend: { labels: { color: '#94a3b8' } } },
+                plugins: {
+                    legend: { labels: { color: '#94a3b8' } },
+                    datalabels: {
+                        display: (context) => context.dataset.data[context.dataIndex] > 0,
+                        color: (context) => {
+                            const bgColor = context.dataset.backgroundColor;
+                            const lightColors = ['#f59e0b', '#fbbf24', '#fcd34d'];
+                            return lightColors.includes(bgColor) ? '#1a1a2e' : '#ffffff';
+                        },
+                        anchor: 'center',
+                        align: 'center',
+                        font: { weight: 'bold', size: 11 },
+                        formatter: (value) => value > 0 ? value : ''
+                    }
+                },
                 scales: {
                     y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
                     x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
@@ -704,7 +744,10 @@ function updateCharts(summary) {
                     indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: true,
-                    plugins: { legend: { display: false } },
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: { display: false }
+                    },
                     scales: {
                         x: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
                         y: { ticks: { color: '#94a3b8' }, grid: { display: false } }
@@ -714,7 +757,7 @@ function updateCharts(summary) {
             return;
         }
 
-        // Gráfico com dados reais
+        // Gráfico com dados reais e datalabels
         window.hubstromCharts.moduloChart = new Chart(moduloCtx, {
             type: 'bar',
             data: {
@@ -731,7 +774,22 @@ function updateCharts(summary) {
                 indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: true,
-                plugins: { legend: { display: false } },
+                plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                        display: true,
+                        color: (context) => {
+                            const bgColors = context.dataset.backgroundColor;
+                            const bgColor = Array.isArray(bgColors) ? bgColors[context.dataIndex] : bgColors;
+                            const lightColors = ['#f59e0b', '#fbbf24', '#fcd34d'];
+                            return lightColors.includes(bgColor) ? '#1a1a2e' : '#ffffff';
+                        },
+                        anchor: 'center',
+                        align: 'center',
+                        font: { weight: 'bold', size: 12 },
+                        formatter: (value) => value > 0 ? value : ''
+                    }
+                },
                 scales: {
                     x: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
                     y: { ticks: { color: '#94a3b8' }, grid: { display: false } }

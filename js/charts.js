@@ -23,6 +23,11 @@ const hubstromColors = {
     textSecondary: '#94a3b8'
 };
 
+// Registrar o plugin datalabels
+if (typeof ChartDataLabels !== 'undefined') {
+    Chart.register(ChartDataLabels);
+}
+
 // Configurações globais do Chart.js
 Chart.defaults.color = hubstromColors.textSecondary;
 Chart.defaults.font.family = "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif";
@@ -33,6 +38,38 @@ Chart.defaults.plugins.tooltip.borderColor = 'rgba(53, 204, 163, 0.3)';
 Chart.defaults.plugins.tooltip.borderWidth = 1;
 Chart.defaults.plugins.tooltip.cornerRadius = 8;
 Chart.defaults.plugins.tooltip.padding = 12;
+
+// Desabilitar datalabels globalmente (habilitar apenas onde necessário)
+Chart.defaults.plugins.datalabels = {
+    display: false
+};
+
+// Função para determinar cor do texto baseada na cor de fundo
+function getContrastColor(backgroundColor) {
+    // Cores que precisam de texto escuro (cores claras)
+    const lightColors = ['#f59e0b', '#fbbf24', '#fbbf24', '#fcd34d', '#fef3c7', '#f59e0b'];
+    const warningColors = [hubstromColors.warning, hubstromColors.warningLight];
+
+    if (warningColors.includes(backgroundColor) || lightColors.includes(backgroundColor)) {
+        return '#1a1a2e'; // Texto escuro para fundos claros (amarelo/laranja)
+    }
+    return '#ffffff'; // Texto branco para fundos escuros
+}
+
+// Função para obter cor do datalabel baseada no contexto
+function getDatalabelColor(context) {
+    const dataset = context.dataset;
+    const index = context.dataIndex;
+    let bgColor;
+
+    if (Array.isArray(dataset.backgroundColor)) {
+        bgColor = dataset.backgroundColor[index];
+    } else {
+        bgColor = dataset.backgroundColor;
+    }
+
+    return getContrastColor(bgColor);
+}
 
 // Animação customizada
 const customAnimation = {
@@ -88,7 +125,7 @@ function initEmptyCharts() {
     });
 }
 
-// Gráfico de Motivos - Doughnut Premium
+// Gráfico de Motivos - Doughnut Premium com valores dentro
 function initMotivoChart() {
     const ctx = document.getElementById('motivoChart');
     if (!ctx) return;
@@ -96,9 +133,9 @@ function initMotivoChart() {
     window.hubstromCharts.motivoChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Usabilidade (48%)', 'Financeiro (32%)', 'Migração (20%)'],
+            labels: ['Usabilidade (48%)', 'Migração (20%)', 'Financeiro (32%)'],
             datasets: [{
-                data: [32, 21, 13],
+                data: [32, 13, 21],
                 backgroundColor: [
                     hubstromColors.danger,
                     hubstromColors.warning,
@@ -111,14 +148,14 @@ function initMotivoChart() {
                 ],
                 borderWidth: 0,
                 hoverBorderWidth: 3,
-                hoverBorderColor: hubstromColors.Write,
+                hoverBorderColor: '#ffffff',
                 spacing: 4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            cutout: '60%',
+            cutout: '55%',
             animation: {
                 animateRotate: true,
                 animateScale: true,
@@ -148,13 +185,27 @@ function initMotivoChart() {
                             return ` ${value} solicitações (${percentage}%)`;
                         }
                     }
+                },
+                datalabels: {
+                    display: true,
+                    color: getDatalabelColor,
+                    font: {
+                        weight: 'bold',
+                        size: 14
+                    },
+                    formatter: (value, context) => {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((value / total) * 100).toFixed(0);
+                        return value > 0 ? `${value}\n(${percentage}%)` : '';
+                    },
+                    textAlign: 'center'
                 }
             }
         }
     });
 }
 
-// Gráfico de Status - Doughnut Premium
+// Gráfico de Status - Doughnut Premium com valores dentro
 function initStatusChart() {
     const ctx = document.getElementById('statusChart');
     if (!ctx) return;
@@ -179,14 +230,14 @@ function initStatusChart() {
                 ],
                 borderWidth: 0,
                 hoverBorderWidth: 3,
-                hoverBorderColor: hubstromColors.Write,
+                hoverBorderColor: '#ffffff',
                 spacing: 4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            cutout: '60%',
+            cutout: '55%',
             animation: {
                 animateRotate: true,
                 animateScale: true,
@@ -216,13 +267,25 @@ function initStatusChart() {
                             return ` ${value} (${percentage}%)`;
                         }
                     }
+                },
+                datalabels: {
+                    display: (context) => context.dataset.data[context.dataIndex] > 0,
+                    color: getDatalabelColor,
+                    font: {
+                        weight: 'bold',
+                        size: 13
+                    },
+                    formatter: (value) => {
+                        return value > 0 ? value : '';
+                    },
+                    textAlign: 'center'
                 }
             }
         }
     });
 }
 
-// Gráfico de Tempo de Uso - Bar Premium
+// Gráfico de Tempo de Uso - Bar Premium com valores
 function initTempoChart() {
     const ctx = document.getElementById('tempoChart');
     if (!ctx) return;
@@ -235,7 +298,7 @@ function initTempoChart() {
                 {
                     label: 'Cancelados',
                     data: [20, 16, 6, 7],
-                    backgroundColor: createGradient(ctx, hubstromColors.danger, hubstromColors.dangerLight),
+                    backgroundColor: hubstromColors.danger,
                     hoverBackgroundColor: hubstromColors.dangerLight,
                     borderRadius: 8,
                     borderSkipped: false
@@ -243,7 +306,7 @@ function initTempoChart() {
                 {
                     label: 'Revertidos',
                     data: [7, 5, 3, 2],
-                    backgroundColor: createGradient(ctx, hubstromColors.accent, hubstromColors.accentLight),
+                    backgroundColor: hubstromColors.accent,
                     hoverBackgroundColor: hubstromColors.accentLight,
                     borderRadius: 8,
                     borderSkipped: false
@@ -275,6 +338,17 @@ function initTempoChart() {
                         title: (context) => `Período: ${context[0].label}`,
                         label: (context) => ` ${context.dataset.label}: ${context.raw} clientes`
                     }
+                },
+                datalabels: {
+                    display: (context) => context.dataset.data[context.dataIndex] > 0,
+                    color: getDatalabelColor,
+                    anchor: 'center',
+                    align: 'center',
+                    font: {
+                        weight: 'bold',
+                        size: 11
+                    },
+                    formatter: (value) => value > 0 ? value : ''
                 }
             },
             scales: {
@@ -303,7 +377,7 @@ function initTempoChart() {
     });
 }
 
-// Gráfico de Módulos - Horizontal Bar Premium
+// Gráfico de Módulos - Horizontal Bar Premium com valores
 function initModuloChart() {
     const ctx = document.getElementById('moduloChart');
     if (!ctx) return;
@@ -348,6 +422,17 @@ function initModuloChart() {
                         title: (context) => `Módulo: ${context[0].label}`,
                         label: (context) => ` ${context.raw} reclamações`
                     }
+                },
+                datalabels: {
+                    display: true,
+                    color: getDatalabelColor,
+                    anchor: 'center',
+                    align: 'center',
+                    font: {
+                        weight: 'bold',
+                        size: 12
+                    },
+                    formatter: (value) => value > 0 ? value : ''
                 }
             },
             scales: {
