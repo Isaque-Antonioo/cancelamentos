@@ -36,9 +36,20 @@ function getSheetsConfig() {
     }
 }
 
-// Salvar configuração
-function saveSheetsConfig(config) {
+// Salvar configuração (localStorage + Firebase)
+async function saveSheetsConfig(config) {
+    // Salvar no localStorage para acesso imediato
     localStorage.setItem(SHEETS_CONFIG_KEY, JSON.stringify(config));
+
+    // Salvar no Firebase para compartilhar com todos os usuários
+    if (typeof saveSheetsConfigToFirebase === 'function') {
+        try {
+            await saveSheetsConfigToFirebase(config);
+            console.log('Configuração do Sheets também salva no Firebase');
+        } catch (error) {
+            console.warn('Não foi possível salvar config no Firebase:', error);
+        }
+    }
 }
 
 // Obter gid para um mês específico
@@ -179,7 +190,7 @@ async function syncFromSheets() {
         // Salvar última sincronização
         config.lastSync = new Date().toISOString();
         config.lastSyncMonth = currentMonth;
-        saveSheetsConfig(config);
+        await saveSheetsConfig(config);
 
         updateSyncStatus();
 
@@ -360,7 +371,7 @@ async function saveSheetsConfiguration() {
         lastSync: null
     };
 
-    saveSheetsConfig(config);
+    await saveSheetsConfig(config);
 
     // Configurar auto-refresh
     if (refreshInterval > 0) {
@@ -377,10 +388,20 @@ async function saveSheetsConfiguration() {
 }
 
 // Remover configuração do Google Sheets
-function removeSheetsConfiguration() {
+async function removeSheetsConfiguration() {
     if (confirm('Deseja remover a configuração da planilha?')) {
         localStorage.removeItem(SHEETS_CONFIG_KEY);
         stopAutoRefresh();
+
+        // Remover do Firebase também
+        if (typeof database !== 'undefined' && database) {
+            try {
+                await database.ref('app_settings/sheets_config').remove();
+                console.log('Configuração do Sheets removida do Firebase');
+            } catch (error) {
+                console.warn('Erro ao remover config do Firebase:', error);
+            }
+        }
 
         // Limpar campos
         const urlInput = document.getElementById('sheetsUrlInput');

@@ -1010,7 +1010,7 @@ function closeConfigModal() {
     }
 }
 
-function saveApiKey() {
+async function saveApiKey() {
     const input = document.getElementById('apiKeyInput');
     if (!input) return;
 
@@ -1021,9 +1021,19 @@ function saveApiKey() {
         return;
     }
 
-    // Salvar diretamente no localStorage (a função getter vai ler de lá)
+    // Salvar no localStorage para acesso imediato
     localStorage.setItem('anthropic_api_key', newKey);
     console.log('API Key salva no localStorage');
+
+    // Salvar no Firebase para compartilhar com todos os usuários
+    if (typeof saveApiKeyToFirebase === 'function') {
+        try {
+            await saveApiKeyToFirebase(newKey);
+            console.log('API Key também salva no Firebase');
+        } catch (error) {
+            console.warn('Não foi possível salvar no Firebase:', error);
+        }
+    }
 
     updateApiStatus(true);
 
@@ -1036,7 +1046,7 @@ function saveApiKey() {
     closeConfigModal();
 
     // Mostrar notificação de sucesso
-    showNotification('API Key configurada com sucesso!');
+    showNotification('API Key configurada com sucesso! (salva para todos os usuários)');
 }
 
 function updateApiStatus(configured) {
