@@ -586,6 +586,22 @@ body::before {
     text-shadow: 0 0 30px rgba(83, 82, 237, 0.3);
 }
 
+/* Neutral - Branco Gesso */
+.kpi-card.neutral {
+    border-left: 5px solid #d1d5db;
+    background: linear-gradient(145deg, rgba(209, 213, 219, 0.08) 0%, rgba(15, 20, 25, 0.95) 100%);
+}
+
+.kpi-card.neutral::before {
+    background: linear-gradient(90deg, transparent, #d1d5db, transparent);
+}
+
+.kpi-card.neutral .kpi-value {
+    color: #e5e7eb;
+    -webkit-text-fill-color: #e5e7eb;
+    text-shadow: 0 0 20px rgba(229, 231, 235, 0.2);
+}
+
 .kpi-value {
     font-size: clamp(2.2em, 5vw, 3.2em);
     font-weight: 800;
@@ -1478,11 +1494,6 @@ canvas {
     margin-bottom: var(--spacing-sm);
     border-bottom: none;
     padding-bottom: 0;
-}
-
-.ai-header h2::before {
-    content: '🤖';
-    font-size: 1.2em;
 }
 
 .ai-header p {
