@@ -186,29 +186,19 @@ body::before {
     gap: var(--spacing-md);
 }
 
-.header-logo {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-}
-
-.header-logo svg {
-    filter: drop-shadow(0 4px 15px rgba(53, 204, 163, 0.4));
-    flex-shrink: 0;
-}
-
-.brand-name {
-    font-size: 1.6em;
-    font-weight: 800;
+/* Título Principal Centralizado */
+.header-main-title {
+    font-size: clamp(1.3em, 3vw, 1.8em);
+    font-weight: 700;
     background: linear-gradient(135deg, var(--hubstrom-accent) 0%, var(--hubstrom-accent-light) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-}
-
-.brand-logo-svg {
-    height: 28px;
-    width: auto;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    border: none;
+    flex: 1;
 }
 
 /* Logout Button - Touch friendly */
