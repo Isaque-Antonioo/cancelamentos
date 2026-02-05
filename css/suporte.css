@@ -3,6 +3,20 @@
    Consistente com o design de Cancelamentos
    =================================== */
 
+/* Main wrapper - Full width */
+.main-wrapper {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.main-wrapper .main-content {
+    flex: 1;
+    padding: 20px 30px;
+    width: 100%;
+    max-width: none;
+}
+
 /* KPI Grid - 5 cards em uma linha */
 .suporte-kpi-grid {
     grid-template-columns: repeat(5, 1fr);
