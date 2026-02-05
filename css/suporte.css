@@ -3,9 +3,14 @@
    Consistente com o design de Cancelamentos
    =================================== */
 
-/* KPI Grid - 5 cards */
+/* KPI Grid - 5 cards em uma linha */
 .suporte-kpi-grid {
     grid-template-columns: repeat(5, 1fr);
+}
+
+/* Resetar posicionamento forçado do styles.css para o 5o card */
+.suporte-kpi-grid .kpi-card:nth-child(5) {
+    grid-column: auto;
 }
 
 /* Info card style (azul) */

@@ -82,6 +82,12 @@ async function fetchData() {
         const csvText = await response.text();
         allData = parseCSV(csvText);
 
+        // Validação: log para debug
+        const csvLineCount = csvText.split('\n').filter(l => l.trim()).length - 1; // -1 pelo cabeçalho
+        console.log(`[Suporte Validação] Linhas CSV (sem cabeçalho): ${csvLineCount}`);
+        console.log(`[Suporte Validação] Registros carregados: ${allData.length}`);
+        console.log(`[Suporte Validação] Registros descartados: ${csvLineCount - allData.length}`);
+
         if (allData.length === 0) {
             updateSubtitle('Nenhum dado encontrado na planilha');
             return;
@@ -124,12 +130,21 @@ function parseCSV(text) {
         row._diaMes = getCol(row, 'Dia/Mês', 'Dia/Mes', 'Dia', 'Data', 'Date') || '';
         row._colaborador = getCol(row, 'Colaborador', 'Atendente', 'Responsável', 'Responsavel') || '';
 
-        // Extrair mês numérico do campo Dia/Mês (formato dd/mm ou dd/mm/yyyy)
+        // Extrair mês e ano do campo Dia/Mês (formato dd/mm ou dd/mm/yyyy)
         row._mesNum = extractMonth(row._diaMes);
+        row._anoNum = extractYear(row._diaMes);
+        // Chave mês/ano para filtro (ex: "2024-03" ou "0-03" se sem ano)
+        if (row._mesNum) {
+            const y = row._anoNum || new Date().getFullYear();
+            row._mesAno = `${y}-${String(row._mesNum).padStart(2, '0')}`;
+        } else {
+            row._mesAno = null;
+        }
 
-        // Filtrar linhas de cabeçalho repetidas e linhas vazias
+        // Filtrar linhas de cabeçalho repetidas e linhas completamente vazias
         if (isHeaderRow(row)) continue;
-        if (!row._razaoSocial && !row._status && !row._modulo) continue;
+        const hasAnyData = row._razaoSocial || row._modulo || row._processo || row._canal || row._ligacao || row._status || row._diaMes || row._colaborador;
+        if (!hasAnyData) continue;
 
         data.push(row);
     }
@@ -139,21 +154,38 @@ function parseCSV(text) {
 
 function isHeaderRow(row) {
     // Detectar linhas que são repetições do cabeçalho
-    const vals = [row._razaoSocial, row._modulo, row._processo, row._canal, row._status, row._colaborador];
+    // Exigir que pelo menos 3 campos coincidam com palavras de cabeçalho
+    const vals = [row._razaoSocial, row._modulo, row._processo, row._canal, row._status, row._colaborador, row._diaMes, row._ligacao];
+    let matches = 0;
     for (const val of vals) {
         if (val && HEADER_WORDS.includes(val.toLowerCase().trim())) {
-            return true;
+            matches++;
         }
     }
-    return false;
+    return matches >= 3;
 }
 
 function extractMonth(diaMes) {
     if (!diaMes) return null;
-    const parts = diaMes.split('/');
+    const clean = diaMes.trim();
+    const parts = clean.split('/');
     if (parts.length >= 2) {
+        const day = parseInt(parts[0]);
         const month = parseInt(parts[1]);
-        if (month >= 1 && month <= 12) return month;
+        // Validar dia (1-31) e mês (1-12) para garantir que é uma data real
+        if (day >= 1 && day <= 31 && month >= 1 && month <= 12) return month;
+    }
+    return null;
+}
+
+function extractYear(diaMes) {
+    if (!diaMes) return null;
+    const clean = diaMes.trim();
+    const parts = clean.split('/');
+    if (parts.length >= 3) {
+        let year = parseInt(parts[2]);
+        if (year >= 1 && year <= 99) year += 2000; // 24 -> 2024
+        if (year >= 2000 && year <= 2100) return year;
     }
     return null;
 }
@@ -193,21 +225,25 @@ function buildMonthFilter(data) {
     const selector = document.getElementById('monthFilter');
     if (!selector) return;
 
-    // Descobrir meses disponíveis
-    const months = new Set();
+    // Descobrir meses/anos disponíveis (chave "YYYY-MM")
+    const monthKeys = new Set();
     data.forEach(row => {
-        if (row._mesNum) months.add(row._mesNum);
+        if (row._mesAno) monthKeys.add(row._mesAno);
     });
 
-    const sortedMonths = Array.from(months).sort((a, b) => a - b);
+    // Ordenar cronologicamente
+    const sortedKeys = Array.from(monthKeys).sort();
 
     // Guardar seleção atual
     const prev = selector.value;
 
     selector.innerHTML = `<option value="todos">Todos os meses</option>`;
-    sortedMonths.forEach(m => {
-        const count = data.filter(r => r._mesNum === m).length;
-        selector.innerHTML += `<option value="${m}">${MESES_NOMES[m - 1]} (${count})</option>`;
+    sortedKeys.forEach(key => {
+        const [year, monthStr] = key.split('-');
+        const m = parseInt(monthStr);
+        const count = data.filter(r => r._mesAno === key).length;
+        const label = `${MESES_NOMES[m - 1]}/${year} (${count})`;
+        selector.innerHTML += `<option value="${key}">${label}</option>`;
     });
 
     // Restaurar seleção
@@ -226,8 +262,7 @@ function applyFilter() {
     if (currentMonth === 'todos') {
         filteredData = allData;
     } else {
-        const mes = parseInt(currentMonth);
-        filteredData = allData.filter(r => r._mesNum === mes);
+        filteredData = allData.filter(r => r._mesAno === currentMonth);
     }
 
     const summary = buildSummary(filteredData);
@@ -235,7 +270,12 @@ function applyFilter() {
     updateCharts(summary);
     renderTable(filteredData);
 
-    const mesLabel = currentMonth === 'todos' ? 'Todos os meses' : MESES_NOMES[parseInt(currentMonth) - 1];
+    let mesLabel = 'Todos os meses';
+    if (currentMonth !== 'todos') {
+        const [year, monthStr] = currentMonth.split('-');
+        const m = parseInt(monthStr);
+        mesLabel = `${MESES_NOMES[m - 1]}/${year}`;
+    }
     updateSubtitle(`${filteredData.length} chamados (${mesLabel}) • Atualizado às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`);
 
     // Atualizar título do timeline
@@ -256,14 +296,15 @@ function capitalizeFirst(str) {
 function normalizeStatus(val) {
     if (!val) return '';
     const v = val.trim();
-    const low = v.toLowerCase().replace(/\s+/g, ' ');
+    if (!v) return '';
+    const low = v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
 
-    if (low.includes('resolv')) return 'Resolvido';
-    if (low.includes('conclu')) return 'Concluído';
-    if (low.includes('andamento') || low.includes('progres')) return 'Em Andamento';
-    if (low.includes('pend') || low.includes('aguard') || low.includes('aberto')) return 'Pendente';
+    if (low.includes('resolv') || low.includes('solucion')) return 'Resolvido';
+    if (low.includes('conclu') || low.includes('completo') || low.includes('complete')) return 'Concluído';
+    if (low.includes('andamento') || low.includes('progres') || low.includes('tratativa') || low.includes('em curso')) return 'Em Andamento';
+    if (low.includes('pend') || low.includes('aguard') || low.includes('aberto') || low.includes('espera')) return 'Pendente';
     if (low.includes('cancel')) return 'Cancelado';
-    if (low.includes('finaliz') || low.includes('feito') || low.includes('atendido')) return 'Finalizado';
+    if (low.includes('finaliz') || low.includes('feito') || low.includes('atendido') || low.includes('encerr')) return 'Finalizado';
 
     // Capitalizar primeira letra
     return capitalizeFirst(v);
@@ -318,23 +359,31 @@ function buildSummary(data) {
         const colaborador = normalizeColaborador(row._colaborador);
         if (colaborador) summary.colaboradores[colaborador] = (summary.colaboradores[colaborador] || 0) + 1;
 
-        const ligacao = row._ligacao.toLowerCase().trim();
-        if (ligacao === 'sim' || ligacao === 's' || ligacao === 'yes' || ligacao === '1') {
+        const ligacao = row._ligacao.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        if (ligacao === 'sim' || ligacao === 's' || ligacao === 'yes' || ligacao === '1' || ligacao === 'si') {
             summary.ligacoes.sim++;
+        } else if (ligacao === 'nao' || ligacao === 'n' || ligacao === 'no' || ligacao === '0' || ligacao === 'não') {
+            summary.ligacoes.nao++;
         } else if (ligacao) {
+            // Valor inesperado - contar como "não" para não perder registros
             summary.ligacoes.nao++;
         }
 
-        if (row._razaoSocial) summary.clientesUnicos.add(row._razaoSocial.toLowerCase().trim());
+        if (row._razaoSocial) {
+            const clienteKey = row._razaoSocial.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+            if (clienteKey) summary.clientesUnicos.add(clienteKey);
+        }
 
-        // Timeline: se filtrando 1 mês, mostrar por dia; se todos, agrupar por mês
+        // Timeline: se filtrando 1 mês, mostrar por dia; se todos, agrupar por mês/ano
         if (currentMonth === 'todos') {
-            if (row._mesNum) {
-                const mesKey = MESES_ABREV[row._mesNum - 1];
+            if (row._mesAno) {
+                const [year, monthStr] = row._mesAno.split('-');
+                const m = parseInt(monthStr);
+                const mesKey = `${MESES_ABREV[m - 1]}/${year.slice(2)}`;
                 summary.timeline[mesKey] = (summary.timeline[mesKey] || 0) + 1;
             }
         } else {
-            const dia = row._diaMes.trim();
+            const dia = row._diaMes ? row._diaMes.trim() : '';
             if (dia) {
                 const parts = dia.split('/');
                 const dayKey = parts[0] ? parts[0].padStart(2, '0') : dia;
@@ -342,6 +391,26 @@ function buildSummary(data) {
             }
         }
     });
+
+    // Validação detalhada
+    const statusTotal = Object.values(summary.status).reduce((a, b) => a + b, 0);
+    const semStatus = summary.total - statusTotal;
+    const resolvedKeys = Object.keys(summary.status).filter(s => ['Resolvido', 'Concluído', 'Finalizado'].includes(s));
+    const pendingKeys = Object.keys(summary.status).filter(s => ['Pendente', 'Em Andamento'].includes(s));
+    const resolvidos = resolvedKeys.reduce((sum, k) => sum + summary.status[k], 0);
+    const pendentes = pendingKeys.reduce((sum, k) => sum + summary.status[k], 0);
+
+    console.log(`[Suporte Validação] === RESUMO KPIs ===`);
+    console.log(`  Total registros: ${summary.total}`);
+    console.log(`  Status breakdown:`, summary.status);
+    console.log(`  Resolvidos (${resolvedKeys.join('+')}): ${resolvidos}`);
+    console.log(`  Pendentes (${pendingKeys.join('+')}): ${pendentes}`);
+    console.log(`  Outros status: ${statusTotal - resolvidos - pendentes}`);
+    console.log(`  Sem status: ${semStatus}`);
+    console.log(`  Clientes únicos: ${summary.clientesUnicos.size}`);
+    console.log(`  Ligações SIM: ${summary.ligacoes.sim} | NÃO: ${summary.ligacoes.nao} | Sem info: ${summary.total - summary.ligacoes.sim - summary.ligacoes.nao}`);
+    console.log(`  Módulos:`, summary.modulos);
+    console.log(`  Canais:`, summary.canais);
 
     return summary;
 }
@@ -688,7 +757,7 @@ function renderTable(data) {
             <td>${escapeHTML(row._modulo)}</td>
             <td>${escapeHTML(row._processo)}</td>
             <td>${escapeHTML(row._canal)}</td>
-            <td><span class="badge-ligacao ${row._ligacao.toLowerCase().trim() === 'sim' ? 'badge-sim' : 'badge-nao'}">${escapeHTML(row._ligacao)}</span></td>
+            <td><span class="badge-ligacao ${isLigacaoSim(row._ligacao) ? 'badge-sim' : 'badge-nao'}">${escapeHTML(row._ligacao)}</span></td>
             <td><span class="badge-status ${getStatusClass(row._status)}">${escapeHTML(row._status)}</span></td>
             <td>${escapeHTML(row._diaMes)}</td>
             <td>${escapeHTML(row._colaborador)}</td>
@@ -718,6 +787,12 @@ function getStatusClass(status) {
     if (s.includes('cancel') || s.includes('escal') || s.includes('critic')) return 'status-critico';
     if (s.includes('andamento') || s.includes('progres') || s.includes('tratativa')) return 'status-andamento';
     return 'status-outro';
+}
+
+function isLigacaoSim(val) {
+    if (!val) return false;
+    const v = val.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    return v === 'sim' || v === 's' || v === 'yes' || v === '1' || v === 'si';
 }
 
 function escapeHTML(str) {
@@ -817,7 +892,7 @@ function sanitizeKey(key) {
     return key.replace(/[.#$[\]/]/g, '_').replace(/\s+/g, ' ').trim() || '_vazio_';
 }
 
-// Gerar monthKey a partir de mês numérico
+// getMonthKey mantida para compatibilidade (não mais usada internamente)
 function getMonthKey(mesNum) {
     const year = new Date().getFullYear();
     return `${year}-${String(mesNum).padStart(2, '0')}`;
@@ -1060,10 +1135,10 @@ async function saveToFirebase() {
         return;
     }
 
-    // Determinar meses a salvar
+    // Determinar meses/anos a salvar
     const monthsToSave = new Set();
     filteredData.forEach(row => {
-        if (row._mesNum) monthsToSave.add(row._mesNum);
+        if (row._mesAno) monthsToSave.add(row._mesAno);
     });
 
     if (monthsToSave.size === 0) {
@@ -1074,16 +1149,15 @@ async function saveToFirebase() {
     showNotification('Salvando dados...', 'info');
 
     let saved = 0;
-    for (const mesNum of monthsToSave) {
-        const monthKey = getMonthKey(mesNum);
-        const monthData = allData.filter(r => r._mesNum === mesNum);
+    for (const monthKey of monthsToSave) {
+        const monthData = allData.filter(r => r._mesAno === monthKey);
 
         // Salvar versão anterior no histórico
         await saveToSuporteHistory(monthKey);
 
         // Construir summary específico para este mês
         const prevMonth = currentMonth;
-        currentMonth = String(mesNum);
+        currentMonth = monthKey;
         const summary = buildSummary(monthData);
         currentMonth = prevMonth;
 
@@ -1105,9 +1179,10 @@ async function deleteFromFirebase() {
         return;
     }
 
-    const mesNum = parseInt(currentMonth);
-    const monthKey = getMonthKey(mesNum);
-    const mesNome = MESES_NOMES[mesNum - 1];
+    const monthKey = currentMonth;
+    const [year, monthStr] = monthKey.split('-');
+    const m = parseInt(monthStr);
+    const mesNome = `${MESES_NOMES[m - 1]}/${year}`;
 
     if (!confirm(`Deseja excluir o snapshot de ${mesNome}?\n\nUma cópia será salva no histórico.`)) {
         return;
@@ -1128,25 +1203,24 @@ async function autoSaveToFirebase() {
     if (!isSuporteFirebaseReady()) return;
     if (allData.length === 0) return;
 
-    // Salvar cada mês como snapshot separado
-    const months = new Set();
+    // Salvar cada mês/ano como snapshot separado
+    const monthKeys = new Set();
     allData.forEach(row => {
-        if (row._mesNum) months.add(row._mesNum);
+        if (row._mesAno) monthKeys.add(row._mesAno);
     });
 
-    for (const mesNum of months) {
-        const monthKey = getMonthKey(mesNum);
-        const monthData = allData.filter(r => r._mesNum === mesNum);
+    for (const monthKey of monthKeys) {
+        const monthData = allData.filter(r => r._mesAno === monthKey);
 
         const prevMonth = currentMonth;
-        currentMonth = String(mesNum);
+        currentMonth = monthKey;
         const summary = buildSummary(monthData);
         currentMonth = prevMonth;
 
         await saveSnapshotToFirebase(monthKey, summary, monthData);
     }
 
-    console.log(`[Suporte] Auto-save: ${months.size} meses salvos`);
+    console.log(`[Suporte] Auto-save: ${monthKeys.size} meses salvos`);
 }
 
 // ===================================
