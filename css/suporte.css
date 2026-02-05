@@ -1,0 +1,289 @@
+/* ===================================
+   Suporte Técnico - Estilos Premium
+   Consistente com o design de Cancelamentos
+   =================================== */
+
+/* KPI Grid - 5 cards */
+.suporte-kpi-grid {
+    grid-template-columns: repeat(5, 1fr);
+}
+
+/* Info card style (azul) */
+.kpi-card.info {
+    border-left: 5px solid var(--color-info);
+    background: linear-gradient(145deg, rgba(83, 82, 237, 0.08) 0%, rgba(15, 20, 25, 0.95) 100%);
+}
+
+.kpi-card.info .kpi-value {
+    background: linear-gradient(135deg, #5352ed 0%, #7c7cf7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+}
+
+/* Charts Grid - 3x2 */
+.suporte-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+/* Tabela Section */
+.suporte-table-section {
+    background: var(--surface-card);
+    border-radius: var(--radius-md);
+    border: var(--border-subtle);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.table-header h2 {
+    font-size: 1.15em;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--hubstrom-accent) 0%, var(--hubstrom-accent-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.table-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.table-search {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    font-size: 0.85em;
+    font-family: inherit;
+    outline: none;
+    transition: all var(--transition-fast);
+    min-width: 180px;
+}
+
+.table-search:focus {
+    border-color: var(--hubstrom-accent);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.table-search::placeholder {
+    color: var(--text-muted);
+}
+
+.table-count {
+    color: var(--text-muted);
+    font-size: 0.8em;
+    white-space: nowrap;
+}
+
+/* Tabela */
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.suporte-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+}
+
+.suporte-table thead th {
+    background: rgba(53, 204, 163, 0.08);
+    color: var(--hubstrom-accent);
+    font-weight: 600;
+    font-size: 0.85em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 14px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(53, 204, 163, 0.15);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.suporte-table tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background var(--transition-fast);
+}
+
+.suporte-table tbody tr:hover {
+    background: rgba(53, 204, 163, 0.04);
+}
+
+.suporte-table tbody td {
+    padding: 10px 14px;
+    color: var(--text-secondary);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.suporte-table tbody td:first-child {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.table-loading,
+.table-empty {
+    text-align: center;
+    padding: 40px !important;
+    color: var(--text-muted) !important;
+    font-style: italic;
+}
+
+/* Badges de Status */
+.badge-status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-status.status-resolvido {
+    background: rgba(46, 213, 115, 0.15);
+    color: #2ed573;
+}
+
+.badge-status.status-pendente {
+    background: rgba(255, 165, 2, 0.15);
+    color: #ffa502;
+}
+
+.badge-status.status-critico {
+    background: rgba(255, 71, 87, 0.15);
+    color: #ff4757;
+}
+
+.badge-status.status-andamento {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.badge-status.status-outro {
+    background: rgba(168, 85, 247, 0.15);
+    color: #a855f7;
+}
+
+/* Badge Ligação */
+.badge-ligacao {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.badge-ligacao.badge-sim {
+    background: rgba(53, 204, 163, 0.15);
+    color: var(--hubstrom-accent);
+}
+
+.badge-ligacao.badge-nao {
+    background: rgba(100, 116, 139, 0.15);
+    color: var(--text-muted);
+}
+
+/* Refresh button spin */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.btn-refresh:hover {
+    background: rgba(53, 204, 163, 0.2);
+    border-color: var(--hubstrom-accent);
+    color: var(--hubstrom-accent);
+}
+
+/* ===================================
+   RESPONSIVO
+   =================================== */
+
+@media (max-width: 1200px) {
+    .suporte-charts-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .suporte-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .suporte-kpi-grid .kpi-card:last-child {
+        grid-column: span 2;
+    }
+
+    .suporte-charts-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+    }
+
+    .suporte-table-section {
+        padding: var(--spacing-sm);
+    }
+
+    .table-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .table-search {
+        min-width: unset;
+        width: 100%;
+    }
+
+    .suporte-table {
+        font-size: 0.75em;
+    }
+
+    .suporte-table thead th {
+        padding: 8px 10px;
+        font-size: 0.75em;
+    }
+
+    .suporte-table tbody td {
+        padding: 8px 10px;
+        max-width: 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    .suporte-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .suporte-kpi-grid .kpi-card:last-child {
+        grid-column: span 2;
+    }
+
+    .suporte-table tbody td {
+        max-width: 80px;
+        font-size: 0.7em;
+    }
+}
