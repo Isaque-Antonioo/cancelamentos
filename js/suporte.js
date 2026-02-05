@@ -451,10 +451,19 @@ function setKPI(id, value, labelOverride) {
 // ===================================
 // GRÁFICOS
 // ===================================
+
+// Calcula luminosidade de uma cor hex para determinar contraste ideal
+function getLuminance(hex) {
+    const rgb = hex.replace('#', '').match(/.{2}/g).map(x => parseInt(x, 16) / 255);
+    const [r, g, b] = rgb.map(c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
 function getContrastColor(bgColor) {
-    const lightColors = ['#f59e0b', '#fbbf24', '#fcd34d', '#fef3c7'];
-    if (lightColors.includes(bgColor)) return '#1a1a2e';
-    return '#ffffff';
+    if (!bgColor || bgColor.startsWith('rgba')) return '#ffffff';
+    const luminance = getLuminance(bgColor);
+    // Se a cor de fundo é clara (luminância > 0.5), usa texto escuro
+    return luminance > 0.45 ? '#1a1a2e' : '#ffffff';
 }
 
 function getDatalabelColor(context) {
@@ -503,55 +512,102 @@ function createDoughnutChart(canvasId, labels, data, colors) {
             datasets: [{
                 data: data,
                 backgroundColor: colors.slice(0, labels.length),
-                borderWidth: 2,
-                borderColor: 'rgba(15, 20, 25, 0.8)',
+                borderWidth: 3,
+                borderColor: 'rgba(10, 15, 20, 0.8)',
                 hoverBorderColor: '#ffffff',
-                hoverBorderWidth: 2,
-                hoverOffset: 6
+                hoverBorderWidth: 3,
+                hoverOffset: 12,
+                spacing: 2
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            cutout: '55%',
-            animation: { duration: 1200, easing: 'easeOutQuart' },
+            cutout: '58%',
+            animation: {
+                animateRotate: true,
+                animateScale: true,
+                duration: 1200,
+                easing: 'easeOutQuart'
+            },
+            layout: {
+                padding: 15
+            },
             plugins: {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        color: suporteColors.textSecondary,
-                        padding: 10,
+                        color: '#f1f5f9',
+                        padding: 18,
                         usePointStyle: true,
-                        pointStyle: 'circle',
-                        font: { size: 11 }
+                        pointStyle: 'rectRounded',
+                        font: { size: 12, weight: '600', family: "'Segoe UI', sans-serif" },
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                            return data.labels.map((label, i) => {
+                                const value = data.datasets[0].data[i];
+                                const pct = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
+                                return {
+                                    text: `${label} (${pct}%)`,
+                                    fillStyle: data.datasets[0].backgroundColor[i],
+                                    strokeStyle: data.datasets[0].backgroundColor[i],
+                                    fontColor: '#f1f5f9',
+                                    hidden: false,
+                                    index: i
+                                };
+                            });
+                        }
                     }
                 },
                 tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    titleColor: '#f8fafc',
+                    bodyColor: '#e2e8f0',
+                    borderColor: 'rgba(53, 204, 163, 0.3)',
+                    borderWidth: 1,
+                    cornerRadius: 12,
+                    padding: 14,
+                    titleFont: { size: 14, weight: '600' },
+                    bodyFont: { size: 13 },
+                    displayColors: true,
+                    boxPadding: 6,
                     callbacks: {
                         label: function(ctx) {
                             const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
                             const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
-                            return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+                            return ` ${ctx.parsed.toLocaleString('pt-BR')} chamados (${pct}%)`;
                         }
                     }
                 },
                 datalabels: {
                     display: function(ctx) {
                         const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                        return total > 0 && (ctx.dataset.data[ctx.dataIndex] / total) > 0.04;
+                        return total > 0 && (ctx.dataset.data[ctx.dataIndex] / total) > 0.05;
                     },
                     color: getDatalabelColor,
-                    font: { weight: 'bold', size: 12 },
-                    formatter: function(value, ctx) {
-                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                        const pct = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
-                        return `${value}\n(${pct}%)`;
+                    font: { weight: 'bold', size: 14 },
+                    formatter: function(value) {
+                        return value.toLocaleString('pt-BR');
                     },
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    textStrokeColor: 'rgba(0,0,0,0.3)',
+                    textStrokeWidth: 2
                 }
             }
         }
     });
+}
+
+// Ajusta brilho de cor hex
+function adjustBrightness(hex, percent) {
+    if (!hex || hex.startsWith('rgba')) return hex;
+    const num = parseInt(hex.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+    const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amt));
+    const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+    return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
 }
 
 function createBarChart(canvasId, labels, data, colors, horizontal) {
@@ -560,43 +616,99 @@ function createBarChart(canvasId, labels, data, colors, horizontal) {
     if (!ctx) return;
 
     const barCount = labels.length;
-    const thickness = horizontal ? Math.max(16, Math.min(28, 200 / barCount)) : undefined;
+    const thickness = horizontal ? Math.max(22, Math.min(36, 320 / barCount)) : undefined;
+
+    // Truncar labels longas para barras horizontais
+    const displayLabels = horizontal
+        ? labels.map(l => l.length > 16 ? l.substring(0, 14) + '...' : l)
+        : labels;
+
+    // Criar cores com gradiente sutil para efeito premium
+    const gradientColors = colors.map(color => {
+        return color;
+    });
+
+    // Cores de borda mais escuras para profundidade
+    const borderColors = colors.map(color => adjustBrightness(color, -25));
 
     suporteCharts[canvasId] = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels,
+            labels: displayLabels,
             datasets: [{
                 data: data,
-                backgroundColor: colors.slice(0, labels.length),
+                backgroundColor: gradientColors,
+                borderColor: borderColors,
+                borderWidth: 1,
                 borderRadius: 6,
                 borderSkipped: false,
                 barThickness: thickness,
-                maxBarThickness: 35
+                maxBarThickness: 44
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
             indexAxis: horizontal ? 'y' : 'x',
-            animation: { duration: 1200, easing: 'easeOutQuart' },
+            animation: {
+                duration: 1200,
+                easing: 'easeOutQuart',
+                delay: (context) => context.dataIndex * 50
+            },
+            layout: {
+                padding: { right: horizontal ? 55 : 10, left: 5, top: 10 }
+            },
             scales: {
                 x: {
-                    grid: { color: 'rgba(255,255,255,0.04)' },
-                    ticks: { color: suporteColors.textSecondary, font: { size: 11 } },
+                    grid: {
+                        color: 'rgba(255,255,255,0.06)',
+                        drawBorder: false,
+                        lineWidth: 1
+                    },
+                    ticks: {
+                        color: '#e2e8f0',
+                        font: { size: 11, weight: '500' },
+                        maxRotation: 0,
+                        padding: 8
+                    },
                     beginAtZero: true
                 },
                 y: {
-                    grid: { color: 'rgba(255,255,255,0.04)' },
-                    ticks: { color: suporteColors.textSecondary, font: { size: 11 } }
+                    grid: {
+                        color: 'rgba(255,255,255,0.03)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#f1f5f9',
+                        font: { size: 12, weight: '600' },
+                        crossAlign: 'far',
+                        padding: 10
+                    }
                 }
             },
             plugins: {
                 legend: { display: false },
                 tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    titleColor: '#f8fafc',
+                    bodyColor: '#e2e8f0',
+                    borderColor: 'rgba(53, 204, 163, 0.4)',
+                    borderWidth: 1,
+                    cornerRadius: 10,
+                    padding: 14,
+                    titleFont: { size: 13, weight: '600' },
+                    bodyFont: { size: 12 },
+                    displayColors: true,
+                    boxPadding: 6,
                     callbacks: {
+                        title: function(ctx) {
+                            return labels[ctx[0].dataIndex];
+                        },
                         label: function(ctx) {
-                            return ` ${ctx.parsed[horizontal ? 'x' : 'y']} chamados`;
+                            const total = data.reduce((a, b) => a + b, 0);
+                            const val = ctx.parsed[horizontal ? 'x' : 'y'];
+                            const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                            return ` ${val.toLocaleString('pt-BR')} chamados (${pct}%)`;
                         }
                     }
                 },
@@ -605,8 +717,13 @@ function createBarChart(canvasId, labels, data, colors, horizontal) {
                     color: '#ffffff',
                     anchor: horizontal ? 'end' : 'end',
                     align: horizontal ? 'right' : 'top',
-                    offset: 4,
-                    font: { weight: 'bold', size: 11 }
+                    offset: 6,
+                    font: { weight: 'bold', size: 12 },
+                    formatter: function(value) {
+                        return value.toLocaleString('pt-BR');
+                    },
+                    textShadowColor: 'rgba(0,0,0,0.4)',
+                    textShadowBlur: 4
                 }
             }
         }
@@ -615,31 +732,37 @@ function createBarChart(canvasId, labels, data, colors, horizontal) {
 
 function createStatusChart(statusData) {
     const limited = limitCategories(statusData, 6);
+    // Cores mais vibrantes e distintas para cada status
     const colors = limited.labels.map(label => {
         const l = label.toLowerCase();
-        if (l === 'resolvido' || l === 'finalizado') return suporteColors.success;
-        if (l === 'concluído') return suporteColors.accentLight;
-        if (l === 'em andamento') return suporteColors.info;
-        if (l === 'pendente') return suporteColors.warning;
-        if (l === 'cancelado') return suporteColors.danger;
-        if (l === 'outros') return suporteColors.slate;
-        return suporteColors.purple;
+        if (l === 'resolvido' || l === 'finalizado') return '#22c55e'; // Verde vibrante
+        if (l === 'concluído') return '#10b981'; // Verde esmeralda
+        if (l === 'em andamento') return '#3b82f6'; // Azul vibrante
+        if (l === 'pendente') return '#f59e0b'; // Amarelo/laranja
+        if (l === 'cancelado') return '#ef4444'; // Vermelho
+        if (l === 'processos') return '#8b5cf6'; // Roxo
+        if (l === 'outros') return '#64748b'; // Cinza slate
+        return '#a855f7'; // Roxo claro
     });
     createDoughnutChart('chartStatus', limited.labels, limited.values, colors);
 }
 
 function createModuloChart(moduloData) {
-    const limited = limitCategories(moduloData, 8);
+    const limited = limitCategories(moduloData, 10);
     const colors = limited.labels.map((l, i) =>
         l === 'Outros' ? suporteColors.slate : chartPalette[i % chartPalette.length]
     );
-    createDoughnutChart('chartModulo', limited.labels, limited.values, colors);
+    createBarChart('chartModulo', limited.labels, limited.values, colors, true);
 }
 
 function createCanalChart(canalData) {
-    const limited = limitCategories(canalData, 6);
-    const canalColors = [suporteColors.info, suporteColors.accent, suporteColors.warning, suporteColors.purple, suporteColors.pink, suporteColors.cyan, suporteColors.slate];
-    createDoughnutChart('chartCanal', limited.labels, limited.values, canalColors);
+    const limited = limitCategories(canalData, 8);
+    const canalColors = limited.labels.map((l, i) => {
+        if (l === 'Outros') return suporteColors.slate;
+        const palette = [suporteColors.info, suporteColors.accent, suporteColors.warning, suporteColors.purple, suporteColors.pink, suporteColors.cyan, suporteColors.orange, suporteColors.teal];
+        return palette[i % palette.length];
+    });
+    createBarChart('chartCanal', limited.labels, limited.values, canalColors, true);
 }
 
 function createColaboradorChart(colaboradorData) {
@@ -663,18 +786,23 @@ function createTimelineChart(timelineData) {
 
     let entries;
     if (currentMonth === 'todos') {
-        // Ordenar por mês
-        const monthOrder = MESES_ABREV;
-        entries = Object.entries(timelineData).sort((a, b) =>
-            monthOrder.indexOf(a[0]) - monthOrder.indexOf(b[0])
-        );
+        // Ordenar cronologicamente por mês/ano
+        entries = Object.entries(timelineData).sort((a, b) => {
+            // Formato: "Jan/25", "Fev/25", etc
+            const [ma, ya] = a[0].split('/');
+            const [mb, yb] = b[0].split('/');
+            const idxA = MESES_ABREV.indexOf(ma);
+            const idxB = MESES_ABREV.indexOf(mb);
+            if (ya !== yb) return parseInt(ya) - parseInt(yb);
+            return idxA - idxB;
+        });
     } else {
         // Ordenar por dia numérico
         entries = Object.entries(timelineData).sort((a, b) =>
             parseInt(a[0]) - parseInt(b[0])
         );
         // Formatar labels com "Dia X"
-        entries = entries.map(([day, count]) => [`Dia ${parseInt(day)}`, count]);
+        entries = entries.map(([day, count]) => [`${parseInt(day)}`, count]);
     }
 
     const labels = entries.map(e => e[0]);
@@ -683,52 +811,114 @@ function createTimelineChart(timelineData) {
     const ctx = document.getElementById('chartTimeline');
     if (!ctx) return;
 
-    // Gradiente de cores por mês
+    // Gradiente premium - de ciano para accent
+    const canvas = ctx.getContext('2d');
+    const gradient = canvas.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(53, 204, 163, 0.95)');
+    gradient.addColorStop(1, 'rgba(53, 204, 163, 0.4)');
+
+    // Cores individuais com gradiente de intensidade
     const colors = labels.map((_, i) => {
-        const t = labels.length > 1 ? i / (labels.length - 1) : 0;
-        return `rgba(53, 204, 163, ${0.4 + t * 0.6})`;
+        const progress = labels.length > 1 ? i / (labels.length - 1) : 0;
+        const alpha = 0.5 + progress * 0.5;
+        return `rgba(53, 204, 163, ${alpha})`;
     });
+
+    const borderColors = labels.map(() => 'rgba(53, 204, 163, 0.9)');
 
     suporteCharts['chartTimeline'] = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
             datasets: [{
+                label: 'Chamados',
                 data: data,
                 backgroundColor: colors,
-                borderColor: suporteColors.accent,
-                borderWidth: 1,
-                borderRadius: 6,
-                maxBarThickness: 50
+                borderColor: borderColors,
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false,
+                maxBarThickness: 60,
+                hoverBackgroundColor: 'rgba(53, 204, 163, 1)',
+                hoverBorderColor: '#ffffff',
+                hoverBorderWidth: 2
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            animation: { duration: 1200, easing: 'easeOutQuart' },
+            animation: {
+                duration: 1400,
+                easing: 'easeOutQuart',
+                delay: (context) => context.dataIndex * 80
+            },
+            layout: {
+                padding: { top: 25, bottom: 5 }
+            },
             scales: {
                 x: {
-                    grid: { color: 'rgba(255,255,255,0.04)' },
-                    ticks: { color: suporteColors.textSecondary, font: { size: 12, weight: '500' } }
+                    grid: {
+                        color: 'rgba(255,255,255,0.05)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#f1f5f9',
+                        font: { size: 12, weight: '600' },
+                        padding: 8
+                    }
                 },
                 y: {
-                    grid: { color: 'rgba(255,255,255,0.04)' },
-                    ticks: { color: suporteColors.textSecondary },
+                    grid: {
+                        color: 'rgba(255,255,255,0.06)',
+                        drawBorder: false,
+                        lineWidth: 1
+                    },
+                    ticks: {
+                        color: '#e2e8f0',
+                        font: { size: 11, weight: '500' },
+                        padding: 10,
+                        callback: function(value) {
+                            return value.toLocaleString('pt-BR');
+                        }
+                    },
                     beginAtZero: true
                 }
             },
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    callbacks: { label: (ctx) => ` ${ctx.parsed.y} chamados` }
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    titleColor: '#f8fafc',
+                    bodyColor: '#e2e8f0',
+                    borderColor: 'rgba(53, 204, 163, 0.5)',
+                    borderWidth: 1,
+                    cornerRadius: 10,
+                    padding: 14,
+                    titleFont: { size: 14, weight: '600' },
+                    bodyFont: { size: 13 },
+                    displayColors: false,
+                    callbacks: {
+                        title: function(ctx) {
+                            const label = ctx[0].label;
+                            return currentMonth === 'todos' ? label : `Dia ${label}`;
+                        },
+                        label: function(ctx) {
+                            return `${ctx.parsed.y.toLocaleString('pt-BR')} chamados`;
+                        }
+                    }
                 },
                 datalabels: {
-                    display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0,
+                    display: function(ctx) { return ctx.dataset.data[ctx.dataIndex] > 0; },
                     color: '#ffffff',
                     anchor: 'end',
                     align: 'top',
-                    offset: 2,
-                    font: { weight: 'bold', size: 12 }
+                    offset: 4,
+                    font: { weight: 'bold', size: 13 },
+                    formatter: function(value) {
+                        return value.toLocaleString('pt-BR');
+                    },
+                    textShadowColor: 'rgba(0,0,0,0.3)',
+                    textShadowBlur: 3
                 }
             }
         }
