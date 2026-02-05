@@ -90,6 +90,9 @@ async function fetchData() {
         buildMonthFilter(allData);
         applyFilter();
 
+        // Auto-save no Firebase após cada fetch bem-sucedido
+        autoSaveToFirebase();
+
     } catch (error) {
         console.error('Erro ao buscar dados:', error);
         updateSubtitle('Erro ao carregar dados. Verifique a conexão.');
@@ -756,5 +759,441 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         const sidebar = document.getElementById('sidebar');
         if (sidebar.classList.contains('active')) toggleSidebar();
+    }
+});
+
+// ===================================
+// FIREBASE - INTEGRAÇÃO
+// ===================================
+
+/*
+  Estrutura no Firebase Realtime Database:
+
+  suporte/
+  ├── snapshots/
+  │   └── {YYYY-MM}/                    (ex: "2026-01")
+  │       ├── savedAt: ISO timestamp
+  │       ├── source: "sheets" | "manual"
+  │       ├── meta/
+  │       │   ├── total: number
+  │       │   ├── resolvidos: number
+  │       │   ├── pendentes: number
+  │       │   ├── clientesUnicos: number
+  │       │   └── ligacoes: number
+  │       ├── status/
+  │       │   └── {StatusNormalizado}: count
+  │       ├── modulos/
+  │       │   └── {NomeModulo}: count
+  │       ├── canais/
+  │       │   └── {NomeCanal}: count
+  │       ├── processos/
+  │       │   └── {NomeProcesso}: count
+  │       ├── colaboradores/
+  │       │   └── {NomeColaborador}: count
+  │       └── timeline/
+  │           └── {DiaMes}: count
+  │
+  ├── registros/
+  │   └── {YYYY-MM}/
+  │       └── {index}/
+  │           ├── razaoSocial
+  │           ├── modulo
+  │           ├── processo
+  │           ├── canal
+  │           ├── ligacao
+  │           ├── status
+  │           ├── diaMes
+  │           └── colaborador
+  │
+  └── history/
+      └── {YYYY-MM}/
+          └── v_{timestamp}/
+              └── (mesma estrutura de snapshots/{YYYY-MM})
+*/
+
+// Sanitizar chave do Firebase (remove caracteres proibidos)
+function sanitizeKey(key) {
+    if (!key) return '_vazio_';
+    return key.replace(/[.#$[\]/]/g, '_').replace(/\s+/g, ' ').trim() || '_vazio_';
+}
+
+// Gerar monthKey a partir de mês numérico
+function getMonthKey(mesNum) {
+    const year = new Date().getFullYear();
+    return `${year}-${String(mesNum).padStart(2, '0')}`;
+}
+
+// Verificar se Firebase está pronto
+function isSuporteFirebaseReady() {
+    return typeof firebaseReady !== 'undefined' && firebaseReady && database !== null;
+}
+
+// ===================================
+// FIREBASE - SALVAR SNAPSHOT
+// ===================================
+async function saveSnapshotToFirebase(monthKey, summary, data) {
+    if (!isSuporteFirebaseReady()) {
+        console.warn('[Suporte] Firebase não está pronto.');
+        return false;
+    }
+
+    try {
+        const safeMonth = sanitizeKey(monthKey);
+
+        // 1. Preparar meta (KPIs)
+        const resolvedKeys = Object.keys(summary.status).filter(s =>
+            ['Resolvido', 'Concluído', 'Finalizado'].includes(s)
+        );
+        const resolvidos = resolvedKeys.reduce((sum, k) => sum + summary.status[k], 0);
+
+        const pendingKeys = Object.keys(summary.status).filter(s =>
+            ['Pendente', 'Em Andamento'].includes(s)
+        );
+        const pendentes = pendingKeys.reduce((sum, k) => sum + summary.status[k], 0);
+
+        const meta = {
+            total: summary.total,
+            resolvidos: resolvidos,
+            pendentes: pendentes,
+            clientesUnicos: summary.clientesUnicos.size,
+            ligacoes: summary.ligacoes.sim
+        };
+
+        // 2. Sanitizar chaves dos objetos de distribuição
+        const sanitizeObj = (obj) => {
+            const result = {};
+            Object.entries(obj).forEach(([k, v]) => {
+                result[sanitizeKey(k)] = v;
+            });
+            return result;
+        };
+
+        // 3. Montar snapshot
+        const snapshot = {
+            savedAt: new Date().toISOString(),
+            source: 'sheets',
+            meta: meta,
+            status: sanitizeObj(summary.status),
+            modulos: sanitizeObj(summary.modulos),
+            canais: sanitizeObj(summary.canais),
+            processos: sanitizeObj(summary.processos),
+            colaboradores: sanitizeObj(summary.colaboradores),
+            timeline: sanitizeObj(summary.timeline)
+        };
+
+        // 4. Salvar snapshot
+        await database.ref(`suporte/snapshots/${safeMonth}`).set(snapshot);
+
+        // 5. Salvar registros individuais (limitar a 500 para performance)
+        const registros = data.slice(0, 500).map(row => ({
+            razaoSocial: row._razaoSocial || '',
+            modulo: row._modulo || '',
+            processo: row._processo || '',
+            canal: row._canal || '',
+            ligacao: row._ligacao || '',
+            status: row._status || '',
+            diaMes: row._diaMes || '',
+            colaborador: row._colaborador || ''
+        }));
+
+        await database.ref(`suporte/registros/${safeMonth}`).set(registros);
+
+        console.log(`[Suporte] Snapshot salvo: ${monthKey} (${data.length} registros)`);
+        return true;
+    } catch (error) {
+        console.error('[Suporte] Erro ao salvar snapshot:', error);
+        return false;
+    }
+}
+
+// ===================================
+// FIREBASE - CARREGAR SNAPSHOT
+// ===================================
+async function loadSnapshotFromFirebase(monthKey) {
+    if (!isSuporteFirebaseReady()) return null;
+
+    try {
+        const safeMonth = sanitizeKey(monthKey);
+        const snapshot = await database.ref(`suporte/snapshots/${safeMonth}`).once('value');
+
+        if (snapshot.exists()) {
+            console.log(`[Suporte] Snapshot carregado: ${monthKey}`);
+            return snapshot.val();
+        }
+        return null;
+    } catch (error) {
+        console.error('[Suporte] Erro ao carregar snapshot:', error);
+        return null;
+    }
+}
+
+// Carregar registros de um mês
+async function loadRegistrosFromFirebase(monthKey) {
+    if (!isSuporteFirebaseReady()) return null;
+
+    try {
+        const safeMonth = sanitizeKey(monthKey);
+        const snapshot = await database.ref(`suporte/registros/${safeMonth}`).once('value');
+
+        if (snapshot.exists()) {
+            return snapshot.val();
+        }
+        return null;
+    } catch (error) {
+        console.error('[Suporte] Erro ao carregar registros:', error);
+        return null;
+    }
+}
+
+// Listar meses com snapshots salvos
+async function listSavedMonths() {
+    if (!isSuporteFirebaseReady()) return [];
+
+    try {
+        const snapshot = await database.ref('suporte/snapshots').once('value');
+        if (snapshot.exists()) {
+            return Object.keys(snapshot.val()).sort().reverse();
+        }
+        return [];
+    } catch (error) {
+        console.error('[Suporte] Erro ao listar meses:', error);
+        return [];
+    }
+}
+
+// ===================================
+// FIREBASE - DELETAR SNAPSHOT
+// ===================================
+async function deleteSnapshotFromFirebase(monthKey) {
+    if (!isSuporteFirebaseReady()) return false;
+
+    try {
+        const safeMonth = sanitizeKey(monthKey);
+
+        // Salvar no histórico antes de deletar
+        await saveToSuporteHistory(monthKey);
+
+        // Deletar snapshot e registros
+        await database.ref(`suporte/snapshots/${safeMonth}`).remove();
+        await database.ref(`suporte/registros/${safeMonth}`).remove();
+
+        console.log(`[Suporte] Snapshot deletado: ${monthKey}`);
+        return true;
+    } catch (error) {
+        console.error('[Suporte] Erro ao deletar:', error);
+        return false;
+    }
+}
+
+// ===================================
+// FIREBASE - HISTÓRICO DE VERSÕES
+// ===================================
+async function saveToSuporteHistory(monthKey) {
+    if (!isSuporteFirebaseReady()) return false;
+
+    try {
+        const safeMonth = sanitizeKey(monthKey);
+        const currentSnapshot = await database.ref(`suporte/snapshots/${safeMonth}`).once('value');
+
+        if (!currentSnapshot.exists()) return true;
+
+        const timestamp = Date.now();
+        const versionKey = `v_${timestamp}`;
+
+        const historyEntry = {
+            ...currentSnapshot.val(),
+            versionTimestamp: timestamp,
+            versionDate: new Date().toISOString()
+        };
+
+        await database.ref(`suporte/history/${safeMonth}/${versionKey}`).set(historyEntry);
+
+        // Limpar versões antigas (manter últimas 5)
+        await cleanSuporteHistory(monthKey, 5);
+
+        console.log(`[Suporte] Histórico salvo: ${monthKey} - ${versionKey}`);
+        return true;
+    } catch (error) {
+        console.error('[Suporte] Erro ao salvar histórico:', error);
+        return false;
+    }
+}
+
+async function cleanSuporteHistory(monthKey, keepCount) {
+    try {
+        const safeMonth = sanitizeKey(monthKey);
+        const snapshot = await database.ref(`suporte/history/${safeMonth}`)
+            .orderByChild('versionTimestamp')
+            .once('value');
+
+        if (!snapshot.exists()) return;
+
+        const versions = [];
+        snapshot.forEach(child => {
+            versions.push({ key: child.key, ts: child.val().versionTimestamp || 0 });
+        });
+
+        versions.sort((a, b) => b.ts - a.ts);
+
+        if (versions.length <= keepCount) return;
+
+        const toDelete = versions.slice(keepCount);
+        for (const v of toDelete) {
+            await database.ref(`suporte/history/${safeMonth}/${v.key}`).remove();
+        }
+    } catch (error) {
+        console.error('[Suporte] Erro ao limpar histórico:', error);
+    }
+}
+
+// ===================================
+// FIREBASE - AÇÕES DO USUÁRIO
+// ===================================
+async function saveToFirebase() {
+    if (!isSuporteFirebaseReady()) {
+        showNotification('Firebase não está conectado.', 'error');
+        return;
+    }
+
+    if (filteredData.length === 0) {
+        showNotification('Nenhum dado para salvar.', 'error');
+        return;
+    }
+
+    // Determinar meses a salvar
+    const monthsToSave = new Set();
+    filteredData.forEach(row => {
+        if (row._mesNum) monthsToSave.add(row._mesNum);
+    });
+
+    if (monthsToSave.size === 0) {
+        showNotification('Nenhum mês identificado nos dados.', 'error');
+        return;
+    }
+
+    showNotification('Salvando dados...', 'info');
+
+    let saved = 0;
+    for (const mesNum of monthsToSave) {
+        const monthKey = getMonthKey(mesNum);
+        const monthData = allData.filter(r => r._mesNum === mesNum);
+
+        // Salvar versão anterior no histórico
+        await saveToSuporteHistory(monthKey);
+
+        // Construir summary específico para este mês
+        const prevMonth = currentMonth;
+        currentMonth = String(mesNum);
+        const summary = buildSummary(monthData);
+        currentMonth = prevMonth;
+
+        const success = await saveSnapshotToFirebase(monthKey, summary, monthData);
+        if (success) saved++;
+    }
+
+    showNotification(`${saved} mês(es) salvos no Firebase!`, 'success');
+}
+
+async function deleteFromFirebase() {
+    if (!isSuporteFirebaseReady()) {
+        showNotification('Firebase não está conectado.', 'error');
+        return;
+    }
+
+    if (currentMonth === 'todos') {
+        showNotification('Selecione um mês específico para deletar.', 'error');
+        return;
+    }
+
+    const mesNum = parseInt(currentMonth);
+    const monthKey = getMonthKey(mesNum);
+    const mesNome = MESES_NOMES[mesNum - 1];
+
+    if (!confirm(`Deseja excluir o snapshot de ${mesNome}?\n\nUma cópia será salva no histórico.`)) {
+        return;
+    }
+
+    const success = await deleteSnapshotFromFirebase(monthKey);
+    if (success) {
+        showNotification(`Snapshot de ${mesNome} excluído.`, 'success');
+    } else {
+        showNotification('Erro ao excluir snapshot.', 'error');
+    }
+}
+
+// ===================================
+// FIREBASE - AUTO-SAVE após fetch
+// ===================================
+async function autoSaveToFirebase() {
+    if (!isSuporteFirebaseReady()) return;
+    if (allData.length === 0) return;
+
+    // Salvar cada mês como snapshot separado
+    const months = new Set();
+    allData.forEach(row => {
+        if (row._mesNum) months.add(row._mesNum);
+    });
+
+    for (const mesNum of months) {
+        const monthKey = getMonthKey(mesNum);
+        const monthData = allData.filter(r => r._mesNum === mesNum);
+
+        const prevMonth = currentMonth;
+        currentMonth = String(mesNum);
+        const summary = buildSummary(monthData);
+        currentMonth = prevMonth;
+
+        await saveSnapshotToFirebase(monthKey, summary, monthData);
+    }
+
+    console.log(`[Suporte] Auto-save: ${months.size} meses salvos`);
+}
+
+// ===================================
+// NOTIFICAÇÕES
+// ===================================
+function showNotification(message, type) {
+    // Remover notificação existente
+    const existing = document.querySelector('.suporte-notification');
+    if (existing) existing.remove();
+
+    const colors = {
+        success: { bg: 'rgba(46, 213, 115, 0.15)', border: '#2ed573', text: '#2ed573' },
+        error: { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#ef4444' },
+        info: { bg: 'rgba(53, 204, 163, 0.15)', border: '#35cca3', text: '#35cca3' }
+    };
+    const c = colors[type] || colors.info;
+
+    const el = document.createElement('div');
+    el.className = 'suporte-notification';
+    el.style.cssText = `
+        position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+        padding: 14px 20px; border-radius: 12px;
+        background: ${c.bg}; border: 1px solid ${c.border};
+        color: ${c.text}; font-size: 0.9em; font-weight: 500;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        animation: slideInRight 0.3s ease;
+        max-width: 360px;
+    `;
+    el.textContent = message;
+    document.body.appendChild(el);
+
+    setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => el.remove(), 300);
+    }, 3000);
+}
+
+// ===================================
+// MODIFICAR FETCH PARA AUTO-SAVE
+// ===================================
+// Sobreescrever o evento firebaseReady para auto-save
+window.addEventListener('firebaseReady', () => {
+    console.log('[Suporte] Firebase pronto - auto-save habilitado');
+    // Se já temos dados carregados, salvar automaticamente
+    if (allData.length > 0) {
+        autoSaveToFirebase();
     }
 });
