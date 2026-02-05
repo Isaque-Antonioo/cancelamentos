@@ -40,6 +40,16 @@ let suporteCharts = {};
 let currentMonth = 'todos';
 let refreshTimer = null;
 
+// Filtros de dia por gráfico
+let chartDayFilters = {
+    status: 'todos',
+    modulo: 'todos',
+    canal: 'todos',
+    colaborador: 'todos',
+    processo: 'todos',
+    timeline: 'todos'
+};
+
 // Palavras que indicam que é linha de cabeçalho (não dados)
 const HEADER_WORDS = ['razão social', 'razao social', 'módulo', 'modulo', 'processo', 'canal de atendimento', 'canal', 'ligação', 'ligacao', 'status', 'dia/mês', 'dia/mes', 'colaborador', 'atendente'];
 
@@ -255,6 +265,10 @@ function buildMonthFilter(data) {
 
 function handleMonthFilter(value) {
     currentMonth = value;
+    // Resetar filtros de dia quando muda o mês
+    Object.keys(chartDayFilters).forEach(key => {
+        chartDayFilters[key] = 'todos';
+    });
     applyFilter();
 }
 
@@ -264,6 +278,9 @@ function applyFilter() {
     } else {
         filteredData = allData.filter(r => r._mesAno === currentMonth);
     }
+
+    // Construir filtros de dia
+    buildDayFilters(filteredData);
 
     const summary = buildSummary(filteredData);
     updateKPIs(summary);
@@ -282,6 +299,153 @@ function applyFilter() {
     const timelineTitle = document.getElementById('timelineTitle');
     if (timelineTitle) {
         timelineTitle.textContent = currentMonth === 'todos' ? 'Chamados por Mês' : `Chamados por Dia - ${mesLabel}`;
+    }
+}
+
+// ===================================
+// FILTRO POR DIA (POR GRÁFICO)
+// ===================================
+function buildDayFilters(data) {
+    // Descobrir dias únicos disponíveis
+    const days = new Set();
+    data.forEach(row => {
+        const day = extractDay(row._diaMes);
+        if (day) days.add(day);
+    });
+
+    const sortedDays = Array.from(days).sort((a, b) => a - b);
+
+    // Atualizar todos os selects de filtro de dia
+    document.querySelectorAll('.chart-day-filter').forEach(select => {
+        const chartType = select.dataset.chart;
+        const prevValue = chartDayFilters[chartType] || 'todos';
+
+        select.innerHTML = '<option value="todos">Todos os dias</option>';
+
+        if (currentMonth !== 'todos') {
+            // Adicionar opção de range
+            select.innerHTML += '<option value="range">Período personalizado</option>';
+            select.innerHTML += '<option disabled>──────────</option>';
+
+            sortedDays.forEach(day => {
+                const count = data.filter(r => extractDay(r._diaMes) === day).length;
+                select.innerHTML += `<option value="${day}">Dia ${day} (${count})</option>`;
+            });
+        }
+
+        // Restaurar valor anterior se ainda existir
+        if (prevValue !== 'todos' && select.querySelector(`option[value="${prevValue}"]`)) {
+            select.value = prevValue;
+        } else {
+            select.value = 'todos';
+            chartDayFilters[chartType] = 'todos';
+        }
+    });
+}
+
+function extractDay(diaMes) {
+    if (!diaMes) return null;
+    const parts = diaMes.trim().split('/');
+    if (parts.length >= 1) {
+        const day = parseInt(parts[0]);
+        if (day >= 1 && day <= 31) return day;
+    }
+    return null;
+}
+
+function handleDayFilter(chartType, value) {
+    chartDayFilters[chartType] = value;
+
+    // Filtrar dados para este gráfico específico
+    const chartData = getFilteredDataForChart(chartType);
+    const summary = buildSummaryForChart(chartData);
+
+    // Atualizar apenas o gráfico específico
+    updateSingleChart(chartType, summary);
+}
+
+function getFilteredDataForChart(chartType) {
+    const dayFilter = chartDayFilters[chartType];
+
+    if (dayFilter === 'todos') {
+        return filteredData;
+    }
+
+    const day = parseInt(dayFilter);
+    return filteredData.filter(r => extractDay(r._diaMes) === day);
+}
+
+function buildSummaryForChart(data) {
+    // Construir summary para os dados filtrados
+    const summary = {
+        total: data.length,
+        status: {},
+        modulos: {},
+        canais: {},
+        processos: {},
+        colaboradores: {},
+        ligacoes: { sim: 0, nao: 0 },
+        clientesUnicos: new Set(),
+        timeline: {}
+    };
+
+    data.forEach(row => {
+        const status = normalizeStatus(row._status);
+        if (status) summary.status[status] = (summary.status[status] || 0) + 1;
+
+        const modulo = normalizeGeneric(row._modulo);
+        if (modulo) summary.modulos[modulo] = (summary.modulos[modulo] || 0) + 1;
+
+        const canal = normalizeGeneric(row._canal);
+        if (canal) summary.canais[canal] = (summary.canais[canal] || 0) + 1;
+
+        const processo = normalizeGeneric(row._processo);
+        if (processo) summary.processos[processo] = (summary.processos[processo] || 0) + 1;
+
+        const colaborador = normalizeColaborador(row._colaborador);
+        if (colaborador) summary.colaboradores[colaborador] = (summary.colaboradores[colaborador] || 0) + 1;
+
+        // Timeline
+        if (currentMonth === 'todos') {
+            if (row._mesAno) {
+                const [year, monthStr] = row._mesAno.split('-');
+                const m = parseInt(monthStr);
+                const mesKey = `${MESES_ABREV[m - 1]}/${year.slice(2)}`;
+                summary.timeline[mesKey] = (summary.timeline[mesKey] || 0) + 1;
+            }
+        } else {
+            const dia = row._diaMes ? row._diaMes.trim() : '';
+            if (dia) {
+                const parts = dia.split('/');
+                const dayKey = parts[0] ? parts[0].padStart(2, '0') : dia;
+                summary.timeline[dayKey] = (summary.timeline[dayKey] || 0) + 1;
+            }
+        }
+    });
+
+    return summary;
+}
+
+function updateSingleChart(chartType, summary) {
+    switch(chartType) {
+        case 'status':
+            createStatusChart(summary.status);
+            break;
+        case 'modulo':
+            createModuloChart(summary.modulos);
+            break;
+        case 'canal':
+            createCanalChart(summary.canais);
+            break;
+        case 'colaborador':
+            createColaboradorChart(summary.colaboradores);
+            break;
+        case 'processo':
+            createProcessoChart(summary.processos);
+            break;
+        case 'timeline':
+            createTimelineChart(summary.timeline);
+            break;
     }
 }
 

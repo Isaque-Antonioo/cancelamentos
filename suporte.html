@@ -149,27 +149,57 @@
         <!-- Charts -->
         <section class="suporte-charts-grid">
             <div class="chart-card chart-small">
-                <h3>Status dos Chamados</h3>
+                <div class="chart-header">
+                    <h3>Status dos Chamados</h3>
+                    <select class="chart-day-filter" data-chart="status" onchange="handleDayFilter('status', this.value)">
+                        <option value="todos">Todos os dias</option>
+                    </select>
+                </div>
                 <canvas id="chartStatus"></canvas>
             </div>
             <div class="chart-card chart-small">
-                <h3>Por Módulo</h3>
+                <div class="chart-header">
+                    <h3>Por Módulo</h3>
+                    <select class="chart-day-filter" data-chart="modulo" onchange="handleDayFilter('modulo', this.value)">
+                        <option value="todos">Todos os dias</option>
+                    </select>
+                </div>
                 <canvas id="chartModulo"></canvas>
             </div>
             <div class="chart-card chart-small">
-                <h3>Canal de Atendimento</h3>
+                <div class="chart-header">
+                    <h3>Canal de Atendimento</h3>
+                    <select class="chart-day-filter" data-chart="canal" onchange="handleDayFilter('canal', this.value)">
+                        <option value="todos">Todos os dias</option>
+                    </select>
+                </div>
                 <canvas id="chartCanal"></canvas>
             </div>
             <div class="chart-card chart-small">
-                <h3>Por Colaborador</h3>
+                <div class="chart-header">
+                    <h3>Por Colaborador</h3>
+                    <select class="chart-day-filter" data-chart="colaborador" onchange="handleDayFilter('colaborador', this.value)">
+                        <option value="todos">Todos os dias</option>
+                    </select>
+                </div>
                 <canvas id="chartColaborador"></canvas>
             </div>
             <div class="chart-card chart-small">
-                <h3>Por Processo</h3>
+                <div class="chart-header">
+                    <h3>Por Processo</h3>
+                    <select class="chart-day-filter" data-chart="processo" onchange="handleDayFilter('processo', this.value)">
+                        <option value="todos">Todos os dias</option>
+                    </select>
+                </div>
                 <canvas id="chartProcesso"></canvas>
             </div>
             <div class="chart-card chart-small">
-                <h3 id="timelineTitle">Chamados por Mês</h3>
+                <div class="chart-header">
+                    <h3 id="timelineTitle">Chamados por Mês</h3>
+                    <select class="chart-day-filter" data-chart="timeline" onchange="handleDayFilter('timeline', this.value)">
+                        <option value="todos">Todos os dias</option>
+                    </select>
+                </div>
                 <canvas id="chartTimeline"></canvas>
             </div>
         </section>

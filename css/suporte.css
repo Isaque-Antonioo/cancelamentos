@@ -57,13 +57,61 @@
     border-color: rgba(53, 204, 163, 0.2);
 }
 
+/* Header do card com título e filtro */
+.suporte-charts-grid .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 12px;
+}
+
 .suporte-charts-grid .chart-card h3 {
     font-size: 1.1em;
     font-weight: 600;
     color: #f1f5f9;
-    margin-bottom: 20px;
+    margin: 0;
     padding-left: 12px;
     border-left: 3px solid var(--hubstrom-accent);
+    white-space: nowrap;
+}
+
+/* Filtro de dia dentro do card */
+.chart-day-filter {
+    padding: 6px 12px;
+    padding-right: 28px;
+    font-size: 0.8em;
+    font-weight: 500;
+    font-family: inherit;
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    min-width: 120px;
+}
+
+.chart-day-filter:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(53, 204, 163, 0.4);
+}
+
+.chart-day-filter:focus {
+    border-color: var(--hubstrom-accent);
+    box-shadow: 0 0 0 2px rgba(53, 204, 163, 0.15);
+}
+
+.chart-day-filter option {
+    background: #1e293b;
+    color: #f1f5f9;
+    padding: 8px;
 }
 
 .suporte-charts-grid .chart-card canvas {
