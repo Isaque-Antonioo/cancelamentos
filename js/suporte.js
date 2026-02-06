@@ -36,9 +36,26 @@ const chartPalette = [
 // Estado global
 let allData = [];           // Todos os dados da planilha
 let filteredData = [];      // Dados filtrados pelo mês
+let tableFilteredData = []; // Dados filtrados pelos filtros da tabela
 let suporteCharts = {};
 let currentMonth = 'todos';
 let refreshTimer = null;
+
+// Estado da tabela
+let tableViewMode = 'agrupado'; // 'agrupado' ou 'detalhado'
+let tableSortColumn = null;
+let tableSortDirection = 'asc';
+let tableFilters = {
+    diaInicio: '',
+    mesInicio: '',
+    diaFim: '',
+    mesFim: '',
+    modulo: '',
+    processo: '',
+    status: '',
+    colaborador: '',
+    search: ''
+};
 
 // Filtros de dia por gráfico
 let chartDayFilters = {
@@ -279,12 +296,21 @@ function applyFilter() {
         filteredData = allData.filter(r => r._mesAno === currentMonth);
     }
 
-    // Construir filtros de dia
+    // Construir filtros de dia dos gráficos
     buildDayFilters(filteredData);
+
+    // Construir filtros da tabela
+    buildTableFilters(filteredData);
+
+    // Limpar filtros da tabela quando muda o mês
+    clearTableFiltersState();
 
     const summary = buildSummary(filteredData);
     updateKPIs(summary);
     updateCharts(summary);
+
+    // Aplicar filtros da tabela (vai usar filteredData já que tableFilters está limpo)
+    tableFilteredData = filteredData;
     renderTable(filteredData);
 
     let mesLabel = 'Todos os meses';
@@ -1170,48 +1196,546 @@ function createTimelineChart(timelineData) {
 }
 
 // ===================================
-// TABELA
+// TABELA - FILTROS E AGRUPAMENTO
 // ===================================
+
+// Construir opções dos filtros da tabela
+function buildTableFilters(data) {
+    const modulos = new Set();
+    const processos = new Set();
+    const statusList = new Set();
+    const colaboradores = new Set();
+    const dias = new Set();
+    const meses = new Set();
+
+    // Usar allData para pegar todos os meses disponíveis (independente do filtro de mês)
+    const dataForDates = currentMonth === 'todos' ? allData : data;
+
+    dataForDates.forEach(row => {
+        const dia = extractDay(row._diaMes);
+        if (dia) dias.add(dia);
+        const mes = extractMonth(row._diaMes);
+        if (mes) meses.add(mes);
+    });
+
+    // Usar data filtrada para os outros campos
+    data.forEach(row => {
+        if (row._modulo) modulos.add(normalizeGeneric(row._modulo));
+        if (row._processo) processos.add(normalizeGeneric(row._processo));
+        if (row._status) statusList.add(normalizeStatus(row._status));
+        if (row._colaborador) colaboradores.add(normalizeColaborador(row._colaborador));
+    });
+
+    // Popular selects de período - dias de 1 a 31
+    const diasOptions = [];
+    for (let d = 1; d <= 31; d++) {
+        diasOptions.push({ value: d, label: String(d).padStart(2, '0') });
+    }
+
+    // Meses disponíveis nos dados
+    const mesesOptions = Array.from(meses).sort((a, b) => a - b).map(m => ({ value: m, label: MESES_ABREV[m - 1] }));
+
+    populateFilterSelect('filterDiaInicio', diasOptions, 'Dia');
+    populateFilterSelect('filterMesInicio', mesesOptions, 'Mês');
+    populateFilterSelect('filterDiaFim', diasOptions, 'Dia');
+    populateFilterSelect('filterMesFim', mesesOptions, 'Mês');
+
+    // Popular outros filtros
+    populateFilterSelect('filterModulo', Array.from(modulos).sort(), 'Todos');
+    populateFilterSelect('filterProcesso', Array.from(processos).sort(), 'Todos');
+    populateFilterSelect('filterStatus', Array.from(statusList).sort(), 'Todos');
+    populateFilterSelect('filterColaborador', Array.from(colaboradores).sort(), 'Todos');
+}
+
+function populateFilterSelect(selectId, options, defaultText) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    const prevValue = select.value;
+
+    // Limpar e adicionar opção padrão
+    select.innerHTML = '';
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = defaultText;
+    select.appendChild(defaultOption);
+
+    options.forEach(opt => {
+        const option = document.createElement('option');
+        if (typeof opt === 'object') {
+            option.value = opt.value;
+            option.textContent = opt.label;
+        } else {
+            option.value = opt;
+            option.title = opt;
+            // Truncar opções muito longas
+            option.textContent = opt.length > 40 ? opt.substring(0, 37) + '...' : opt;
+        }
+        select.appendChild(option);
+    });
+
+    // Restaurar valor anterior se ainda existir
+    if (prevValue) {
+        const optionExists = Array.from(select.options).some(opt => opt.value === prevValue);
+        if (optionExists) {
+            select.value = prevValue;
+        }
+    }
+}
+
+// Aplicar filtros da tabela
+function applyTableFilters() {
+    // Ler valores dos filtros de período
+    tableFilters.diaInicio = document.getElementById('filterDiaInicio')?.value || '';
+    tableFilters.mesInicio = document.getElementById('filterMesInicio')?.value || '';
+    tableFilters.diaFim = document.getElementById('filterDiaFim')?.value || '';
+    tableFilters.mesFim = document.getElementById('filterMesFim')?.value || '';
+
+    // Ler outros filtros
+    tableFilters.modulo = document.getElementById('filterModulo')?.value || '';
+    tableFilters.processo = document.getElementById('filterProcesso')?.value || '';
+    tableFilters.status = document.getElementById('filterStatus')?.value || '';
+    tableFilters.colaborador = document.getElementById('filterColaborador')?.value || '';
+    tableFilters.search = document.getElementById('tableSearch')?.value?.toLowerCase().trim() || '';
+
+    // Marcar filtros ativos visualmente
+    document.querySelectorAll('.filter-group select, .filter-group input, .filter-date-range select').forEach(el => {
+        el.classList.toggle('has-filter', el.value && el.value.trim() !== '');
+    });
+
+    // Filtrar dados
+    tableFilteredData = filteredData.filter(row => {
+        // Filtro por período (De/Até)
+        if (tableFilters.diaInicio || tableFilters.mesInicio || tableFilters.diaFim || tableFilters.mesFim) {
+            const rowDia = extractDay(row._diaMes);
+            const rowMes = extractMonth(row._diaMes);
+
+            if (!rowDia || !rowMes) return false;
+
+            // Construir data numérica para comparação (MMDD)
+            const rowDate = rowMes * 100 + rowDia;
+
+            // Data início
+            const inicioMes = tableFilters.mesInicio ? parseInt(tableFilters.mesInicio) : 1;
+            const inicioDia = tableFilters.diaInicio ? parseInt(tableFilters.diaInicio) : 1;
+            const inicioDate = inicioMes * 100 + inicioDia;
+
+            // Data fim
+            const fimMes = tableFilters.mesFim ? parseInt(tableFilters.mesFim) : 12;
+            const fimDia = tableFilters.diaFim ? parseInt(tableFilters.diaFim) : 31;
+            const fimDate = fimMes * 100 + fimDia;
+
+            // Verificar se está no período
+            if (rowDate < inicioDate || rowDate > fimDate) return false;
+        }
+
+        // Filtro por Módulo
+        if (tableFilters.modulo && normalizeGeneric(row._modulo) !== tableFilters.modulo) return false;
+
+        // Filtro por Processo
+        if (tableFilters.processo && normalizeGeneric(row._processo) !== tableFilters.processo) return false;
+
+        // Filtro por Status
+        if (tableFilters.status && normalizeStatus(row._status) !== tableFilters.status) return false;
+
+        // Filtro por Colaborador
+        if (tableFilters.colaborador && normalizeColaborador(row._colaborador) !== tableFilters.colaborador) return false;
+
+        // Busca textual
+        if (tableFilters.search) {
+            const searchText = [
+                row._razaoSocial,
+                row._modulo,
+                row._processo,
+                row._canal,
+                row._status,
+                row._colaborador,
+                row._diaMes
+            ].join(' ').toLowerCase();
+
+            if (!searchText.includes(tableFilters.search)) return false;
+        }
+
+        return true;
+    });
+
+    // Re-renderizar tabela
+    renderTable(tableFilteredData);
+}
+
+// Limpar estado dos filtros (sem re-renderizar)
+function clearTableFiltersState() {
+    tableFilters = {
+        diaInicio: '',
+        mesInicio: '',
+        diaFim: '',
+        mesFim: '',
+        modulo: '',
+        processo: '',
+        status: '',
+        colaborador: '',
+        search: ''
+    };
+
+    // Limpar inputs/selects de período
+    const filterDiaInicio = document.getElementById('filterDiaInicio');
+    const filterMesInicio = document.getElementById('filterMesInicio');
+    const filterDiaFim = document.getElementById('filterDiaFim');
+    const filterMesFim = document.getElementById('filterMesFim');
+    const filterModulo = document.getElementById('filterModulo');
+    const filterProcesso = document.getElementById('filterProcesso');
+    const filterStatus = document.getElementById('filterStatus');
+    const filterColaborador = document.getElementById('filterColaborador');
+    const tableSearch = document.getElementById('tableSearch');
+
+    if (filterDiaInicio) filterDiaInicio.value = '';
+    if (filterMesInicio) filterMesInicio.value = '';
+    if (filterDiaFim) filterDiaFim.value = '';
+    if (filterMesFim) filterMesFim.value = '';
+    if (filterModulo) filterModulo.value = '';
+    if (filterProcesso) filterProcesso.value = '';
+    if (filterStatus) filterStatus.value = '';
+    if (filterColaborador) filterColaborador.value = '';
+    if (tableSearch) tableSearch.value = '';
+
+    document.querySelectorAll('.filter-group select, .filter-group input, .filter-date-range select').forEach(el => {
+        el.classList.remove('has-filter');
+    });
+}
+
+// Limpar todos os filtros e re-renderizar
+function clearTableFilters() {
+    clearTableFiltersState();
+    tableFilteredData = filteredData;
+    renderTable(tableFilteredData);
+}
+
+// Toggle entre visualização agrupada e detalhada
+function toggleTableView(mode) {
+    tableViewMode = mode;
+
+    // Atualizar botões
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === mode);
+    });
+
+    // Re-renderizar
+    renderTable(tableFilteredData.length > 0 ? tableFilteredData : filteredData);
+}
+
+// Ordenar tabela
+function sortTable(column) {
+    const th = document.querySelector(`th[onclick="sortTable('${column}')"]`);
+
+    // Remover classes de ordenação anteriores
+    document.querySelectorAll('.th-sortable').forEach(el => {
+        el.classList.remove('sort-asc', 'sort-desc');
+    });
+
+    // Alternar direção se mesma coluna
+    if (tableSortColumn === column) {
+        tableSortDirection = tableSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        tableSortColumn = column;
+        tableSortDirection = 'asc';
+    }
+
+    // Adicionar classe de ordenação
+    if (th) {
+        th.classList.add(tableSortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+
+    // Re-renderizar
+    renderTable(tableFilteredData.length > 0 ? tableFilteredData : filteredData);
+}
+
+// Renderizar tabela
 function renderTable(data) {
     const tbody = document.getElementById('tableBody');
     if (!tbody) return;
 
+    // Construir filtros se necessário
+    if (data === filteredData) {
+        buildTableFilters(data);
+        tableFilteredData = data;
+    }
+
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="table-empty">Nenhum registro encontrado</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="table-empty">Nenhum registro encontrado</td></tr>';
         document.getElementById('tableCount').textContent = '0 registros';
         return;
     }
 
-    // Mostrar últimos 200 para performance
-    const displayed = data.slice(0, 200);
+    if (tableViewMode === 'agrupado') {
+        renderGroupedTable(data, tbody);
+    } else {
+        renderDetailedTable(data, tbody);
+    }
+}
 
-    tbody.innerHTML = displayed.map(row => `
-        <tr>
-            <td title="${escapeHTML(row._razaoSocial)}">${escapeHTML(row._razaoSocial)}</td>
-            <td>${escapeHTML(row._modulo)}</td>
-            <td>${escapeHTML(row._processo)}</td>
-            <td>${escapeHTML(row._canal)}</td>
-            <td><span class="badge-ligacao ${isLigacaoSim(row._ligacao) ? 'badge-sim' : 'badge-nao'}">${escapeHTML(row._ligacao)}</span></td>
-            <td><span class="badge-status ${getStatusClass(row._status)}">${escapeHTML(row._status)}</span></td>
-            <td>${escapeHTML(row._diaMes)}</td>
-            <td>${escapeHTML(row._colaborador)}</td>
-        </tr>
-    `).join('');
+// Renderizar tabela AGRUPADA por Cliente + Módulo
+function renderGroupedTable(data, tbody) {
+    // Agrupar por Cliente + Módulo
+    const groups = {};
 
-    const suffix = data.length > 200 ? ` (mostrando 200 de ${data.length})` : '';
+    data.forEach(row => {
+        const cliente = row._razaoSocial || 'Sem Nome';
+        const modulo = normalizeGeneric(row._modulo) || 'Sem Módulo';
+        const key = `${cliente}|||${modulo}`;
+
+        if (!groups[key]) {
+            groups[key] = {
+                cliente: cliente,
+                modulo: modulo,
+                chamados: [],
+                processos: new Set(),
+                canais: new Set(),
+                status: new Set(),
+                colaboradores: new Set(),
+                datas: new Set(),
+                ligacoes: 0
+            };
+        }
+
+        groups[key].chamados.push(row);
+        if (row._processo) groups[key].processos.add(normalizeGeneric(row._processo));
+        if (row._canal) groups[key].canais.add(normalizeGeneric(row._canal));
+        if (row._status) groups[key].status.add(normalizeStatus(row._status));
+        if (row._colaborador) groups[key].colaboradores.add(normalizeColaborador(row._colaborador));
+        if (row._diaMes) groups[key].datas.add(row._diaMes);
+        if (isLigacaoSim(row._ligacao)) groups[key].ligacoes++;
+    });
+
+    // Converter para array e ordenar
+    let groupArray = Object.values(groups);
+
+    // Aplicar ordenação
+    if (tableSortColumn) {
+        groupArray.sort((a, b) => {
+            let valA, valB;
+
+            switch (tableSortColumn) {
+                case 'razaoSocial':
+                    valA = a.cliente.toLowerCase();
+                    valB = b.cliente.toLowerCase();
+                    break;
+                case 'modulo':
+                    valA = a.modulo.toLowerCase();
+                    valB = b.modulo.toLowerCase();
+                    break;
+                case 'qtdChamados':
+                    valA = a.chamados.length;
+                    valB = b.chamados.length;
+                    break;
+                case 'status':
+                    valA = Array.from(a.status).join(',');
+                    valB = Array.from(b.status).join(',');
+                    break;
+                case 'diaMes':
+                    valA = Math.min(...Array.from(a.datas).map(d => parseInt(d.split('/')[0]) || 0));
+                    valB = Math.min(...Array.from(b.datas).map(d => parseInt(d.split('/')[0]) || 0));
+                    break;
+                default:
+                    valA = a.chamados.length;
+                    valB = b.chamados.length;
+            }
+
+            if (typeof valA === 'string') {
+                return tableSortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            }
+            return tableSortDirection === 'asc' ? valA - valB : valB - valA;
+        });
+    } else {
+        // Ordenar por quantidade de chamados (decrescente) por padrão
+        groupArray.sort((a, b) => b.chamados.length - a.chamados.length);
+    }
+
+    // Limitar exibição
+    const maxGroups = 200;
+    const displayedGroups = groupArray.slice(0, maxGroups);
+
+    // Gerar HTML
+    let html = '';
+    let rowIndex = 0;
+
+    displayedGroups.forEach((group, idx) => {
+        const qtd = group.chamados.length;
+        const qtdClass = qtd >= 10 ? 'qty-high' : qtd >= 5 ? 'qty-medium' : '';
+
+        // Processo principal (mais frequente)
+        const processoMain = getMostFrequent(group.chamados, '_processo');
+        const canalMain = getMostFrequent(group.chamados, '_canal');
+        const statusMain = getMostFrequent(group.chamados, '_status');
+        const colaboradorMain = getMostFrequent(group.chamados, '_colaborador');
+
+        // Datas (mostrar range ou lista)
+        const datasArray = Array.from(group.datas).sort((a, b) => {
+            const dayA = parseInt(a.split('/')[0]) || 0;
+            const dayB = parseInt(b.split('/')[0]) || 0;
+            return dayA - dayB;
+        });
+        const datasText = datasArray.length > 3
+            ? `${datasArray[0]} ... ${datasArray[datasArray.length - 1]}`
+            : datasArray.join(', ');
+
+        // Ligações
+        const ligacaoText = group.ligacoes > 0 ? `${group.ligacoes}/${qtd}` : '-';
+        const ligacaoClass = group.ligacoes > 0 ? 'badge-sim' : 'badge-nao';
+
+        html += `
+            <tr class="row-grouped" data-group="${idx}" onclick="toggleGroupDetails(${idx})">
+                <td title="${escapeHTML(group.cliente)}">${escapeHTML(group.cliente)}</td>
+                <td>${escapeHTML(group.modulo)}</td>
+                <td title="${Array.from(group.processos).join(', ')}">${escapeHTML(processoMain)}${group.processos.size > 1 ? ` <small>(+${group.processos.size - 1})</small>` : ''}</td>
+                <td>${escapeHTML(canalMain)}</td>
+                <td><span class="badge-ligacao ${ligacaoClass}">${ligacaoText}</span></td>
+                <td><span class="badge-status ${getStatusClass(statusMain)}">${escapeHTML(statusMain)}</span></td>
+                <td title="${datasArray.join(', ')}">${datasText}</td>
+                <td>${escapeHTML(colaboradorMain)}</td>
+                <td class="th-qty"><span class="badge-qty ${qtdClass}">${qtd}</span></td>
+            </tr>
+        `;
+
+        // Linhas de detalhe (inicialmente ocultas)
+        if (qtd > 1) {
+            group.chamados.forEach((row, detailIdx) => {
+                html += `
+                    <tr class="row-detail hidden" data-parent="${idx}">
+                        <td>↳ Chamado ${detailIdx + 1}</td>
+                        <td>${escapeHTML(row._modulo)}</td>
+                        <td>${escapeHTML(row._processo)}</td>
+                        <td>${escapeHTML(row._canal)}</td>
+                        <td><span class="badge-ligacao ${isLigacaoSim(row._ligacao) ? 'badge-sim' : 'badge-nao'}">${escapeHTML(row._ligacao)}</span></td>
+                        <td><span class="badge-status ${getStatusClass(row._status)}">${escapeHTML(row._status)}</span></td>
+                        <td>${escapeHTML(row._diaMes)}</td>
+                        <td>${escapeHTML(row._colaborador)}</td>
+                        <td></td>
+                    </tr>
+                `;
+            });
+        }
+
+        rowIndex++;
+    });
+
+    tbody.innerHTML = html;
+
+    // Atualizar contagem
+    const totalChamados = data.length;
+    const totalClientes = groupArray.length;
+    const suffix = groupArray.length > maxGroups ? ` (mostrando ${maxGroups} de ${groupArray.length})` : '';
+    document.getElementById('tableCount').textContent = `${totalClientes} clientes • ${totalChamados} chamados${suffix}`;
+}
+
+// Obter valor mais frequente de um array
+function getMostFrequent(arr, prop) {
+    const counts = {};
+    arr.forEach(item => {
+        const val = item[prop] || '';
+        counts[val] = (counts[val] || 0) + 1;
+    });
+
+    let maxCount = 0;
+    let maxVal = '';
+    Object.entries(counts).forEach(([val, count]) => {
+        if (count > maxCount) {
+            maxCount = count;
+            maxVal = val;
+        }
+    });
+
+    return maxVal;
+}
+
+// Expandir/colapsar detalhes do grupo
+function toggleGroupDetails(groupIdx) {
+    const parentRow = document.querySelector(`tr.row-grouped[data-group="${groupIdx}"]`);
+    const detailRows = document.querySelectorAll(`tr.row-detail[data-parent="${groupIdx}"]`);
+
+    if (parentRow) {
+        parentRow.classList.toggle('expanded');
+    }
+
+    detailRows.forEach(row => {
+        row.classList.toggle('hidden');
+    });
+}
+
+// Renderizar tabela DETALHADA (sem agrupamento)
+function renderDetailedTable(data, tbody) {
+    // Aplicar ordenação
+    let sortedData = [...data];
+
+    if (tableSortColumn) {
+        sortedData.sort((a, b) => {
+            let valA, valB;
+
+            switch (tableSortColumn) {
+                case 'razaoSocial':
+                    valA = (a._razaoSocial || '').toLowerCase();
+                    valB = (b._razaoSocial || '').toLowerCase();
+                    break;
+                case 'modulo':
+                    valA = (a._modulo || '').toLowerCase();
+                    valB = (b._modulo || '').toLowerCase();
+                    break;
+                case 'status':
+                    valA = (a._status || '').toLowerCase();
+                    valB = (b._status || '').toLowerCase();
+                    break;
+                case 'diaMes':
+                    valA = extractDay(a._diaMes) || 0;
+                    valB = extractDay(b._diaMes) || 0;
+                    break;
+                default:
+                    valA = a._razaoSocial || '';
+                    valB = b._razaoSocial || '';
+            }
+
+            if (typeof valA === 'string') {
+                return tableSortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            }
+            return tableSortDirection === 'asc' ? valA - valB : valB - valA;
+        });
+    }
+
+    // Limitar exibição
+    const displayed = sortedData.slice(0, 300);
+
+    // Contar chamados por cliente para mostrar na coluna Qtd
+    const clienteCounts = {};
+    data.forEach(row => {
+        const key = row._razaoSocial || 'Sem Nome';
+        clienteCounts[key] = (clienteCounts[key] || 0) + 1;
+    });
+
+    tbody.innerHTML = displayed.map(row => {
+        const qtd = clienteCounts[row._razaoSocial] || 1;
+        const qtdClass = qtd >= 10 ? 'qty-high' : qtd >= 5 ? 'qty-medium' : '';
+
+        return `
+            <tr>
+                <td title="${escapeHTML(row._razaoSocial)}">${escapeHTML(row._razaoSocial)}</td>
+                <td>${escapeHTML(row._modulo)}</td>
+                <td>${escapeHTML(row._processo)}</td>
+                <td>${escapeHTML(row._canal)}</td>
+                <td><span class="badge-ligacao ${isLigacaoSim(row._ligacao) ? 'badge-sim' : 'badge-nao'}">${escapeHTML(row._ligacao)}</span></td>
+                <td><span class="badge-status ${getStatusClass(row._status)}">${escapeHTML(row._status)}</span></td>
+                <td>${escapeHTML(row._diaMes)}</td>
+                <td>${escapeHTML(row._colaborador)}</td>
+                <td class="th-qty"><span class="badge-qty ${qtdClass}">${qtd}</span></td>
+            </tr>
+        `;
+    }).join('');
+
+    const suffix = data.length > 300 ? ` (mostrando 300 de ${data.length})` : '';
     document.getElementById('tableCount').textContent = `${data.length} registros${suffix}`;
 }
 
+// Função legada mantida para compatibilidade
 function filterTable(query) {
-    const q = query.toLowerCase().trim();
-    const rows = document.querySelectorAll('#tableBody tr');
-    let visible = 0;
-    rows.forEach(row => {
-        const match = !q || row.textContent.toLowerCase().includes(q);
-        row.style.display = match ? '' : 'none';
-        if (match) visible++;
-    });
-    document.getElementById('tableCount').textContent = `${visible} registros`;
+    document.getElementById('tableSearch').value = query;
+    applyTableFilters();
 }
 
 function getStatusClass(status) {
