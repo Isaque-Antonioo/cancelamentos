@@ -376,7 +376,7 @@ function getFilteredDataForChart(chartType) {
 }
 
 function buildSummaryForChart(data) {
-    // Construir summary para os dados filtrados
+    // Construir summary completo para os dados filtrados
     const summary = {
         total: data.length,
         status: {},
@@ -404,6 +404,20 @@ function buildSummaryForChart(data) {
 
         const colaborador = normalizeColaborador(row._colaborador);
         if (colaborador) summary.colaboradores[colaborador] = (summary.colaboradores[colaborador] || 0) + 1;
+
+        // Ligações
+        const ligacao = row._ligacao ? row._ligacao.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() : '';
+        if (ligacao === 'sim' || ligacao === 's' || ligacao === 'yes' || ligacao === '1' || ligacao === 'si') {
+            summary.ligacoes.sim++;
+        } else if (ligacao) {
+            summary.ligacoes.nao++;
+        }
+
+        // Clientes únicos
+        if (row._razaoSocial) {
+            const clienteKey = row._razaoSocial.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+            if (clienteKey) summary.clientesUnicos.add(clienteKey);
+        }
 
         // Timeline
         if (currentMonth === 'todos') {
@@ -1250,8 +1264,13 @@ async function syncSuporteFromSheets() {
     showNotification('Sincronizando com Google Sheets...', 'info');
 
     try {
-        const csvUrl = `${SUPORTE_CONFIG.sheetUrl}?gid=${SUPORTE_CONFIG.gid}&single=true&output=csv`;
-        const response = await fetch(csvUrl);
+        // Forçar busca sem cache adicionando timestamp
+        const timestamp = Date.now();
+        const csvUrl = `${SUPORTE_CONFIG.sheetUrl}?gid=${SUPORTE_CONFIG.gid}&single=true&output=csv&_t=${timestamp}`;
+        const response = await fetch(csvUrl, {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' }
+        });
 
         if (!response.ok) {
             throw new Error(`Erro HTTP ${response.status}`);
@@ -1265,6 +1284,8 @@ async function syncSuporteFromSheets() {
             return;
         }
 
+        console.log(`[Suporte Sync] ${allData.length} registros carregados da planilha`);
+
         // Resetar filtros
         currentMonth = 'todos';
         Object.keys(chartDayFilters).forEach(key => {
@@ -1274,10 +1295,14 @@ async function syncSuporteFromSheets() {
         buildMonthFilter(allData);
         applyFilter();
 
-        // Salvar no Firebase
-        await autoSaveToFirebase();
+        // Salvar TODOS os dados no Firebase
+        const saveResult = await saveAllToFirebase();
 
-        showNotification(`Sincronizado! ${allData.length} registros carregados.`, 'success');
+        if (saveResult.success) {
+            showNotification(`Sincronizado! ${allData.length} registros salvos no Firebase (${saveResult.months} meses).`, 'success');
+        } else {
+            showNotification(`Dados carregados, mas erro ao salvar no Firebase.`, 'error');
+        }
 
     } catch (error) {
         console.error('Erro ao sincronizar:', error);
@@ -1287,6 +1312,122 @@ async function syncSuporteFromSheets() {
             btn.classList.remove('syncing');
             btn.disabled = false;
         }
+    }
+}
+
+// Salvar TODOS os dados no Firebase (completo)
+async function saveAllToFirebase() {
+    if (!isSuporteFirebaseReady()) {
+        console.warn('[Suporte] Firebase não está pronto.');
+        return { success: false, months: 0 };
+    }
+
+    if (allData.length === 0) {
+        return { success: false, months: 0 };
+    }
+
+    try {
+        // Agrupar por mês/ano
+        const monthKeys = new Set();
+        allData.forEach(row => {
+            if (row._mesAno) monthKeys.add(row._mesAno);
+        });
+
+        console.log(`[Suporte Sync] Salvando ${monthKeys.size} meses no Firebase...`);
+
+        let savedCount = 0;
+        for (const monthKey of monthKeys) {
+            const monthData = allData.filter(r => r._mesAno === monthKey);
+
+            // Construir summary para este mês
+            const prevMonth = currentMonth;
+            currentMonth = monthKey;
+            const summary = buildSummaryForChart(monthData);
+            currentMonth = prevMonth;
+
+            // Salvar snapshot completo
+            const saved = await saveCompleteSnapshot(monthKey, summary, monthData);
+            if (saved) savedCount++;
+        }
+
+        console.log(`[Suporte Sync] ${savedCount}/${monthKeys.size} meses salvos com sucesso`);
+        return { success: savedCount > 0, months: savedCount };
+
+    } catch (error) {
+        console.error('[Suporte] Erro ao salvar no Firebase:', error);
+        return { success: false, months: 0 };
+    }
+}
+
+// Salvar snapshot COMPLETO (sem limite de registros)
+async function saveCompleteSnapshot(monthKey, summary, data) {
+    try {
+        const safeMonth = sanitizeKey(monthKey);
+
+        // 1. Meta (KPIs)
+        const resolvedKeys = Object.keys(summary.status).filter(s =>
+            ['Resolvido', 'Concluído', 'Finalizado'].includes(s)
+        );
+        const resolvidos = resolvedKeys.reduce((sum, k) => sum + summary.status[k], 0);
+
+        const pendingKeys = Object.keys(summary.status).filter(s =>
+            ['Pendente', 'Em Andamento'].includes(s)
+        );
+        const pendentes = pendingKeys.reduce((sum, k) => sum + summary.status[k], 0);
+
+        const meta = {
+            total: summary.total,
+            resolvidos: resolvidos,
+            pendentes: pendentes,
+            clientesUnicos: summary.clientesUnicos ? summary.clientesUnicos.size : 0,
+            ligacoes: summary.ligacoes ? summary.ligacoes.sim : 0
+        };
+
+        // 2. Sanitizar objetos
+        const sanitizeObj = (obj) => {
+            const result = {};
+            Object.entries(obj || {}).forEach(([k, v]) => {
+                result[sanitizeKey(k)] = v;
+            });
+            return result;
+        };
+
+        // 3. Snapshot com todas as distribuições
+        const snapshot = {
+            savedAt: new Date().toISOString(),
+            source: 'sheets-sync',
+            syncedAt: new Date().toISOString(),
+            meta: meta,
+            status: sanitizeObj(summary.status),
+            modulos: sanitizeObj(summary.modulos),
+            canais: sanitizeObj(summary.canais),
+            processos: sanitizeObj(summary.processos),
+            colaboradores: sanitizeObj(summary.colaboradores),
+            timeline: sanitizeObj(summary.timeline)
+        };
+
+        await database.ref(`suporte/snapshots/${safeMonth}`).set(snapshot);
+
+        // 4. Salvar TODOS os registros individuais (sem limite)
+        const registros = data.map(row => ({
+            razaoSocial: row._razaoSocial || '',
+            modulo: row._modulo || '',
+            processo: row._processo || '',
+            canal: row._canal || '',
+            ligacao: row._ligacao || '',
+            status: row._status || '',
+            diaMes: row._diaMes || '',
+            colaborador: row._colaborador || ''
+        }));
+
+        await database.ref(`suporte/registros/${safeMonth}`).set(registros);
+
+        console.log(`[Suporte Sync] Mês ${monthKey}: ${data.length} registros salvos`);
+        return true;
+
+    } catch (error) {
+        console.error(`[Suporte Sync] Erro ao salvar ${monthKey}:`, error);
+        return false;
     }
 }
 
