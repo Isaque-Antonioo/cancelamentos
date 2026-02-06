@@ -90,6 +90,11 @@
                     <select id="monthFilter" class="month-selector" onchange="handleMonthFilter(this.value)">
                         <option value="todos">Todos os meses</option>
                     </select>
+                    <button class="btn-icon-small btn-sync-sheets" onclick="syncSuporteFromSheets()" title="Sincronizar com Google Sheets">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/>
+                        </svg>
+                    </button>
                     <button class="btn-icon-small btn-save" onclick="saveToFirebase()" title="Salvar no Firebase">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
@@ -186,10 +191,15 @@
             </div>
             <div class="chart-card chart-small">
                 <div class="chart-header">
-                    <h3>Por Processo</h3>
-                    <select class="chart-day-filter" data-chart="processo" onchange="handleDayFilter('processo', this.value)">
-                        <option value="todos">Todos os dias</option>
-                    </select>
+                    <h3>Top 10 Motivos de Chamados</h3>
+                    <div class="chart-header-actions">
+                        <button id="btnVerTodosProcessos" class="btn-ver-todos" onclick="openProcessosModal()" style="display: none;">
+                            Ver todos
+                        </button>
+                        <select class="chart-day-filter" data-chart="processo" onchange="handleDayFilter('processo', this.value)">
+                            <option value="todos">Todos os dias</option>
+                        </select>
+                    </div>
                 </div>
                 <canvas id="chartProcesso"></canvas>
             </div>
@@ -238,6 +248,28 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <!-- Modal de Processos -->
+    <div id="processosModal" class="modal-overlay" onclick="if(event.target === this) closeProcessosModal()">
+        <div class="modal-content modal-processos">
+            <div class="modal-header">
+                <h2>Todos os Processos</h2>
+                <button class="modal-close" onclick="closeProcessosModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-subheader">
+                <input type="text" class="modal-search" placeholder="Buscar processo..." oninput="filterProcessosModal(this.value)">
+                <span id="processosTotalCount" class="modal-count">0 processos</span>
+            </div>
+            <div id="processosLista" class="processos-lista">
+                <!-- Lista gerada via JS -->
+            </div>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="js/firebase-config.js"></script>

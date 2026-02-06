@@ -17,6 +17,28 @@
     max-width: none;
 }
 
+/* Botão Sincronizar Planilha */
+.btn-sync-sheets {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+    border-color: rgba(14, 165, 233, 0.5) !important;
+}
+
+.btn-sync-sheets:hover {
+    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%) !important;
+    box-shadow: 0 0 12px rgba(14, 165, 233, 0.4) !important;
+}
+
+.btn-sync-sheets.syncing {
+    animation: spin 1s linear infinite !important;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* KPI Grid - 5 cards em uma linha */
 .suporte-kpi-grid {
     grid-template-columns: repeat(5, 1fr);
@@ -130,6 +152,209 @@
 
 .suporte-charts-grid .chart-card canvas {
     max-height: 340px;
+}
+
+/* Header actions (botão + filtro) */
+.chart-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Botão Ver Todos */
+.btn-ver-todos {
+    padding: 5px 10px;
+    font-size: 0.75em;
+    font-weight: 600;
+    color: #e2e8f0;
+    background: rgba(53, 204, 163, 0.15);
+    border: 1px solid rgba(53, 204, 163, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-ver-todos:hover {
+    background: rgba(53, 204, 163, 0.25);
+    border-color: rgba(53, 204, 163, 0.5);
+    color: #35cca3;
+}
+
+/* Modal de Processos */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: linear-gradient(165deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.99) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-header h2 {
+    font-size: 1.25em;
+    font-weight: 600;
+    color: #f1f5f9;
+    margin: 0;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+}
+
+.modal-subheader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    gap: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modal-search {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 0.9em;
+    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    outline: none;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.modal-search:focus {
+    border-color: rgba(53, 204, 163, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.modal-search::placeholder {
+    color: #64748b;
+}
+
+.modal-count {
+    font-size: 0.85em;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+/* Lista de Processos */
+.processos-lista {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 24px 24px;
+}
+
+.processo-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.2s ease;
+}
+
+.processo-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+    margin: 0 -12px;
+    padding-left: 12px;
+    padding-right: 12px;
+    border-radius: 8px;
+}
+
+.processo-item:last-child {
+    border-bottom: none;
+}
+
+.processo-rank {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 0.8em;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.processo-nome {
+    flex: 1;
+    font-size: 0.95em;
+    color: #e2e8f0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.processo-qtd {
+    font-size: 0.95em;
+    font-weight: 600;
+    color: #f1f5f9;
+    min-width: 60px;
+    text-align: right;
+}
+
+.processo-pct {
+    font-size: 0.85em;
+    color: #94a3b8;
+    min-width: 50px;
+    text-align: right;
 }
 
 /* Tabela Section */

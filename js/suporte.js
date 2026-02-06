@@ -575,6 +575,7 @@ function buildSummary(data) {
     console.log(`  Ligações SIM: ${summary.ligacoes.sim} | NÃO: ${summary.ligacoes.nao} | Sem info: ${summary.total - summary.ligacoes.sim - summary.ligacoes.nao}`);
     console.log(`  Módulos:`, summary.modulos);
     console.log(`  Canais:`, summary.canais);
+    console.log(`  Processos (${Object.keys(summary.processos).length} tipos):`, summary.processos);
 
     return summary;
 }
@@ -937,12 +938,77 @@ function createColaboradorChart(colaboradorData) {
     createBarChart('chartColaborador', limited.labels, limited.values, colors, true);
 }
 
+// Armazena todos os processos para o modal
+let allProcessosData = {};
+
 function createProcessoChart(processoData) {
-    const limited = limitCategories(processoData, 8);
-    const colors = limited.labels.map((l, i) =>
-        l === 'Outros' ? suporteColors.slate : chartPalette[i % chartPalette.length]
-    );
-    createBarChart('chartProcesso', limited.labels, limited.values, colors, true);
+    // Guardar dados completos para o modal
+    allProcessosData = processoData;
+
+    // Mostrar apenas top 10 (sem "Outros")
+    const entries = Object.entries(processoData).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const labels = entries.map(e => e[0]);
+    const values = entries.map(e => e[1]);
+    const colors = labels.map((_, i) => chartPalette[i % chartPalette.length]);
+    createBarChart('chartProcesso', labels, values, colors, true);
+
+    // Mostrar/esconder botão "Ver todos" baseado na quantidade
+    const totalProcessos = Object.keys(processoData).length;
+    const btnVerTodos = document.getElementById('btnVerTodosProcessos');
+    if (btnVerTodos) {
+        if (totalProcessos > 10) {
+            btnVerTodos.style.display = 'inline-flex';
+            btnVerTodos.textContent = `Ver todos (${totalProcessos})`;
+        } else {
+            btnVerTodos.style.display = 'none';
+        }
+    }
+}
+
+function openProcessosModal() {
+    const modal = document.getElementById('processosModal');
+    if (!modal) return;
+
+    // Ordenar processos por quantidade
+    const entries = Object.entries(allProcessosData).sort((a, b) => b[1] - a[1]);
+    const total = entries.reduce((sum, e) => sum + e[1], 0);
+
+    // Construir lista
+    const listHtml = entries.map(([nome, qtd], i) => {
+        const pct = total > 0 ? ((qtd / total) * 100).toFixed(1) : 0;
+        const color = chartPalette[i % chartPalette.length];
+        return `
+            <div class="processo-item">
+                <span class="processo-rank" style="background: ${color}">${i + 1}</span>
+                <span class="processo-nome">${nome}</span>
+                <span class="processo-qtd">${qtd.toLocaleString('pt-BR')}</span>
+                <span class="processo-pct">${pct}%</span>
+            </div>
+        `;
+    }).join('');
+
+    document.getElementById('processosLista').innerHTML = listHtml;
+    document.getElementById('processosTotalCount').textContent = `${entries.length} processos • ${total.toLocaleString('pt-BR')} chamados`;
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeProcessosModal() {
+    const modal = document.getElementById('processosModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+
+function filterProcessosModal(query) {
+    const q = query.toLowerCase().trim();
+    const items = document.querySelectorAll('.processo-item');
+    items.forEach(item => {
+        const nome = item.querySelector('.processo-nome').textContent.toLowerCase();
+        item.style.display = nome.includes(q) ? 'flex' : 'none';
+    });
 }
 
 function createTimelineChart(timelineData) {
@@ -1171,6 +1237,57 @@ function refreshData() {
         setTimeout(() => btn.style.animation = '', 1000);
     }
     fetchData();
+}
+
+// Sincronizar dados da planilha do Suporte
+async function syncSuporteFromSheets() {
+    const btn = document.querySelector('.btn-sync-sheets');
+    if (btn) {
+        btn.classList.add('syncing');
+        btn.disabled = true;
+    }
+
+    showNotification('Sincronizando com Google Sheets...', 'info');
+
+    try {
+        const csvUrl = `${SUPORTE_CONFIG.sheetUrl}?gid=${SUPORTE_CONFIG.gid}&single=true&output=csv`;
+        const response = await fetch(csvUrl);
+
+        if (!response.ok) {
+            throw new Error(`Erro HTTP ${response.status}`);
+        }
+
+        const csvText = await response.text();
+        allData = parseCSV(csvText);
+
+        if (allData.length === 0) {
+            showNotification('Nenhum dado encontrado na planilha.', 'error');
+            return;
+        }
+
+        // Resetar filtros
+        currentMonth = 'todos';
+        Object.keys(chartDayFilters).forEach(key => {
+            chartDayFilters[key] = 'todos';
+        });
+
+        buildMonthFilter(allData);
+        applyFilter();
+
+        // Salvar no Firebase
+        await autoSaveToFirebase();
+
+        showNotification(`Sincronizado! ${allData.length} registros carregados.`, 'success');
+
+    } catch (error) {
+        console.error('Erro ao sincronizar:', error);
+        showNotification('Erro ao sincronizar. Verifique a conexão.', 'error');
+    } finally {
+        if (btn) {
+            btn.classList.remove('syncing');
+            btn.disabled = false;
+        }
+    }
 }
 
 // ===================================
