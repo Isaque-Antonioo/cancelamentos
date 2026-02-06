@@ -1359,10 +1359,13 @@ async function saveAllToFirebase() {
     }
 }
 
-// Salvar snapshot COMPLETO (sem limite de registros)
+// Salvar snapshot COMPLETO com versionamento automático
 async function saveCompleteSnapshot(monthKey, summary, data) {
     try {
         const safeMonth = sanitizeKey(monthKey);
+        const now = new Date();
+        const timestamp = now.getTime();
+        const isoDate = now.toISOString();
 
         // 1. Meta (KPIs)
         const resolvedKeys = Object.keys(summary.status).filter(s =>
@@ -1392,23 +1395,7 @@ async function saveCompleteSnapshot(monthKey, summary, data) {
             return result;
         };
 
-        // 3. Snapshot com todas as distribuições
-        const snapshot = {
-            savedAt: new Date().toISOString(),
-            source: 'sheets-sync',
-            syncedAt: new Date().toISOString(),
-            meta: meta,
-            status: sanitizeObj(summary.status),
-            modulos: sanitizeObj(summary.modulos),
-            canais: sanitizeObj(summary.canais),
-            processos: sanitizeObj(summary.processos),
-            colaboradores: sanitizeObj(summary.colaboradores),
-            timeline: sanitizeObj(summary.timeline)
-        };
-
-        await database.ref(`suporte/snapshots/${safeMonth}`).set(snapshot);
-
-        // 4. Salvar TODOS os registros individuais (sem limite)
+        // 3. Preparar registros
         const registros = data.map(row => ({
             razaoSocial: row._razaoSocial || '',
             modulo: row._modulo || '',
@@ -1420,14 +1407,76 @@ async function saveCompleteSnapshot(monthKey, summary, data) {
             colaborador: row._colaborador || ''
         }));
 
+        // 4. Snapshot atual (sempre atualizado)
+        const snapshot = {
+            savedAt: isoDate,
+            source: 'sheets-sync',
+            syncedAt: isoDate,
+            meta: meta,
+            status: sanitizeObj(summary.status),
+            modulos: sanitizeObj(summary.modulos),
+            canais: sanitizeObj(summary.canais),
+            processos: sanitizeObj(summary.processos),
+            colaboradores: sanitizeObj(summary.colaboradores),
+            timeline: sanitizeObj(summary.timeline)
+        };
+
+        // Salvar snapshot atual
+        await database.ref(`suporte/snapshots/${safeMonth}`).set(snapshot);
+
+        // Salvar registros atuais
         await database.ref(`suporte/registros/${safeMonth}`).set(registros);
 
-        console.log(`[Suporte Sync] Mês ${monthKey}: ${data.length} registros salvos`);
+        // 5. VERSIONAMENTO - Salvar histórico com timestamp
+        const versionKey = `v_${timestamp}`;
+        const versionData = {
+            ...snapshot,
+            versionTimestamp: timestamp,
+            versionDate: isoDate,
+            totalRegistros: data.length
+        };
+
+        await database.ref(`suporte/history/${safeMonth}/${versionKey}`).set(versionData);
+
+        // 6. Limpar versões antigas (manter últimas 10)
+        await cleanVersionHistory(safeMonth, 10);
+
+        console.log(`[Suporte Sync] Mês ${monthKey}: ${data.length} registros salvos + versão ${versionKey}`);
         return true;
 
     } catch (error) {
         console.error(`[Suporte Sync] Erro ao salvar ${monthKey}:`, error);
         return false;
+    }
+}
+
+// Limpar versões antigas do histórico
+async function cleanVersionHistory(safeMonth, keepCount) {
+    try {
+        const snapshot = await database.ref(`suporte/history/${safeMonth}`)
+            .orderByChild('versionTimestamp')
+            .once('value');
+
+        if (!snapshot.exists()) return;
+
+        const versions = [];
+        snapshot.forEach(child => {
+            versions.push({ key: child.key, ts: child.val().versionTimestamp || 0 });
+        });
+
+        // Ordenar do mais recente para o mais antigo
+        versions.sort((a, b) => b.ts - a.ts);
+
+        // Deletar versões excedentes
+        if (versions.length > keepCount) {
+            const toDelete = versions.slice(keepCount);
+            for (const v of toDelete) {
+                await database.ref(`suporte/history/${safeMonth}/${v.key}`).remove();
+            }
+            console.log(`[Suporte] Removidas ${toDelete.length} versões antigas de ${safeMonth}`);
+        }
+    } catch (error) {
+        console.error('[Suporte] Erro ao limpar histórico:', error);
     }
 }
 
