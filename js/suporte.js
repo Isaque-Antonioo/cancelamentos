@@ -368,7 +368,7 @@ function buildDayFilters(data) {
 
         if (currentMonth !== 'todos') {
             // Adicionar opção de range
-            select.innerHTML += '<option value="range">Período personalizado</option>';
+            // select.innerHTML += '<option value="range">Período personalizado</option>';
             select.innerHTML += '<option disabled>──────────</option>';
 
             sortedDays.forEach(day => {
