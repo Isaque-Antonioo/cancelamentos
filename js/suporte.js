@@ -34,12 +34,16 @@ const chartPalette = [
 ];
 
 // Estado global
+let isFirstRender = true;   // Controla animações (só anima na 1ª vez)
 let allData = [];           // Todos os dados da planilha
 let filteredData = [];      // Dados filtrados pelo mês
 let tableFilteredData = []; // Dados filtrados pelos filtros da tabela
 let suporteCharts = {};
 let currentMonth = 'todos';
 let refreshTimer = null;
+
+// Debounce timer
+let searchDebounceTimer = null;
 
 // Estado da tabela
 let tableViewMode = 'agrupado'; // 'agrupado' ou 'detalhado'
@@ -172,6 +176,17 @@ function parseCSV(text) {
         if (isHeaderRow(row)) continue;
         const hasAnyData = row._razaoSocial || row._modulo || row._processo || row._canal || row._ligacao || row._status || row._diaMes || row._colaborador;
         if (!hasAnyData) continue;
+
+        // Cache de valores normalizados para evitar recalcular em cada filtro/render
+        row._nModulo = normalizeGeneric(row._modulo);
+        row._nProcesso = normalizeGeneric(row._processo);
+        row._nCanal = normalizeGeneric(row._canal);
+        row._nStatus = normalizeStatus(row._status);
+        row._nColaborador = normalizeColaborador(row._colaborador);
+        row._nLigacao = isLigacaoSim(row._ligacao);
+        row._day = extractDay(row._diaMes);
+        // Pre-computar texto de busca
+        row._searchText = [row._razaoSocial, row._modulo, row._processo, row._canal, row._status, row._colaborador, row._diaMes].join(' ').toLowerCase();
 
         data.push(row);
     }
@@ -309,6 +324,9 @@ function applyFilter() {
     updateKPIs(summary);
     updateCharts(summary);
 
+    // Após o primeiro render, desativar animações pesadas
+    if (isFirstRender) isFirstRender = false;
+
     // Aplicar filtros da tabela (vai usar filteredData já que tableFilters está limpo)
     tableFilteredData = filteredData;
     renderTable(filteredData);
@@ -332,10 +350,10 @@ function applyFilter() {
 // FILTRO POR DIA (POR GRÁFICO)
 // ===================================
 function buildDayFilters(data) {
-    // Descobrir dias únicos disponíveis
+    // Descobrir dias únicos disponíveis (usar cache)
     const days = new Set();
     data.forEach(row => {
-        const day = extractDay(row._diaMes);
+        const day = row._day || extractDay(row._diaMes);
         if (day) days.add(day);
     });
 
@@ -354,7 +372,7 @@ function buildDayFilters(data) {
             select.innerHTML += '<option disabled>──────────</option>';
 
             sortedDays.forEach(day => {
-                const count = data.filter(r => extractDay(r._diaMes) === day).length;
+                const count = data.filter(r => (r._day || extractDay(r._diaMes)) === day).length;
                 select.innerHTML += `<option value="${day}">Dia ${day} (${count})</option>`;
             });
         }
@@ -398,7 +416,7 @@ function getFilteredDataForChart(chartType) {
     }
 
     const day = parseInt(dayFilter);
-    return filteredData.filter(r => extractDay(r._diaMes) === day);
+    return filteredData.filter(r => (r._day || extractDay(r._diaMes)) === day);
 }
 
 function buildSummaryForChart(data) {
@@ -416,33 +434,31 @@ function buildSummaryForChart(data) {
     };
 
     data.forEach(row => {
-        const status = normalizeStatus(row._status);
+        const status = row._nStatus || normalizeStatus(row._status);
         if (status) summary.status[status] = (summary.status[status] || 0) + 1;
 
-        const modulo = normalizeGeneric(row._modulo);
+        const modulo = row._nModulo || normalizeGeneric(row._modulo);
         if (modulo) summary.modulos[modulo] = (summary.modulos[modulo] || 0) + 1;
 
-        const canal = normalizeGeneric(row._canal);
+        const canal = row._nCanal || normalizeGeneric(row._canal);
         if (canal) summary.canais[canal] = (summary.canais[canal] || 0) + 1;
 
-        const processo = normalizeGeneric(row._processo);
+        const processo = row._nProcesso || normalizeGeneric(row._processo);
         if (processo) summary.processos[processo] = (summary.processos[processo] || 0) + 1;
 
-        const colaborador = normalizeColaborador(row._colaborador);
+        const colaborador = row._nColaborador || normalizeColaborador(row._colaborador);
         if (colaborador) summary.colaboradores[colaborador] = (summary.colaboradores[colaborador] || 0) + 1;
 
         // Ligações
-        const ligacao = row._ligacao ? row._ligacao.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() : '';
-        if (ligacao === 'sim' || ligacao === 's' || ligacao === 'yes' || ligacao === '1' || ligacao === 'si') {
+        if (row._nLigacao) {
             summary.ligacoes.sim++;
-        } else if (ligacao) {
+        } else if (row._ligacao) {
             summary.ligacoes.nao++;
         }
 
         // Clientes únicos
         if (row._razaoSocial) {
-            const clienteKey = row._razaoSocial.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
-            if (clienteKey) summary.clientesUnicos.add(clienteKey);
+            summary.clientesUnicos.add(row._razaoSocial.toLowerCase().replace(/\s+/g, ' ').trim());
         }
 
         // Timeline
@@ -548,37 +564,39 @@ function buildSummary(data) {
     };
 
     data.forEach(row => {
-        const status = normalizeStatus(row._status);
+        // Usar valores cached quando disponíveis
+        const status = row._nStatus || normalizeStatus(row._status);
         if (status) summary.status[status] = (summary.status[status] || 0) + 1;
 
-        const modulo = normalizeGeneric(row._modulo);
+        const modulo = row._nModulo || normalizeGeneric(row._modulo);
         if (modulo) summary.modulos[modulo] = (summary.modulos[modulo] || 0) + 1;
 
-        const canal = normalizeGeneric(row._canal);
+        const canal = row._nCanal || normalizeGeneric(row._canal);
         if (canal) summary.canais[canal] = (summary.canais[canal] || 0) + 1;
 
-        const processo = normalizeGeneric(row._processo);
+        const processo = row._nProcesso || normalizeGeneric(row._processo);
         if (processo) summary.processos[processo] = (summary.processos[processo] || 0) + 1;
 
-        const colaborador = normalizeColaborador(row._colaborador);
+        const colaborador = row._nColaborador || normalizeColaborador(row._colaborador);
         if (colaborador) summary.colaboradores[colaborador] = (summary.colaboradores[colaborador] || 0) + 1;
 
-        const ligacao = row._ligacao.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-        if (ligacao === 'sim' || ligacao === 's' || ligacao === 'yes' || ligacao === '1' || ligacao === 'si') {
-            summary.ligacoes.sim++;
-        } else if (ligacao === 'nao' || ligacao === 'n' || ligacao === 'no' || ligacao === '0' || ligacao === 'não') {
-            summary.ligacoes.nao++;
-        } else if (ligacao) {
-            // Valor inesperado - contar como "não" para não perder registros
-            summary.ligacoes.nao++;
+        if (row._nLigacao !== undefined) {
+            if (row._nLigacao) summary.ligacoes.sim++;
+            else summary.ligacoes.nao++;
+        } else {
+            const ligacao = row._ligacao ? row._ligacao.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() : '';
+            if (ligacao === 'sim' || ligacao === 's' || ligacao === 'yes' || ligacao === '1' || ligacao === 'si') {
+                summary.ligacoes.sim++;
+            } else if (ligacao) {
+                summary.ligacoes.nao++;
+            }
         }
 
         if (row._razaoSocial) {
-            const clienteKey = row._razaoSocial.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
-            if (clienteKey) summary.clientesUnicos.add(clienteKey);
+            summary.clientesUnicos.add(row._razaoSocial.toLowerCase().replace(/\s+/g, ' ').trim());
         }
 
-        // Timeline: se filtrando 1 mês, mostrar por dia; se todos, agrupar por mês/ano
+        // Timeline
         if (currentMonth === 'todos') {
             if (row._mesAno) {
                 const [year, monthStr] = row._mesAno.split('-');
@@ -730,9 +748,9 @@ function createDoughnutChart(canvasId, labels, data, colors) {
             maintainAspectRatio: true,
             cutout: '58%',
             animation: {
-                animateRotate: true,
-                animateScale: true,
-                duration: 1200,
+                animateRotate: isFirstRender,
+                animateScale: isFirstRender,
+                duration: isFirstRender ? 800 : 300,
                 easing: 'easeOutQuart'
             },
             layout: {
@@ -856,9 +874,9 @@ function createBarChart(canvasId, labels, data, colors, horizontal) {
             maintainAspectRatio: true,
             indexAxis: horizontal ? 'y' : 'x',
             animation: {
-                duration: 1200,
+                duration: isFirstRender ? 800 : 300,
                 easing: 'easeOutQuart',
-                delay: (context) => context.dataIndex * 50
+                delay: isFirstRender ? (context) => context.dataIndex * 30 : 0
             },
             layout: {
                 padding: { right: horizontal ? 55 : 10, left: 5, top: 10 }
@@ -1118,9 +1136,9 @@ function createTimelineChart(timelineData) {
             responsive: true,
             maintainAspectRatio: true,
             animation: {
-                duration: 1400,
+                duration: isFirstRender ? 800 : 300,
                 easing: 'easeOutQuart',
-                delay: (context) => context.dataIndex * 80
+                delay: isFirstRender ? (context) => context.dataIndex * 40 : 0
             },
             layout: {
                 padding: { top: 25, bottom: 5 }
@@ -1212,18 +1230,18 @@ function buildTableFilters(data) {
     const dataForDates = currentMonth === 'todos' ? allData : data;
 
     dataForDates.forEach(row => {
-        const dia = extractDay(row._diaMes);
+        const dia = row._day || extractDay(row._diaMes);
         if (dia) dias.add(dia);
-        const mes = extractMonth(row._diaMes);
+        const mes = row._mesNum || extractMonth(row._diaMes);
         if (mes) meses.add(mes);
     });
 
-    // Usar data filtrada para os outros campos
+    // Usar data filtrada para os outros campos (valores cached)
     data.forEach(row => {
-        if (row._modulo) modulos.add(normalizeGeneric(row._modulo));
-        if (row._processo) processos.add(normalizeGeneric(row._processo));
-        if (row._status) statusList.add(normalizeStatus(row._status));
-        if (row._colaborador) colaboradores.add(normalizeColaborador(row._colaborador));
+        if (row._nModulo) modulos.add(row._nModulo);
+        if (row._nProcesso) processos.add(row._nProcesso);
+        if (row._nStatus) statusList.add(row._nStatus);
+        if (row._nColaborador) colaboradores.add(row._nColaborador);
     });
 
     // Popular selects de período - dias de 1 a 31
@@ -1283,6 +1301,12 @@ function populateFilterSelect(selectId, options, defaultText) {
     }
 }
 
+// Versão debounced para busca textual (chamada pelo oninput do search)
+function debounceTableFilters() {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(applyTableFilters, 250);
+}
+
 // Aplicar filtros da tabela
 function applyTableFilters() {
     // Ler valores dos filtros de período
@@ -1303,58 +1327,34 @@ function applyTableFilters() {
         el.classList.toggle('has-filter', el.value && el.value.trim() !== '');
     });
 
-    // Filtrar dados
+    // Pre-computar valores de filtro de período uma vez
+    const hasDateFilter = tableFilters.diaInicio || tableFilters.mesInicio || tableFilters.diaFim || tableFilters.mesFim;
+    let inicioDate, fimDate;
+    if (hasDateFilter) {
+        const inicioMes = tableFilters.mesInicio ? parseInt(tableFilters.mesInicio) : 1;
+        const inicioDia = tableFilters.diaInicio ? parseInt(tableFilters.diaInicio) : 1;
+        inicioDate = inicioMes * 100 + inicioDia;
+        const fimMes = tableFilters.mesFim ? parseInt(tableFilters.mesFim) : 12;
+        const fimDia = tableFilters.diaFim ? parseInt(tableFilters.diaFim) : 31;
+        fimDate = fimMes * 100 + fimDia;
+    }
+
+    // Filtrar dados usando valores cached
     tableFilteredData = filteredData.filter(row => {
-        // Filtro por período (De/Até)
-        if (tableFilters.diaInicio || tableFilters.mesInicio || tableFilters.diaFim || tableFilters.mesFim) {
-            const rowDia = extractDay(row._diaMes);
-            const rowMes = extractMonth(row._diaMes);
-
+        if (hasDateFilter) {
+            const rowDia = row._day;
+            const rowMes = row._mesNum;
             if (!rowDia || !rowMes) return false;
-
-            // Construir data numérica para comparação (MMDD)
             const rowDate = rowMes * 100 + rowDia;
-
-            // Data início
-            const inicioMes = tableFilters.mesInicio ? parseInt(tableFilters.mesInicio) : 1;
-            const inicioDia = tableFilters.diaInicio ? parseInt(tableFilters.diaInicio) : 1;
-            const inicioDate = inicioMes * 100 + inicioDia;
-
-            // Data fim
-            const fimMes = tableFilters.mesFim ? parseInt(tableFilters.mesFim) : 12;
-            const fimDia = tableFilters.diaFim ? parseInt(tableFilters.diaFim) : 31;
-            const fimDate = fimMes * 100 + fimDia;
-
-            // Verificar se está no período
             if (rowDate < inicioDate || rowDate > fimDate) return false;
         }
 
-        // Filtro por Módulo
-        if (tableFilters.modulo && normalizeGeneric(row._modulo) !== tableFilters.modulo) return false;
+        if (tableFilters.modulo && row._nModulo !== tableFilters.modulo) return false;
+        if (tableFilters.processo && row._nProcesso !== tableFilters.processo) return false;
+        if (tableFilters.status && row._nStatus !== tableFilters.status) return false;
+        if (tableFilters.colaborador && row._nColaborador !== tableFilters.colaborador) return false;
 
-        // Filtro por Processo
-        if (tableFilters.processo && normalizeGeneric(row._processo) !== tableFilters.processo) return false;
-
-        // Filtro por Status
-        if (tableFilters.status && normalizeStatus(row._status) !== tableFilters.status) return false;
-
-        // Filtro por Colaborador
-        if (tableFilters.colaborador && normalizeColaborador(row._colaborador) !== tableFilters.colaborador) return false;
-
-        // Busca textual
-        if (tableFilters.search) {
-            const searchText = [
-                row._razaoSocial,
-                row._modulo,
-                row._processo,
-                row._canal,
-                row._status,
-                row._colaborador,
-                row._diaMes
-            ].join(' ').toLowerCase();
-
-            if (!searchText.includes(tableFilters.search)) return false;
-        }
+        if (tableFilters.search && !row._searchText.includes(tableFilters.search)) return false;
 
         return true;
     });
@@ -1480,7 +1480,7 @@ function renderGroupedTable(data, tbody) {
 
     data.forEach(row => {
         const cliente = row._razaoSocial || 'Sem Nome';
-        const modulo = normalizeGeneric(row._modulo) || 'Sem Módulo';
+        const modulo = row._nModulo || 'Sem Módulo';
         const key = `${cliente}|||${modulo}`;
 
         if (!groups[key]) {
@@ -1498,12 +1498,12 @@ function renderGroupedTable(data, tbody) {
         }
 
         groups[key].chamados.push(row);
-        if (row._processo) groups[key].processos.add(normalizeGeneric(row._processo));
-        if (row._canal) groups[key].canais.add(normalizeGeneric(row._canal));
-        if (row._status) groups[key].status.add(normalizeStatus(row._status));
-        if (row._colaborador) groups[key].colaboradores.add(normalizeColaborador(row._colaborador));
+        if (row._nProcesso) groups[key].processos.add(row._nProcesso);
+        if (row._nCanal) groups[key].canais.add(row._nCanal);
+        if (row._nStatus) groups[key].status.add(row._nStatus);
+        if (row._nColaborador) groups[key].colaboradores.add(row._nColaborador);
         if (row._diaMes) groups[key].datas.add(row._diaMes);
-        if (isLigacaoSim(row._ligacao)) groups[key].ligacoes++;
+        if (row._nLigacao) groups[key].ligacoes++;
     });
 
     // Converter para array e ordenar
@@ -1596,29 +1596,13 @@ function renderGroupedTable(data, tbody) {
             </tr>
         `;
 
-        // Linhas de detalhe (inicialmente ocultas)
-        if (qtd > 1) {
-            group.chamados.forEach((row, detailIdx) => {
-                html += `
-                    <tr class="row-detail hidden" data-parent="${idx}">
-                        <td>↳ Chamado ${detailIdx + 1}</td>
-                        <td>${escapeHTML(row._modulo)}</td>
-                        <td>${escapeHTML(row._processo)}</td>
-                        <td>${escapeHTML(row._canal)}</td>
-                        <td><span class="badge-ligacao ${isLigacaoSim(row._ligacao) ? 'badge-sim' : 'badge-nao'}">${escapeHTML(row._ligacao)}</span></td>
-                        <td><span class="badge-status ${getStatusClass(row._status)}">${escapeHTML(row._status)}</span></td>
-                        <td>${escapeHTML(row._diaMes)}</td>
-                        <td>${escapeHTML(row._colaborador)}</td>
-                        <td></td>
-                    </tr>
-                `;
-            });
-        }
-
         rowIndex++;
     });
 
     tbody.innerHTML = html;
+
+    // Guardar referência dos grupos para expansão lazy
+    window._tableGroups = displayedGroups;
 
     // Atualizar contagem
     const totalChamados = data.length;
@@ -1647,18 +1631,45 @@ function getMostFrequent(arr, prop) {
     return maxVal;
 }
 
-// Expandir/colapsar detalhes do grupo
+// Expandir/colapsar detalhes do grupo (lazy rendering)
 function toggleGroupDetails(groupIdx) {
     const parentRow = document.querySelector(`tr.row-grouped[data-group="${groupIdx}"]`);
-    const detailRows = document.querySelectorAll(`tr.row-detail[data-parent="${groupIdx}"]`);
+    if (!parentRow) return;
 
-    if (parentRow) {
-        parentRow.classList.toggle('expanded');
+    const isExpanded = parentRow.classList.toggle('expanded');
+    const existingDetails = document.querySelectorAll(`tr.row-detail[data-parent="${groupIdx}"]`);
+
+    if (!isExpanded) {
+        // Colapsar: remover linhas de detalhe do DOM
+        existingDetails.forEach(row => row.remove());
+        return;
     }
 
-    detailRows.forEach(row => {
-        row.classList.toggle('hidden');
-    });
+    // Expandir: criar linhas de detalhe sob demanda
+    if (existingDetails.length === 0 && window._tableGroups && window._tableGroups[groupIdx]) {
+        const group = window._tableGroups[groupIdx];
+        const fragment = document.createDocumentFragment();
+
+        group.chamados.forEach((row, detailIdx) => {
+            const tr = document.createElement('tr');
+            tr.className = 'row-detail';
+            tr.dataset.parent = groupIdx;
+            tr.innerHTML = `
+                <td>↳ Chamado ${detailIdx + 1}</td>
+                <td>${escapeHTML(row._modulo)}</td>
+                <td>${escapeHTML(row._processo)}</td>
+                <td>${escapeHTML(row._canal)}</td>
+                <td><span class="badge-ligacao ${row._nLigacao ? 'badge-sim' : 'badge-nao'}">${escapeHTML(row._ligacao)}</span></td>
+                <td><span class="badge-status ${getStatusClass(row._status)}">${escapeHTML(row._status)}</span></td>
+                <td>${escapeHTML(row._diaMes)}</td>
+                <td>${escapeHTML(row._colaborador)}</td>
+                <td></td>
+            `;
+            fragment.appendChild(tr);
+        });
+
+        parentRow.after(fragment);
+    }
 }
 
 // Renderizar tabela DETALHADA (sem agrupamento)
@@ -1755,9 +1766,7 @@ function isLigacaoSim(val) {
 
 function escapeHTML(str) {
     if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // ===================================

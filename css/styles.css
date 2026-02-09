@@ -142,7 +142,7 @@ body::before {
 
 /* Container */
 .container {
-  /* max-width: 2400px;*/
+   max-width: 2400px;
     margin: 0 auto;
     animation: fadeInUp 0.6s ease-out;
 }
