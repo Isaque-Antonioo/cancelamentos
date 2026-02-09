@@ -1,29 +1,11 @@
 // Hubstrom Authentication System
-// Sistema de autenticacao seguro
+// Sistema multi-usuario com perfis e permissoes
 
 (function() {
     'use strict';
 
-    // Hashes SHA-256 pre-calculados (impossivel reverter para texto original)
-    const _0x3d2f = [0x38,0x63,0x36,0x39,0x37,0x36,0x65,0x35,0x62,0x35,
-                     0x34,0x31,0x30,0x34,0x31,0x35,0x62,0x64,0x65,0x39,
-                     0x30,0x38,0x62,0x64,0x34,0x64,0x65,0x65,0x31,0x35,
-                     0x64,0x66,0x62,0x31,0x36,0x37,0x61,0x39,0x63,0x38,
-                     0x37,0x33,0x66,0x63,0x34,0x62,0x62,0x38,0x61,0x38,
-                     0x31,0x66,0x36,0x66,0x32,0x61,0x62,0x34,0x34,0x38,
-                     0x61,0x39,0x31,0x38];
-    const _0x4f2a = [0x34,0x65,0x38,0x61,0x39,0x32,0x66,0x30,0x32,0x62,
-                     0x39,0x30,0x36,0x62,0x64,0x31,0x65,0x39,0x38,0x66,
-                     0x39,0x31,0x32,0x35,0x39,0x62,0x37,0x64,0x36,0x36,
-                     0x63,0x63,0x37,0x37,0x65,0x31,0x38,0x63,0x37,0x38,
-                     0x33,0x64,0x63,0x38,0x38,0x35,0x36,0x38,0x35,0x32,
-                     0x65,0x39,0x36,0x63,0x31,0x62,0x66,0x31,0x38,0x30,
-                     0x38,0x61,0x62,0x64];
-    const _u = _0x3d2f.map(c => String.fromCharCode(c)).join('');
-    const _p = _0x4f2a.map(c => String.fromCharCode(c)).join('');
-
     const SESSION_KEY = 'hubstrom_auth_session';
-    const SESSION_DURATION = 8 * 60 * 60 * 1000;
+    const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 horas
 
     // Funcao para gerar hash SHA-256
     async function sha256(message) {
@@ -34,29 +16,45 @@
         return hashHex;
     }
 
-    // Verificar se esta na pagina de login
-    const isLoginPage = window.location.pathname.includes('login.html') ||
+    // Expor sha256 globalmente para uso no admin.js
+    window.hubstromSha256 = sha256;
+
+    // Detectar pagina atual
+    function getCurrentPageFile() {
+        const path = window.location.pathname;
+        const parts = path.split('/');
+        const page = parts[parts.length - 1] || 'index.html';
+        return page === '' ? 'index.html' : page;
+    }
+
+    const currentPage = getCurrentPageFile();
+    const isLoginPage = currentPage === 'login.html' ||
                         window.location.pathname.endsWith('/login') ||
                         document.getElementById('loginForm') !== null;
 
-    // Verificar se esta na pagina principal
-    const isMainPage = window.location.pathname.includes('index.html') ||
-                       window.location.pathname.endsWith('/') ||
-                       window.location.pathname.endsWith('/cancelamentos/');
+    const isAdminPage = currentPage === 'admin.html';
 
-    // Funcao para verificar sessao
+    // Verificar sessao
     function isAuthenticated() {
         const session = localStorage.getItem(SESSION_KEY);
         if (!session) return false;
 
         try {
             const sessionData = JSON.parse(session);
-            const now = new Date().getTime();
+            const now = Date.now();
 
+            // Verificar expiracao
             if (now > sessionData.expires) {
                 localStorage.removeItem(SESSION_KEY);
                 return false;
             }
+
+            // Verificar se tem userId (sessao nova)
+            if (!sessionData.userId) {
+                localStorage.removeItem(SESSION_KEY);
+                return false;
+            }
+
             return true;
         } catch (e) {
             localStorage.removeItem(SESSION_KEY);
@@ -64,37 +62,119 @@
         }
     }
 
-    // Funcao para criar sessao
-    function createSession() {
+    // Obter usuario atual da sessao
+    function getCurrentUser() {
+        const session = localStorage.getItem(SESSION_KEY);
+        if (!session) return null;
+
+        try {
+            const sessionData = JSON.parse(session);
+            const now = Date.now();
+
+            if (now > sessionData.expires || !sessionData.userId) {
+                return null;
+            }
+
+            return sessionData;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // Expor getCurrentUser globalmente
+    window.hubstromGetUser = getCurrentUser;
+
+    // Criar sessao com dados do usuario
+    function createSession(userObj) {
         const sessionData = {
             authenticated: true,
-            created: new Date().getTime(),
-            expires: new Date().getTime() + SESSION_DURATION
+            userId: userObj.id,
+            displayName: userObj.displayName || 'Usuario',
+            role: userObj.role || 'collaborator',
+            allowedPages: userObj.allowedPages || [],
+            created: Date.now(),
+            expires: Date.now() + SESSION_DURATION
         };
         localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+        return sessionData;
     }
 
-    // Funcao para fazer logout
+    // Verificar acesso a pagina
+    function hasPageAccess(userSession, pageFile) {
+        if (!userSession) return false;
+
+        // Admin tem acesso total
+        if (userSession.role === 'admin') return true;
+
+        // Colaborador verifica allowedPages
+        return (userSession.allowedPages || []).includes(pageFile);
+    }
+
+    // Obter primeira pagina permitida para redirect
+    function getFirstAllowedPage(userSession) {
+        if (!userSession) return 'login.html';
+        if (userSession.role === 'admin') return 'index.html';
+
+        const pages = userSession.allowedPages || [];
+        if (pages.length > 0) {
+            // Priorizar index.html se estiver na lista
+            if (pages.includes('index.html')) return 'index.html';
+            return pages[0];
+        }
+
+        return 'login.html';
+    }
+
+    // Logout
     function logout() {
+        // Registrar no audit log antes de sair
+        if (typeof window.hubstromLog === 'function') {
+            window.hubstromLog('logout', { page: currentPage });
+        }
+
         localStorage.removeItem(SESSION_KEY);
-        window.location.href = 'login.html';
+
+        // Delay para garantir que o audit log seja salvo
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 300);
     }
 
-    // Expor funcao de logout globalmente
+    // Expor funcoes globalmente
     window.hubstromLogout = logout;
 
-    // Funcao para validar credenciais (assincrona por causa do hash)
+    // Validar credenciais contra Firebase
     async function validateCredentials(username, password) {
         const userHash = await sha256(username);
         const passHash = await sha256(password);
-        return userHash === _u && passHash === _p;
+
+        // Aguardar Firebase estar pronto
+        if (typeof findUserByUsernameHash === 'function') {
+            const user = await findUserByUsernameHash(userHash);
+
+            if (user && user.password_hash === passHash) {
+                if (user.active === false) {
+                    return { success: false, error: 'Conta desativada. Contate o administrador.' };
+                }
+                return { success: true, user: user };
+            }
+
+            return { success: false, error: 'Usuario ou senha incorretos. Tente novamente.' };
+        }
+
+        // Fallback: Firebase nao carregou ainda
+        return { success: false, error: 'Sistema carregando. Tente novamente em instantes.' };
     }
+
+    // ==============================
+    // LOGICA DE REDIRECIONAMENTO
+    // ==============================
 
     // Se estiver na pagina de login
     if (isLoginPage) {
-        // Se ja estiver autenticado, redirecionar para o dashboard
         if (isAuthenticated()) {
-            window.location.href = 'index.html';
+            const user = getCurrentUser();
+            window.location.href = getFirstAllowedPage(user);
             return;
         }
 
@@ -114,7 +194,6 @@
                     const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                     passwordInput.setAttribute('type', type);
 
-                    // Alterar icone
                     if (type === 'text') {
                         eyeIcon.innerHTML = `
                             <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
@@ -137,37 +216,46 @@
                     const username = document.getElementById('username').value.trim();
                     const password = document.getElementById('password').value;
 
-                    // Esconder mensagem de erro
                     errorMessage.classList.remove('show');
-
-                    // Mostrar loading
                     submitBtn.classList.add('loading');
                     submitBtn.disabled = true;
 
                     // Validar com delay para UX
                     setTimeout(async function() {
-                        const isValid = await validateCredentials(username, password);
+                        const result = await validateCredentials(username, password);
 
-                        if (isValid) {
-                            // Login bem-sucedido
-                            createSession();
+                        if (result.success) {
+                            const session = createSession(result.user);
+
+                            // Atualizar lastLogin no Firebase
+                            if (typeof updateLastLogin === 'function') {
+                                updateLastLogin(result.user.id);
+                            }
+
+                            // Registrar login no audit log
+                            if (typeof logAuditEvent === 'function') {
+                                logAuditEvent('login', { page: 'login.html' });
+                            }
 
                             // Animacao de sucesso
                             submitBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
                             submitBtn.querySelector('.btn-text').textContent = 'Sucesso!';
 
                             setTimeout(function() {
-                                window.location.href = 'index.html';
+                                window.location.href = getFirstAllowedPage(session);
                             }, 500);
                         } else {
-                            // Login falhou
                             submitBtn.classList.remove('loading');
                             submitBtn.disabled = false;
 
-                            errorText.textContent = 'Usuario ou senha incorretos. Tente novamente.';
+                            errorText.textContent = result.error;
                             errorMessage.classList.add('show');
 
-                            // Focar no campo de usuario
+                            // Registrar tentativa falha
+                            if (typeof logAuditEvent === 'function') {
+                                logAuditEvent('login_failed', { page: 'login.html' });
+                            }
+
                             document.getElementById('username').focus();
                         }
                     }, 800);
@@ -183,20 +271,79 @@
             });
 
             // Enter key navigation
-            document.getElementById('username').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    document.getElementById('password').focus();
-                }
-            });
+            const usernameInput = document.getElementById('username');
+            if (usernameInput) {
+                usernameInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        document.getElementById('password').focus();
+                    }
+                });
+            }
         });
+
+        return; // Parar aqui se for pagina de login
     }
 
-    // Se estiver na pagina principal (index.html)
-    if (isMainPage || (!isLoginPage && !isAuthenticated())) {
-        // Se nao estiver autenticado, redirecionar para login
-        if (!isAuthenticated()) {
-            window.location.href = 'login.html';
+    // ==============================
+    // PAGINAS PROTEGIDAS
+    // ==============================
+
+    // Se nao autenticado, redirecionar para login
+    if (!isAuthenticated()) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    // Verificar permissao de acesso a pagina atual
+    const user = getCurrentUser();
+
+    if (user && !hasPageAccess(user, currentPage)) {
+        // Sem acesso a esta pagina, redirecionar
+        window.location.href = getFirstAllowedPage(user);
+        return;
+    }
+
+    // Registrar page_view no audit
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof window.hubstromLog === 'function') {
+            window.hubstromLog('page_view', { page: currentPage });
+        }
+
+        // Configurar UI baseada no perfil
+        setupUserUI(user);
+    });
+
+    // Configurar elementos de UI baseados no perfil do usuario
+    function setupUserUI(userSession) {
+        if (!userSession) return;
+
+        // Mostrar nome do usuario no header
+        const userNameEl = document.getElementById('userDisplayName');
+        if (userNameEl) {
+            userNameEl.textContent = userSession.displayName;
+        }
+
+        // Mostrar/ocultar link admin no sidebar
+        const adminItems = document.querySelectorAll('.sidebar-admin-only');
+        adminItems.forEach(item => {
+            if (userSession.role === 'admin') {
+                item.classList.remove('sidebar-admin-only');
+            }
+        });
+
+        // Desabilitar links de sidebar para paginas sem acesso
+        if (userSession.role !== 'admin') {
+            document.querySelectorAll('.sidebar-menu .sidebar-item a').forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && href !== '#' && !hasPageAccess(userSession, href)) {
+                    link.closest('.sidebar-item').classList.add('disabled');
+                    link.setAttribute('href', '#');
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                    });
+                }
+            });
         }
     }
 

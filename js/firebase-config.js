@@ -574,12 +574,255 @@ function listenToAppSettings() {
     console.log('Escutando mudanças nas configurações do app');
 }
 
+// ==========================================
+// GERENCIAMENTO DE USUÁRIOS
+// ==========================================
+
+// Hashes SHA-256 do admin inicial (mesmos valores do auth.js original)
+const SEED_ADMIN_USERNAME_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
+const SEED_ADMIN_PASSWORD_HASH = '4e8a92f02b906bd1e98f91259b7d66cc77e18c783dc8856852e96c1bf1808abd';
+
+// Verificar se já existem usuários no Firebase
+async function hasAnyUsers() {
+    if (!isFirebaseReady()) return false;
+    try {
+        const snapshot = await database.ref('users').once('value');
+        return snapshot.exists();
+    } catch (error) {
+        console.error('[Users] Erro ao verificar usuários:', error);
+        return false;
+    }
+}
+
+// Seed do admin inicial (roda apenas uma vez)
+async function ensureAdminExists() {
+    if (!isFirebaseReady()) return;
+
+    try {
+        const exists = await hasAnyUsers();
+        if (exists) {
+            console.log('[Users] Usuários já existem, seed não necessário.');
+            return;
+        }
+
+        const adminRef = database.ref('users').push();
+        await adminRef.set({
+            username_hash: SEED_ADMIN_USERNAME_HASH,
+            password_hash: SEED_ADMIN_PASSWORD_HASH,
+            displayName: 'Administrador',
+            role: 'admin',
+            allowedPages: ['index.html', 'comercial.html', 'suporte.html', 'admin.html'],
+            active: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system_seed',
+            lastLogin: null
+        });
+
+        console.log('[Users] Admin inicial criado com sucesso.');
+    } catch (error) {
+        console.error('[Users] Erro ao criar admin inicial:', error);
+    }
+}
+
+// Buscar usuário pelo hash do username
+async function findUserByUsernameHash(usernameHash) {
+    if (!isFirebaseReady()) return null;
+
+    try {
+        const snapshot = await database.ref('users').once('value');
+        if (!snapshot.exists()) return null;
+
+        let foundUser = null;
+        snapshot.forEach(child => {
+            const userData = child.val();
+            if (userData.username_hash === usernameHash && userData.active !== false) {
+                foundUser = { id: child.key, ...userData };
+            }
+        });
+
+        return foundUser;
+    } catch (error) {
+        console.error('[Users] Erro ao buscar usuário:', error);
+        return null;
+    }
+}
+
+// Buscar todos os usuários
+async function getAllUsers() {
+    if (!isFirebaseReady()) return [];
+
+    try {
+        const snapshot = await database.ref('users').once('value');
+        if (!snapshot.exists()) return [];
+
+        const users = [];
+        snapshot.forEach(child => {
+            users.push({ id: child.key, ...child.val() });
+        });
+
+        return users;
+    } catch (error) {
+        console.error('[Users] Erro ao listar usuários:', error);
+        return [];
+    }
+}
+
+// Criar novo usuário
+async function createUser(userData) {
+    if (!isFirebaseReady()) return null;
+
+    try {
+        const newRef = database.ref('users').push();
+        await newRef.set({
+            ...userData,
+            createdAt: new Date().toISOString()
+        });
+
+        console.log('[Users] Usuário criado:', newRef.key);
+        return newRef.key;
+    } catch (error) {
+        console.error('[Users] Erro ao criar usuário:', error);
+        return null;
+    }
+}
+
+// Atualizar usuário existente
+async function updateUser(userId, updates) {
+    if (!isFirebaseReady()) return false;
+
+    try {
+        await database.ref(`users/${userId}`).update({
+            ...updates,
+            updatedAt: new Date().toISOString()
+        });
+
+        console.log('[Users] Usuário atualizado:', userId);
+        return true;
+    } catch (error) {
+        console.error('[Users] Erro ao atualizar usuário:', error);
+        return false;
+    }
+}
+
+// Desativar usuário (soft delete)
+async function deactivateUser(userId) {
+    if (!isFirebaseReady()) return false;
+
+    try {
+        await database.ref(`users/${userId}`).update({
+            active: false,
+            deactivatedAt: new Date().toISOString()
+        });
+
+        console.log('[Users] Usuário desativado:', userId);
+        return true;
+    } catch (error) {
+        console.error('[Users] Erro ao desativar usuário:', error);
+        return false;
+    }
+}
+
+// Atualizar último login
+async function updateLastLogin(userId) {
+    if (!isFirebaseReady()) return;
+
+    try {
+        await database.ref(`users/${userId}`).update({
+            lastLogin: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('[Users] Erro ao atualizar lastLogin:', error);
+    }
+}
+
+// ==========================================
+// AUDITORIA - LOG DE ATIVIDADES
+// ==========================================
+
+// Registrar evento de auditoria
+async function logAuditEvent(action, details = {}) {
+    if (!isFirebaseReady()) return;
+
+    try {
+        // Buscar usuário da sessão
+        const session = localStorage.getItem('hubstrom_auth_session');
+        let userId = 'unknown';
+        let displayName = 'Desconhecido';
+
+        if (session) {
+            try {
+                const sessionData = JSON.parse(session);
+                userId = sessionData.userId || 'unknown';
+                displayName = sessionData.displayName || 'Desconhecido';
+            } catch (e) { /* ignorar */ }
+        }
+
+        const logEntry = {
+            timestamp: Date.now(),
+            isoDate: new Date().toISOString(),
+            userId: userId,
+            displayName: displayName,
+            action: action,
+            details: details,
+            userAgent: navigator.userAgent || ''
+        };
+
+        await database.ref('audit_log').push(logEntry);
+    } catch (error) {
+        console.error('[Audit] Erro ao registrar evento:', error);
+    }
+}
+
+// Buscar logs de auditoria com filtros
+async function getAuditLogs(filters = {}) {
+    if (!isFirebaseReady()) return [];
+
+    try {
+        let ref = database.ref('audit_log').orderByChild('timestamp');
+
+        const snapshot = await ref.limitToLast(filters.limit || 200).once('value');
+        if (!snapshot.exists()) return [];
+
+        const logs = [];
+        snapshot.forEach(child => {
+            const log = { id: child.key, ...child.val() };
+
+            // Aplicar filtros client-side
+            if (filters.userId && log.userId !== filters.userId) return;
+            if (filters.action && log.action !== filters.action) return;
+            if (filters.startDate && log.timestamp < filters.startDate) return;
+            if (filters.endDate && log.timestamp > filters.endDate) return;
+
+            logs.push(log);
+        });
+
+        // Ordenar do mais recente para o mais antigo
+        logs.sort((a, b) => b.timestamp - a.timestamp);
+
+        return logs;
+    } catch (error) {
+        console.error('[Audit] Erro ao buscar logs:', error);
+        return [];
+    }
+}
+
+// Helper global para instrumentação fácil
+window.hubstromLog = function(action, details) {
+    if (isFirebaseReady()) {
+        logAuditEvent(action, details);
+    }
+};
+
 // Inicializar quando o DOM carregar
 document.addEventListener('DOMContentLoaded', () => {
     // Aguardar um momento para garantir que os scripts do Firebase carregaram
     setTimeout(() => {
         if (typeof firebase !== 'undefined') {
-            initFirebase();
+            const initialized = initFirebase();
+            // Seed do admin após inicialização
+            if (initialized) {
+                ensureAdminExists();
+            }
         } else {
             console.warn('Firebase SDK não carregado. Usando apenas localStorage.');
         }

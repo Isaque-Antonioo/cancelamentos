@@ -249,6 +249,15 @@ body::before {
     color: var(--color-warning);
 }
 
+.user-display-name {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
 .month-selector {
     padding: 8px 12px;
     border-radius: 8px;
@@ -2927,6 +2936,10 @@ canvas {
 
 .sidebar-item.disabled a:hover svg {
     color: var(--text-secondary);
+}
+
+.sidebar-admin-only {
+    display: none;
 }
 
 /* Badge "Em breve" */
