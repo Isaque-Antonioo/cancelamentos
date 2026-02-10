@@ -14,23 +14,34 @@
 
     <!-- Estilos específicos para o embed -->
     <style>
+        /* Header compacto — sem subtítulo, só header-top */
+        .header {
+            margin-bottom: 10px;
+            padding: 14px 24px;
+        }
+
+        .header-top {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
         .dashboard-container {
             width: 100%;
-            height: calc(100vh - 80px);
+            height: calc(100vh - 70px);
             background: #0f172a;
-            border-radius: 16px;
+            border-radius: 12px;
             overflow: hidden;
             position: relative;
         }
 
         .dashboard-container iframe {
-            width: calc(100% + 17px); /* Esconder scrollbar */
+            width: calc(100% + 17px);
             height: 100%;
             border: none;
             background: #0f172a;
         }
 
-        /* Barra para cobrir o rodapé do Looker */
         .dashboard-container::after {
             content: '';
             position: absolute;
@@ -43,16 +54,11 @@
             pointer-events: none;
         }
 
-        /* Loading overlay */
         .loading-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: #0f172a;
             display: flex;
-            
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -84,11 +90,10 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Responsivo */
         @media (max-width: 768px) {
             .dashboard-container {
-                height: calc(100vh - 90px);
-                border-radius: 12px;
+                height: calc(100vh - 80px);
+                border-radius: 10px;
             }
         }
     </style>
