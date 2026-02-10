@@ -796,11 +796,46 @@
 
 Analise os seguintes dados comerciais e gere insights, alertas/previsões e recomendações de ações.
 
+## MAPEAMENTO DAS COLUNAS DA PLANILHA:
+
+A planilha segue SEMPRE este padrão de colunas:
+- **Colunas A e B (linhas 12 a 30):** Resumo/KPIs do período, sempre nesta ordem fixa:
+  - Linha 12: Gerados | Valor gerado (R$)
+  - Linha 13: Assinados | Valor assinado (R$)
+  - Linha 14: Total | Valor total do pipeline (R$)
+  - Linha 15: Dia | Valor médio por dia (R$)
+  - Linha 16: Pendentes | Valor pendente de fechamento (R$)
+  - Linha 17: Meta | Meta do mês (R$)
+  - Linha 18: Desistentes | Valor perdido por desistência (R$)
+  - Linha 19-20: Cabeçalho "Taxa de Conversão" — "Colaborador | Conversão (%)"
+  - Linhas 21-25: Taxa de conversão individual de cada closer (ex: Amanda 57,14%, Fernanda 43,48%)
+  - Linha 26: Equipe | Taxa de conversão geral da equipe (%)
+  - Linha 28: Novos | Valor de contratos novos (R$)
+  - Linha 29: Upsell | Valor de upsell (R$)
+  - Linha 30: Reativação | Valor de reativações (R$)
+- **Coluna C:** Data da Negociação
+- **Coluna D:** Contabilidade (ID interno - ignorar)
+- **Coluna E:** Nome do Cliente Responsável
+- **Coluna F:** Data do Fechamento (preenchida se o cliente fechou; em branco = não fechou ainda)
+- **Coluna G:** Closer (vendedor/especialista responsável)
+- **Coluna H:** Status (Pendente, Desistente, Contratado, Não Qualificado, Gerado)
+- **Coluna I:** Plano (Enterprise, Professional, Starter, Avulso)
+- **Coluna J:** Clientes (quantidade de clientes no plano)
+- **Coluna K:** Valor Cheio (preço sem desconto)
+- **Coluna L:** Porcentagem de Desconto
+- **Coluna M:** Valor Negociado (com desconto aplicado)
+- **Coluna N:** Setup à Vista (valor pago à vista; 0 se não pagou)
+- **Coluna O:** Setup Parcelado (valor do setup parcelado)
+- **Coluna P:** Tipo de Contrato (Novo, Reativação, Upsell, Indicação)
+- **Coluna R:** Status do Pagamento (Pendente ou Pago)
+
 ## DADOS COMERCIAIS DO PERÍODO:
 
 ${rawData}
 
 ## INSTRUÇÕES:
+
+Use o mapeamento de colunas acima para interpretar corretamente os dados CSV.
 
 Gere uma análise em formato JSON com a seguinte estrutura:
 
@@ -830,13 +865,17 @@ Gere uma análise em formato JSON com a seguinte estrutura:
 }
 
 IMPORTANTE:
-- Gere 4-6 insights sobre a performance comercial (conversão, ticket médio, comparativo entre vendedores, meta)
-- Gere 3-5 alertas ou previsões (tendências, riscos, gargalos no funil, desistências, pendentes)
-- Gere 4-5 recomendações práticas ordenadas por prioridade (ações para cada vendedor, estratégias de fechamento, gestão de pipeline)
+- Gere 4-6 insights sobre a performance comercial (conversão, ticket médio, comparativo entre closers, progresso vs meta, descontos praticados, mix de planos)
+- Gere 3-5 alertas ou previsões (tendências, riscos, gargalos no funil, desistências, pendentes sem fechamento, setup não pago, meta em risco)
+- Gere 4-5 recomendações práticas ordenadas por prioridade (ações para cada closer, estratégias de fechamento de pendentes, otimização de descontos, gestão de pipeline)
 - Baseie-se APENAS nos dados fornecidos
 - Seja específico com números e porcentagens
-- Compare performance entre especialistas
-- Analise taxa de conversão, desistentes e pendentes
+- Compare performance entre closers (coluna G) usando taxa de conversão, valor total negociado e quantidade de contratos
+- Analise a distribuição por Status (coluna H): quantos Contratados vs Pendentes vs Desistentes vs Gerados
+- Analise o mix de planos (coluna I) e tipos de contrato (coluna P: Novo, Reativação, Upsell, Indicação)
+- Compare Valor Cheio (K) vs Valor Negociado (M) para entender a média de desconto praticada
+- Identifique clientes Pendentes (H) que têm alto valor (M) como oportunidades prioritárias
+- Use os dados de resumo das colunas A/B (Meta, Gerados, Assinados, Pendentes, Desistentes) para calcular progresso e projeções
 - Projete tendências se possível
 
 Responda APENAS com o JSON, sem texto adicional.`;
