@@ -224,6 +224,66 @@
             </div>
         </section>
 
+        <!-- SEÇÃO DE ANÁLISE COM IA -->
+        <section class="section ai-analysis-section">
+            <div class="ai-header">
+                <h2>Análise com Inteligência Artificial</h2>
+                <p style="color: var(--text-secondary);">
+                    Gere insights sobre atendimentos, clientes em risco e ações recomendadas usando Claude AI
+                </p>
+            </div>
+
+            <div class="ai-main-action">
+                <button class="btn-generate-large" onclick="generateSuporteAIAnalysis()" id="btnSuporteAI">
+                    <div class="btn-generate-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5"/>
+                            <path d="M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <div class="btn-generate-text">
+                        <span class="btn-generate-title">Gerar Análise com IA</span>
+                        <span class="btn-generate-subtitle">Claude analisa os chamados e gera recomendações</span>
+                    </div>
+                </button>
+
+                <div class="ai-config-area">
+                    <button class="btn-config-ai" onclick="openSuporteConfigModal()" title="Configurar API Key">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        <span>Configurar API</span>
+                    </button>
+                    <span id="suporteApiStatus" class="api-status-indicator"></span>
+                </div>
+            </div>
+
+            <div id="suporteAiLoading" class="ai-loading" style="display: none;">
+                <div class="spinner"></div>
+                <span>Analisando chamados com Claude AI...</span>
+            </div>
+
+            <!-- Resultados da IA -->
+            <div id="suporteAiResults" style="display: none;">
+                <div class="ai-results-grid">
+                    <div class="ai-result-card">
+                        <h3>Insights Principais</h3>
+                        <ul class="insight-list" id="suporteInsightsList"></ul>
+                    </div>
+                    <div class="ai-result-card">
+                        <h3>Clientes em Risco</h3>
+                        <ul class="insight-list" id="suporteRiskList"></ul>
+                    </div>
+                </div>
+                <div class="ai-result-card" style="margin-top: 20px;">
+                    <h3>Recomendações e Ações</h3>
+                    <div id="suporteRecommendationsList" class="recommendations-container"></div>
+                </div>
+            </div>
+        </section>
+
         <!-- Tabela de Dados -->
         <section class="suporte-table-section">
             <div class="table-header">
@@ -345,66 +405,6 @@
             </div>
         </section>
     </div>
-
-        <!-- SEÇÃO DE ANÁLISE COM IA -->
-        <section class="section ai-analysis-section" style="margin-top: 30px;">
-            <div class="ai-header">
-                <h2>Análise com Inteligência Artificial</h2>
-                <p style="color: var(--text-secondary);">
-                    Gere insights sobre atendimentos, clientes em risco e ações recomendadas usando Claude AI
-                </p>
-            </div>
-
-            <div class="ai-main-action">
-                <button class="btn-generate-large" onclick="generateSuporteAIAnalysis()" id="btnSuporteAI">
-                    <div class="btn-generate-icon">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                            <path d="M2 17l10 5 10-5"/>
-                            <path d="M2 12l10 5 10-5"/>
-                        </svg>
-                    </div>
-                    <div class="btn-generate-text">
-                        <span class="btn-generate-title">Gerar Análise com IA</span>
-                        <span class="btn-generate-subtitle">Claude analisa os chamados e gera recomendações</span>
-                    </div>
-                </button>
-
-                <div class="ai-config-area">
-                    <button class="btn-config-ai" onclick="openSuporteConfigModal()" title="Configurar API Key">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="3"/>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                        </svg>
-                        <span>Configurar API</span>
-                    </button>
-                    <span id="suporteApiStatus" class="api-status-indicator"></span>
-                </div>
-            </div>
-
-            <div id="suporteAiLoading" class="ai-loading" style="display: none;">
-                <div class="spinner"></div>
-                <span>Analisando chamados com Claude AI...</span>
-            </div>
-
-            <!-- Resultados da IA -->
-            <div id="suporteAiResults" style="display: none;">
-                <div class="ai-results-grid">
-                    <div class="ai-result-card">
-                        <h3>Insights Principais</h3>
-                        <ul class="insight-list" id="suporteInsightsList"></ul>
-                    </div>
-                    <div class="ai-result-card">
-                        <h3>Clientes em Risco</h3>
-                        <ul class="insight-list" id="suporteRiskList"></ul>
-                    </div>
-                </div>
-                <div class="ai-result-card" style="margin-top: 20px;">
-                    <h3>Recomendações e Ações</h3>
-                    <div id="suporteRecommendationsList" class="recommendations-container"></div>
-                </div>
-            </div>
-        </section>
 
     <!-- Modal de Configuração API Suporte -->
     <div id="suporteConfigModal" class="modal" style="display: none;">
