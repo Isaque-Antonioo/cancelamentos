@@ -606,26 +606,72 @@
 
                 if (lines.length < 2) throw new Error('Planilha vazia ou sem dados.');
 
-                // Formatar para o textarea de forma legível
                 const headers = parseCSVLine(lines[0]);
-                var formattedData = '';
+                // Mapear headers corretos (coluna A="Indicador", B="Valor KPI")
+                var cleanHeaders = headers.map(function(h, idx) {
+                    var t = (h || '').trim();
+                    if (idx === 0) return 'Indicador';
+                    if (idx === 1) return 'Valor_KPI';
+                    return t;
+                });
+
+                var kpiSection = '';
+                var dataSection = '';
+                var dataCount = 0;
 
                 for (var i = 1; i < lines.length; i++) {
                     var values = parseCSVLine(lines[i]);
+
+                    // Contar quantas colunas (C em diante, idx>=2) têm valor real
+                    var mainDataCount = 0;
+                    for (var k = 2; k < values.length; k++) {
+                        var val = (values[k] || '').trim();
+                        if (val && val !== 'R$ 0,00') mainDataCount++;
+                    }
+
+                    // Se não tem dados nas colunas principais (C-R), pular linha
+                    if (mainDataCount === 0) {
+                        // Mas checar se tem KPI nas colunas A/B
+                        var colA = (values[0] || '').trim();
+                        var colB = (values[1] || '').trim();
+                        if (colA && colB) {
+                            kpiSection += colA + ': ' + colB + '\n';
+                        }
+                        continue;
+                    }
+
+                    // Extrair KPI das colunas A/B se existir nesta linha
+                    var colA = (values[0] || '').trim();
+                    var colB = (values[1] || '').trim();
+                    if (colA && colB) {
+                        kpiSection += colA + ': ' + colB + '\n';
+                    }
+
+                    // Montar linha com dados das colunas C-R
                     var row = [];
-                    for (var j = 0; j < headers.length; j++) {
-                        var h = (headers[j] || '').trim();
+                    for (var j = 2; j < cleanHeaders.length; j++) {
+                        var h = cleanHeaders[j];
                         var v = (values[j] || '').trim();
                         if (h && v) row.push(h + ': ' + v);
                     }
-                    if (row.length > 0) formattedData += row.join(' | ') + '\n';
+                    if (row.length > 0) {
+                        dataSection += row.join(' | ') + '\n';
+                        dataCount++;
+                    }
                 }
+
+                // Montar resultado final: KPIs primeiro, depois dados
+                var formattedData = '';
+                if (kpiSection.trim()) {
+                    formattedData += '=== RESUMO / KPIs DO PERÍODO ===\n' + kpiSection.trim() + '\n\n';
+                }
+                formattedData += '=== NEGOCIAÇÕES ===\n' + dataSection.trim();
 
                 var textarea = document.getElementById('comercialDataInput');
                 if (textarea) textarea.value = formattedData.trim();
 
                 if (statusEl) {
-                    statusEl.textContent = (lines.length - 1) + ' registros carregados.';
+                    statusEl.textContent = dataCount + ' negociações carregadas.';
                     statusEl.style.color = '#35cca3';
                 }
 
@@ -796,38 +842,42 @@
 
 Analise os seguintes dados comerciais e gere insights, alertas/previsões e recomendações de ações.
 
-## MAPEAMENTO DAS COLUNAS DA PLANILHA:
+## ESTRUTURA DOS DADOS:
 
-A planilha segue SEMPRE este padrão de colunas:
-- **Colunas A e B (linhas 12 a 30):** Resumo/KPIs do período, sempre nesta ordem fixa:
-  - Linha 12: Gerados | Valor gerado (R$)
-  - Linha 13: Assinados | Valor assinado (R$)
-  - Linha 14: Total | Valor total do pipeline (R$)
-  - Linha 15: Dia | Valor médio por dia (R$)
-  - Linha 16: Pendentes | Valor pendente de fechamento (R$)
-  - Linha 17: Meta | Meta do mês (R$)
-  - Linha 18: Desistentes | Valor perdido por desistência (R$)
-  - Linha 19-20: Cabeçalho "Taxa de Conversão" — "Colaborador | Conversão (%)"
-  - Linhas 21-25: Taxa de conversão individual de cada closer (ex: Amanda 57,14%, Fernanda 43,48%)
-  - Linha 26: Equipe | Taxa de conversão geral da equipe (%)
-  - Linha 28: Novos | Valor de contratos novos (R$)
-  - Linha 29: Upsell | Valor de upsell (R$)
-  - Linha 30: Reativação | Valor de reativações (R$)
-- **Coluna C:** Data da Negociação
-- **Coluna D:** Contabilidade (ID interno - ignorar)
-- **Coluna E:** Nome do Cliente Responsável
-- **Coluna F:** Data do Fechamento (preenchida se o cliente fechou; em branco = não fechou ainda)
-- **Coluna G:** Closer (vendedor/especialista responsável)
-- **Coluna H:** Status (Pendente, Desistente, Contratado, Não Qualificado, Gerado)
-- **Coluna I:** Plano (Enterprise, Professional, Starter, Avulso)
-- **Coluna J:** Clientes (quantidade de clientes no plano)
-- **Coluna K:** Valor Cheio (preço sem desconto)
-- **Coluna L:** Porcentagem de Desconto
-- **Coluna M:** Valor Negociado (com desconto aplicado)
-- **Coluna N:** Setup à Vista (valor pago à vista; 0 se não pagou)
-- **Coluna O:** Setup Parcelado (valor do setup parcelado)
-- **Coluna P:** Tipo de Contrato (Novo, Reativação, Upsell, Indicação)
-- **Coluna R:** Status do Pagamento (Pendente ou Pago)
+Os dados são divididos em duas seções:
+
+### SEÇÃO 1 — RESUMO / KPIs DO PERÍODO:
+Indicadores consolidados do mês, sempre nesta estrutura:
+- **Gerados**: Valor total gerado no período (R$)
+- **Assinados**: Valor total de contratos assinados (R$)
+- **Total**: Valor total do pipeline (R$)
+- **Dia**: Valor médio por dia útil (R$)
+- **Pendentes**: Valor total pendente de fechamento (R$)
+- **Meta**: Meta mensal de vendas (R$)
+- **Desistentes**: Valor perdido por desistências (R$)
+- **Taxa de Conversão**: Percentual individual de cada closer e da equipe geral
+- **Novos**: Valor de contratos novos (R$)
+- **Upsell**: Valor de upsell em clientes existentes (R$)
+- **Reativação**: Valor de reativações de clientes (R$)
+
+### SEÇÃO 2 — NEGOCIAÇÕES (cada linha é um lead/cliente):
+Cada negociação possui os seguintes campos:
+- **Negociação**: Data em que o lead entrou no funil
+- **Contabilidade - RAZÃO SOCIAL**: Razão social / nome da empresa (ID interno)
+- **Nome/ Responsável**: Nome do contato principal do cliente
+- **Data o fechamento**: Data em que o cliente fechou (vazio = ainda não fechou)
+- **Closer**: Vendedor/especialista responsável pela negociação
+- **Status**: Estado atual — Pendente, Desistente, Contratado, Não Qualificado, Gerado
+- **Plano**: Tipo do plano — Enterprise, Professional, Starter, Avulso
+- **Clientes**: Quantidade de clientes que o plano comporta
+- **Valor**: Valor cheio do plano (sem desconto)
+- **Desc.**: Porcentagem de desconto aplicado
+- **Valor c/ desconto**: Valor final negociado com desconto
+- **Setup a vista**: Valor do setup pago à vista (R$ 0,00 se não pagou)
+- **Setup Parcelado**: Valor do setup parcelado
+- **Contrato**: Tipo — Novo, Reativação, Upsell, Indicação
+- **ID**: ID interno do lead/cliente
+- **Pagamento**: Status do pagamento — Pendente ou Pago (vazio = ainda sem pagamento)
 
 ## DADOS COMERCIAIS DO PERÍODO:
 
