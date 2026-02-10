@@ -530,9 +530,49 @@ async function syncAppSettingsFromFirebase() {
             }
         }
 
+        // Sincronizar GID do Comercial
+        const comercialGid = await getComercialGidFromFirebase();
+        if (comercialGid) {
+            localStorage.setItem('comercial_gid', comercialGid);
+            console.log('GID Comercial sincronizado do Firebase para localStorage');
+        }
+
         console.log('Configurações do app sincronizadas do Firebase');
     } catch (error) {
         console.error('Erro ao sincronizar configurações:', error);
+    }
+}
+
+// Salvar GID do Comercial no Firebase
+async function saveComercialGidToFirebase(gid) {
+    if (!isFirebaseReady()) {
+        console.warn('Firebase não pronto para salvar GID Comercial');
+        return false;
+    }
+    try {
+        await database.ref('app_settings/comercial_gid').set({ gid: gid, updatedAt: new Date().toISOString() });
+        localStorage.setItem('comercial_gid', gid);
+        console.log('GID Comercial salvo no Firebase:', gid);
+        return true;
+    } catch (error) {
+        console.error('Erro ao salvar GID Comercial no Firebase:', error);
+        return false;
+    }
+}
+
+// Buscar GID do Comercial do Firebase
+async function getComercialGidFromFirebase() {
+    if (!isFirebaseReady()) return null;
+    try {
+        const snapshot = await database.ref('app_settings/comercial_gid').once('value');
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            return data.gid || null;
+        }
+        return null;
+    } catch (error) {
+        console.error('Erro ao buscar GID Comercial do Firebase:', error);
+        return null;
     }
 }
 
@@ -567,6 +607,22 @@ function listenToAppSettings() {
             console.log('Config do Sheets atualizada em tempo real do Firebase');
             if (typeof updateSyncStatus === 'function') {
                 updateSyncStatus();
+            }
+        }
+    });
+
+    // Escutar mudanças no GID do Comercial
+    database.ref('app_settings/comercial_gid').on('value', (snapshot) => {
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            if (data.gid) {
+                const currentGid = localStorage.getItem('comercial_gid');
+                if (currentGid !== data.gid) {
+                    localStorage.setItem('comercial_gid', data.gid);
+                    console.log('GID Comercial atualizado em tempo real do Firebase');
+                    const gidInput = document.getElementById('comercialGidInput');
+                    if (gidInput) gidInput.value = data.gid;
+                }
             }
         }
     });

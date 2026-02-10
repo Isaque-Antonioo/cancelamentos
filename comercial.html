@@ -196,6 +196,78 @@
             color: #4a5568;
         }
 
+        .comercial-gid-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            margin-bottom: 8px;
+        }
+
+        .comercial-gid-field {
+            flex: 1;
+        }
+
+        .comercial-gid-field label {
+            display: block;
+            font-size: 0.8em;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .comercial-gid-field input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 0.9em;
+            padding: 10px 12px;
+        }
+
+        .comercial-gid-field input:focus {
+            outline: none;
+            border-color: rgba(53, 204, 163, 0.5);
+        }
+
+        .btn-fetch-sheets {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #35cca3, #2ba882);
+            color: #0a0f14;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85em;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .btn-fetch-sheets:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(53, 204, 163, 0.3);
+        }
+
+        .btn-fetch-sheets:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-fetch-sheets.loading svg {
+            animation: spin 1s linear infinite;
+        }
+
+        .comercial-fetch-status {
+            display: block;
+            font-size: 0.8em;
+            margin-bottom: 4px;
+            min-height: 18px;
+        }
+
         .comercial-ai-actions {
             display: flex;
             align-items: center;
@@ -335,18 +407,23 @@
                 <button class="modal-close" onclick="toggleComercialAI()">&times;</button>
             </div>
             <div class="comercial-ai-panel-body">
-                <p class="comercial-ai-desc">Cole abaixo os dados comerciais do período (vendas, metas, conversão, especialistas) para gerar insights, previsões e recomendações.</p>
-                <textarea id="comercialDataInput" class="comercial-ai-textarea" rows="8" placeholder="Exemplo:
-Isabela - Vendas: R$ 10.384,62 - Conversão: 48% - Assinados: 12 - Gerados: 25
-Amanda - Vendas: R$ 9.047,72 - Conversão: 58,82% - Assinados: 10 - Gerados: 17
-Fernanda - Vendas: R$ 6.213,15 - Conversão: 33,33% - Assinados: 6 - Gerados: 18
+                <p class="comercial-ai-desc">Busque os dados da planilha comercial automaticamente. Atualize o GID quando mudar o mês.</p>
 
-Total Assinados: R$ 30.400,35
-Total Gerados: R$ 32.539,25
-Desistentes: R$ 10.998,00
-Pendentes: R$ 43.542,00
-Contratos pagos: 50 | Pendentes: 27
-Meta do mês: R$ 80.000,00"></textarea>
+                <div class="comercial-gid-row">
+                    <div class="comercial-gid-field">
+                        <label for="comercialGidInput">GID da aba do mês</label>
+                        <input type="text" id="comercialGidInput" placeholder="Ex: 1234622450" />
+                    </div>
+                    <button class="btn-fetch-sheets" onclick="fetchComercialData()" id="btnFetchComercial" title="Buscar dados da planilha">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/>
+                        </svg>
+                        Buscar Dados
+                    </button>
+                </div>
+                <span id="comercialFetchStatus" class="comercial-fetch-status"></span>
+
+                <textarea id="comercialDataInput" class="comercial-ai-textarea" rows="6" placeholder="Os dados da planilha serão carregados aqui automaticamente. Ou cole dados manualmente." style="margin-top: 12px;"></textarea>
                 <div class="comercial-ai-actions">
                     <button class="btn-generate-large" onclick="generateComercialAIAnalysis()" id="btnComercialAI">
                         <div class="btn-generate-icon">
@@ -485,6 +562,102 @@ Meta do mês: R$ 80.000,00"></textarea>
         // ===================================
         // IA COMERCIAL
         // ===================================
+        const COMERCIAL_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSSQ7mve2qz75gYNsmGqBj8yuyQO5JQU80qBcULnAYJ0MdYh373F0RD0DGc0Qpb5z7AjTdyyGyXQ1BP/pub';
+
+        // Carregar GID salvo do Firebase
+        document.addEventListener('firebaseReady', async function() {
+            try {
+                const savedGid = await getComercialGidFromFirebase();
+                const gidInput = document.getElementById('comercialGidInput');
+                if (gidInput) gidInput.value = savedGid || '1234622450';
+            } catch (e) {
+                const gidInput = document.getElementById('comercialGidInput');
+                if (gidInput) gidInput.value = localStorage.getItem('comercial_gid') || '1234622450';
+            }
+        });
+
+        async function fetchComercialData() {
+            const gidInput = document.getElementById('comercialGidInput');
+            const gid = gidInput ? gidInput.value.trim() : '';
+            const statusEl = document.getElementById('comercialFetchStatus');
+            const btn = document.getElementById('btnFetchComercial');
+
+            if (!gid) {
+                if (statusEl) { statusEl.textContent = 'Informe o GID da aba.'; statusEl.style.color = '#f87171'; }
+                return;
+            }
+
+            // Salvar GID no Firebase
+            if (typeof saveComercialGidToFirebase === 'function') {
+                await saveComercialGidToFirebase(gid);
+            }
+
+            if (btn) { btn.disabled = true; btn.classList.add('loading'); }
+            if (statusEl) { statusEl.textContent = 'Buscando dados...'; statusEl.style.color = '#94a3b8'; }
+
+            try {
+                const csvUrl = COMERCIAL_SHEET_URL + '?gid=' + gid + '&single=true&output=csv&_t=' + Date.now();
+                const response = await fetch(csvUrl, { cache: 'no-store' });
+
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+
+                const csvText = await response.text();
+                const lines = csvText.split('\n').filter(function(l) { return l.trim(); });
+
+                if (lines.length < 2) throw new Error('Planilha vazia ou sem dados.');
+
+                // Formatar para o textarea de forma legível
+                const headers = parseCSVLine(lines[0]);
+                var formattedData = '';
+
+                for (var i = 1; i < lines.length; i++) {
+                    var values = parseCSVLine(lines[i]);
+                    var row = [];
+                    for (var j = 0; j < headers.length; j++) {
+                        var h = (headers[j] || '').trim();
+                        var v = (values[j] || '').trim();
+                        if (h && v) row.push(h + ': ' + v);
+                    }
+                    if (row.length > 0) formattedData += row.join(' | ') + '\n';
+                }
+
+                var textarea = document.getElementById('comercialDataInput');
+                if (textarea) textarea.value = formattedData.trim();
+
+                if (statusEl) {
+                    statusEl.textContent = (lines.length - 1) + ' registros carregados.';
+                    statusEl.style.color = '#35cca3';
+                }
+
+            } catch (error) {
+                console.error('Erro ao buscar planilha comercial:', error);
+                if (statusEl) {
+                    statusEl.textContent = 'Erro: ' + error.message;
+                    statusEl.style.color = '#f87171';
+                }
+            } finally {
+                if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
+            }
+        }
+
+        function parseCSVLine(line) {
+            var result = [];
+            var current = '';
+            var inQuotes = false;
+            for (var i = 0; i < line.length; i++) {
+                var ch = line[i];
+                if (ch === '"') {
+                    if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+                    else inQuotes = !inQuotes;
+                } else if (ch === ',' && !inQuotes) {
+                    result.push(current); current = '';
+                } else {
+                    current += ch;
+                }
+            }
+            result.push(current);
+            return result;
+        }
         function getComercialApiKey() {
             return localStorage.getItem('anthropic_api_key') || '';
         }
@@ -548,12 +721,17 @@ Meta do mês: R$ 80.000,00"></textarea>
         }
 
         async function generateComercialAIAnalysis() {
-            const dataInput = document.getElementById('comercialDataInput');
-            const rawData = dataInput ? dataInput.value.trim() : '';
+            var dataInput = document.getElementById('comercialDataInput');
+            var rawData = dataInput ? dataInput.value.trim() : '';
 
+            // Se não tem dados, tentar buscar automaticamente
             if (!rawData) {
-                alert('Cole os dados comerciais no campo de texto antes de gerar a análise.');
-                return;
+                await fetchComercialData();
+                rawData = dataInput ? dataInput.value.trim() : '';
+                if (!rawData) {
+                    alert('Nenhum dado encontrado. Verifique o GID da aba.');
+                    return;
+                }
             }
 
             if (!hasComercialApiKey()) {
