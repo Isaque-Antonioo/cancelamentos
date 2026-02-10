@@ -1069,6 +1069,24 @@ function filterProcessosModal(query) {
     });
 }
 
+// Regressão linear simples para linha de tendência
+function calculateTrendLine(data) {
+    const n = data.length;
+    if (n < 2) return { slope: 0, intercept: data[0] || 0 };
+
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    for (let i = 0; i < n; i++) {
+        sumX += i;
+        sumY += data[i];
+        sumXY += i * data[i];
+        sumX2 += i * i;
+    }
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+    return { slope, intercept };
+}
+
 function createTimelineChart(timelineData) {
     if (suporteCharts['chartTimeline']) suporteCharts['chartTimeline'].destroy();
 
@@ -1114,22 +1132,78 @@ function createTimelineChart(timelineData) {
 
     const borderColors = labels.map(() => 'rgba(53, 204, 163, 0.9)');
 
+    // Calcular linha de tendência (regressão linear)
+    const trendLine = calculateTrendLine(data);
+
+    // Calcular previsão (próximos 2 pontos, só no modo "todos os meses" e com 3+ dados)
+    let forecastLabels = [...labels];
+    let forecastData = new Array(data.length).fill(null);
+
+    if (currentMonth === 'todos' && data.length >= 3) {
+        // Projetar próximos 2 meses
+        const lastLabel = labels[labels.length - 1];
+        const [lastAbrev, lastYearStr] = lastLabel.split('/');
+        let lastMonthIdx = MESES_ABREV.indexOf(lastAbrev);
+        let lastYear = parseInt(lastYearStr);
+
+        for (let i = 1; i <= 2; i++) {
+            let nextMonth = lastMonthIdx + i;
+            let nextYear = lastYear;
+            if (nextMonth > 11) { nextMonth -= 12; nextYear++; }
+            forecastLabels.push(`${MESES_ABREV[nextMonth]}/${String(nextYear).padStart(2, '0')}`);
+            // Projeção linear
+            const projected = Math.max(0, Math.round(trendLine.slope * (data.length + i - 1) + trendLine.intercept));
+            forecastData.push(projected);
+        }
+    }
+
+    // Estender trend line para cobrir os pontos de previsão
+    const fullTrendData = forecastLabels.map((_, i) => Math.max(0, Math.round(trendLine.slope * i + trendLine.intercept)));
+
     suporteCharts['chartTimeline'] = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels,
+            labels: forecastLabels,
             datasets: [{
                 label: 'Chamados',
-                data: data,
-                backgroundColor: colors,
-                borderColor: borderColors,
+                data: [...data, ...new Array(forecastLabels.length - data.length).fill(null)],
+                backgroundColor: [...colors, ...new Array(forecastLabels.length - data.length).fill('transparent')],
+                borderColor: [...borderColors, ...new Array(forecastLabels.length - data.length).fill('transparent')],
                 borderWidth: 2,
                 borderRadius: 8,
                 borderSkipped: false,
                 maxBarThickness: 60,
                 hoverBackgroundColor: 'rgba(53, 204, 163, 1)',
                 hoverBorderColor: '#ffffff',
-                hoverBorderWidth: 2
+                hoverBorderWidth: 2,
+                order: 2
+            },
+            {
+                label: 'Tendência',
+                data: fullTrendData,
+                type: 'line',
+                borderColor: 'rgba(251, 191, 36, 0.7)',
+                borderWidth: 2,
+                borderDash: [6, 4],
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                pointBackgroundColor: 'rgba(251, 191, 36, 0.9)',
+                fill: false,
+                tension: 0.1,
+                order: 1
+            },
+            {
+                label: 'Previsão',
+                data: forecastData,
+                type: 'bar',
+                backgroundColor: forecastData.map(v => v !== null ? 'rgba(251, 191, 36, 0.25)' : 'transparent'),
+                borderColor: forecastData.map(v => v !== null ? 'rgba(251, 191, 36, 0.6)' : 'transparent'),
+                borderWidth: 2,
+                borderRadius: 8,
+                borderDash: [4, 4],
+                borderSkipped: false,
+                maxBarThickness: 60,
+                order: 3
             }]
         },
         options: {
@@ -1173,7 +1247,23 @@ function createTimelineChart(timelineData) {
                 }
             },
             plugins: {
-                legend: { display: false },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        color: '#94a3b8',
+                        font: { size: 11 },
+                        usePointStyle: true,
+                        pointStyle: 'line',
+                        padding: 15,
+                        filter: function(item) {
+                            // Esconder "Previsão" se não houver dados
+                            if (item.text === 'Previsão' && currentMonth !== 'todos') return false;
+                            return true;
+                        }
+                    }
+                },
                 tooltip: {
                     backgroundColor: 'rgba(15, 23, 42, 0.95)',
                     titleColor: '#f8fafc',
@@ -1184,25 +1274,48 @@ function createTimelineChart(timelineData) {
                     padding: 14,
                     titleFont: { size: 14, weight: '600' },
                     bodyFont: { size: 13 },
-                    displayColors: false,
+                    displayColors: true,
+                    filter: function(item) {
+                        return item.parsed.y !== null && item.parsed.y > 0;
+                    },
                     callbacks: {
                         title: function(ctx) {
                             const label = ctx[0].label;
                             return currentMonth === 'todos' ? label : `Dia ${label}`;
                         },
                         label: function(ctx) {
-                            return `${ctx.parsed.y.toLocaleString('pt-BR')} chamados`;
+                            if (ctx.dataset.label === 'Tendência') {
+                                return ` Tendência: ${ctx.parsed.y.toLocaleString('pt-BR')}`;
+                            }
+                            if (ctx.dataset.label === 'Previsão') {
+                                return ` Previsão: ${ctx.parsed.y.toLocaleString('pt-BR')} chamados`;
+                            }
+                            return ` ${ctx.parsed.y.toLocaleString('pt-BR')} chamados`;
                         }
                     }
                 },
                 datalabels: {
-                    display: function(ctx) { return ctx.dataset.data[ctx.dataIndex] > 0; },
-                    color: '#ffffff',
+                    display: function(ctx) {
+                        // Só mostrar labels para barras de chamados e previsão com valor
+                        if (ctx.dataset.label === 'Tendência') return false;
+                        const val = ctx.dataset.data[ctx.dataIndex];
+                        return val !== null && val > 0;
+                    },
+                    color: function(ctx) {
+                        return ctx.dataset.label === 'Previsão' ? 'rgba(251, 191, 36, 0.9)' : '#ffffff';
+                    },
                     anchor: 'end',
                     align: 'top',
                     offset: 4,
-                    font: { weight: 'bold', size: 13 },
+                    font: function(ctx) {
+                        return {
+                            weight: 'bold',
+                            size: ctx.dataset.label === 'Previsão' ? 11 : 13,
+                            style: ctx.dataset.label === 'Previsão' ? 'italic' : 'normal'
+                        };
+                    },
                     formatter: function(value) {
+                        if (value === null) return '';
                         return value.toLocaleString('pt-BR');
                     },
                     textShadowColor: 'rgba(0,0,0,0.3)',
@@ -2464,4 +2577,301 @@ window.addEventListener('firebaseReady', () => {
     if (allData.length > 0) {
         autoSaveToFirebase();
     }
+});
+
+// ===================================
+// ANÁLISE COM IA (Claude) - SUPORTE
+// ===================================
+
+function getSuporteApiKey() {
+    return localStorage.getItem('anthropic_api_key') || '';
+}
+
+function hasSuporteApiKey() {
+    const key = getSuporteApiKey();
+    return key && key.startsWith('sk-ant-');
+}
+
+function updateSuporteApiStatus() {
+    const status = document.getElementById('suporteApiStatus');
+    if (status) {
+        if (hasSuporteApiKey()) {
+            status.textContent = '✓ API Key configurada';
+            status.style.color = '#35cca3';
+        } else {
+            status.textContent = '✗ API Key não configurada';
+            status.style.color = '#f87171';
+        }
+    }
+}
+
+function openSuporteConfigModal() {
+    const modal = document.getElementById('suporteConfigModal');
+    const input = document.getElementById('suporteApiKeyInput');
+    if (modal) {
+        modal.style.display = 'flex';
+        if (input) input.value = getSuporteApiKey();
+    }
+}
+
+function closeSuporteConfigModal() {
+    const modal = document.getElementById('suporteConfigModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function saveSuporteApiKey() {
+    const input = document.getElementById('suporteApiKeyInput');
+    if (!input) return;
+    const key = input.value.trim();
+    if (!key.startsWith('sk-ant-')) {
+        alert('Chave inválida. A chave deve começar com "sk-ant-"');
+        return;
+    }
+    localStorage.setItem('anthropic_api_key', key);
+    closeSuporteConfigModal();
+    updateSuporteApiStatus();
+    showNotification('API Key salva com sucesso!', 'success');
+}
+
+// Preparar resumo dos dados de suporte para o prompt
+function prepareSuporteSummary() {
+    const data = filteredData.length > 0 ? filteredData : allData;
+    const summary = buildSummary(data);
+
+    // Top clientes com mais chamados
+    const clienteCounts = {};
+    data.forEach(row => {
+        const cliente = row._razaoSocial || 'Sem Nome';
+        if (!clienteCounts[cliente]) {
+            clienteCounts[cliente] = { total: 0, status: {}, modulos: new Set(), ultimaData: '' };
+        }
+        clienteCounts[cliente].total++;
+        const st = row._nStatus || '';
+        if (st) clienteCounts[cliente].status[st] = (clienteCounts[cliente].status[st] || 0) + 1;
+        if (row._nModulo) clienteCounts[cliente].modulos.add(row._nModulo);
+        if (row._diaMes) clienteCounts[cliente].ultimaData = row._diaMes;
+    });
+
+    const topClientes = Object.entries(clienteCounts)
+        .sort((a, b) => b[1].total - a[1].total)
+        .slice(0, 15)
+        .map(([nome, info]) => ({
+            nome, total: info.total,
+            status: Object.entries(info.status).map(([s, c]) => `${s}:${c}`).join(', '),
+            modulos: Array.from(info.modulos).join(', '),
+            ultimaData: info.ultimaData
+        }));
+
+    // Tendência mensal
+    const monthlyTrend = {};
+    data.forEach(row => {
+        if (row._mesAno) {
+            monthlyTrend[row._mesAno] = (monthlyTrend[row._mesAno] || 0) + 1;
+        }
+    });
+
+    // Clientes recorrentes (3+ chamados)
+    const recorrentes = Object.entries(clienteCounts)
+        .filter(([_, info]) => info.total >= 3)
+        .sort((a, b) => b[1].total - a[1].total);
+
+    return {
+        total: summary.total,
+        status: summary.status,
+        modulos: summary.modulos,
+        processos: summary.processos,
+        canais: summary.canais,
+        colaboradores: summary.colaboradores,
+        ligacoes: summary.ligacoes,
+        clientesUnicos: summary.clientesUnicos.size,
+        topClientes,
+        recorrentes: recorrentes.length,
+        monthlyTrend,
+        mesAtual: currentMonth
+    };
+}
+
+function buildSuportePrompt(summary) {
+    const mesLabel = summary.mesAtual === 'todos' ? 'Todos os meses' : summary.mesAtual;
+
+    return `Você é um analista de Suporte Técnico especializado em identificar padrões de atendimento, clientes em risco e oportunidades de melhoria.
+
+Analise os seguintes dados de chamados de suporte técnico e gere insights, identifique clientes em risco e recomende ações.
+
+## DADOS DO PERÍODO: ${mesLabel}
+
+### Totais:
+- Total de chamados: ${summary.total}
+- Clientes únicos: ${summary.clientesUnicos}
+- Clientes recorrentes (3+ chamados): ${summary.recorrentes}
+- Ligações realizadas: ${summary.ligacoes.sim} (${summary.total > 0 ? ((summary.ligacoes.sim / summary.total) * 100).toFixed(1) : 0}%)
+
+### Status dos chamados:
+${Object.entries(summary.status).map(([k, v]) => `- ${k}: ${v} (${((v / summary.total) * 100).toFixed(1)}%)`).join('\n')}
+
+### Módulos mais demandados:
+${Object.entries(summary.modulos).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => `- ${k}: ${v} chamados`).join('\n')}
+
+### Processos mais frequentes:
+${Object.entries(summary.processos).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
+
+### Canais de atendimento:
+${Object.entries(summary.canais).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
+
+### Performance por colaborador:
+${Object.entries(summary.colaboradores).sort((a, b) => b[1] - a[1]).map(([k, v]) => `- ${k}: ${v} chamados`).join('\n')}
+
+### Tendência mensal:
+${Object.entries(summary.monthlyTrend).sort().map(([k, v]) => `- ${k}: ${v} chamados`).join('\n')}
+
+### Top 15 clientes com mais chamados:
+${summary.topClientes.map((c, i) => `${i + 1}. ${c.nome} - ${c.total} chamados | Status: ${c.status} | Módulos: ${c.modulos} | Última data: ${c.ultimaData}`).join('\n')}
+
+## INSTRUÇÕES:
+
+Gere uma análise em formato JSON com a seguinte estrutura:
+
+{
+  "insights": [
+    {
+      "tipo": "critico|alerta|positivo",
+      "titulo": "Título curto e impactante",
+      "descricao": "Descrição detalhada do insight baseado nos dados"
+    }
+  ],
+  "clientesRisco": [
+    {
+      "nivel": "alto|medio",
+      "cliente": "Nome do cliente",
+      "motivo": "Por que está em risco",
+      "acao": "Ação sugerida"
+    }
+  ],
+  "recommendations": [
+    {
+      "prioridade": 1,
+      "titulo": "Título da recomendação",
+      "descricao": "Descrição da ação recomendada",
+      "impacto": "Impacto esperado"
+    }
+  ]
+}
+
+IMPORTANTE:
+- Gere 4-6 insights diferentes baseados nos dados
+- Identifique 3-5 clientes em risco (os com mais chamados, pendentes ou padrões preocupantes)
+- Gere 4-5 recomendações ordenadas por prioridade
+- Baseie-se APENAS nos dados fornecidos
+- Seja específico com números e porcentagens
+- Foque em padrões de recorrência, módulos problemáticos, e clientes que precisam de atenção
+- Sugira ações práticas como: treinamentos, follow-ups, escalações, melhorias de produto
+
+Responda APENAS com o JSON, sem texto adicional.`;
+}
+
+async function generateSuporteAIAnalysis() {
+    if (allData.length === 0) {
+        showNotification('Nenhum dado carregado. Sincronize primeiro.', 'error');
+        return;
+    }
+
+    if (!hasSuporteApiKey()) {
+        openSuporteConfigModal();
+        return;
+    }
+
+    const btn = document.getElementById('btnSuporteAI');
+    const loading = document.getElementById('suporteAiLoading');
+    const results = document.getElementById('suporteAiResults');
+
+    if (btn) btn.disabled = true;
+    if (loading) loading.style.display = 'flex';
+    if (results) results.style.display = 'none';
+
+    try {
+        const summary = prepareSuporteSummary();
+        const prompt = buildSuportePrompt(summary);
+
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': getSuporteApiKey(),
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify({
+                model: 'claude-3-haiku-20240307',
+                max_tokens: 3000,
+                messages: [{ role: 'user', content: prompt }]
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error?.message || 'Erro na API');
+        }
+
+        const result = await response.json();
+        const content = result.content[0].text;
+
+        // Parsear JSON da resposta
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('Resposta inválida da IA');
+        const analysis = JSON.parse(jsonMatch[0]);
+
+        // Renderizar resultados
+        renderSuporteInsights(analysis.insights || []);
+        renderSuporteRiskClients(analysis.clientesRisco || []);
+        renderSuporteRecommendations(analysis.recommendations || []);
+
+        if (results) results.style.display = 'block';
+        results.scrollIntoView({ behavior: 'smooth' });
+        showNotification('Análise gerada com sucesso!', 'success');
+
+    } catch (error) {
+        console.error('Erro na análise IA:', error);
+        showNotification('Erro ao gerar análise: ' + error.message, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+        if (loading) loading.style.display = 'none';
+    }
+}
+
+function renderSuporteInsights(insights) {
+    const container = document.getElementById('suporteInsightsList');
+    if (!container) return;
+    const icons = { critico: '🔴', alerta: '🟡', positivo: '🟢' };
+    container.innerHTML = insights.map(i =>
+        `<li><strong>${icons[i.tipo] || '🔵'} ${escapeHTML(i.titulo)}:</strong> ${escapeHTML(i.descricao)}</li>`
+    ).join('');
+}
+
+function renderSuporteRiskClients(clients) {
+    const container = document.getElementById('suporteRiskList');
+    if (!container) return;
+    const icons = { alto: '🔴', medio: '🟡' };
+    container.innerHTML = clients.map(c =>
+        `<li>
+            <strong>${icons[c.nivel] || '🟡'} ${escapeHTML(c.cliente)}</strong>: ${escapeHTML(c.motivo)}
+            <br><em style="color: #35cca3; font-size: 0.9em;">→ ${escapeHTML(c.acao)}</em>
+        </li>`
+    ).join('');
+}
+
+function renderSuporteRecommendations(recs) {
+    const container = document.getElementById('suporteRecommendationsList');
+    if (!container) return;
+    container.innerHTML = recs.map((rec, i) =>
+        `<article class="recommendation-card">
+            <h4>${i + 1}. ${escapeHTML(rec.titulo)}</h4>
+            <p>${escapeHTML(rec.descricao)}</p>
+            ${rec.impacto ? `<p style="color: #35cca3; font-size: 0.9em; margin-top: 10px;"><strong>Impacto esperado:</strong> ${escapeHTML(rec.impacto)}</p>` : ''}
+        </article>`
+    ).join('');
+}
+
+// Inicializar status da API ao carregar
+document.addEventListener('DOMContentLoaded', () => {
+    updateSuporteApiStatus();
 });
