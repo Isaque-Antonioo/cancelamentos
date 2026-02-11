@@ -20,10 +20,6 @@
     <script src="js/auth.js"></script>
 
     <style>
-        /* Header compacto */
-        .header { margin-bottom: 0; padding: 14px 24px; }
-        .header-top { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
-
         /* ======================== DASHBOARD GRID ======================== */
         .dash-grid {
             display: grid;
@@ -459,19 +455,159 @@
         .comercial-fetch-status { display: block; margin-top: 8px; font-size: 0.82em; min-height: 1.2em; }
         .comercial-ai-textarea { width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #e2e8f0; font-size: 0.85em; resize: vertical; font-family: monospace; }
 
-        /* Refresh button */
-        .btn-refresh {
-            background: none; border: 1px solid rgba(53,204,163,0.2); color: #35cca3;
-            padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.78em;
-            display: flex; align-items: center; gap: 6px; transition: all 0.2s;
-        }
-        .btn-refresh:hover { background: rgba(53,204,163,0.1); border-color: #35cca3; }
-        .btn-refresh.loading svg { animation: spin 1s linear infinite; }
+        /* ======================== RESPONSIVE ======================== */
 
-        /* Responsive */
-        @media (max-width: 900px) {
-            .dash-grid { grid-template-columns: 1fr; height: auto; overflow: auto; }
+        /* TV / Monitor grande (1920px+) */
+        @media (min-width: 1920px) {
+            .dash-grid {
+                grid-template-columns: 640px 1fr;
+                gap: 24px;
+                padding: 20px 32px 32px;
+            }
+            .ranking-item { padding: 18px 16px; }
+            .ranking-header, .ranking-item { grid-template-columns: 50px 1fr 150px 120px; }
+            .rank-pos { width: 38px; height: 38px; font-size: 1em; }
+            .rank-avatar { width: 52px; height: 52px; }
+            .rank-name { font-size: 1.05em; }
+            .rank-sales, .rank-conversion { font-size: 1.05em; }
+            .rank-pending { font-size: 0.85em; }
+            .today-value { font-size: 3em; }
+            .today-last-sale-closer { font-size: 1.15em; }
+            .today-last-sale-value { font-size: 1.1em; }
+            .today-last-sale-avatar { width: 60px; height: 60px; }
+            .today-progress-bar { height: 14px; }
+            .kpi-value { font-size: 1.6em; }
+            .kpi-icon { width: 56px; height: 56px; }
+            .contrato-value { font-size: 2.6em; }
+            .dash-card { padding: 24px; border-radius: 20px; }
+            .dash-card-title { font-size: 1.15em; }
+        }
+
+        /* TV Ultra Wide (2560px+) */
+        @media (min-width: 2560px) {
+            .dash-grid {
+                grid-template-columns: 760px 1fr;
+                gap: 28px;
+                padding: 24px 40px 40px;
+                height: calc(100vh - 80px);
+            }
+            .ranking-header, .ranking-item { grid-template-columns: 56px 1fr 170px 140px; }
+            .ranking-item { padding: 20px 18px; }
+            .rank-pos { width: 44px; height: 44px; font-size: 1.1em; border-radius: 10px; }
+            .rank-avatar { width: 58px; height: 58px; }
+            .rank-name { font-size: 1.15em; }
+            .rank-sales, .rank-conversion { font-size: 1.15em; }
+            .today-value { font-size: 3.4em; }
+            .kpi-value { font-size: 1.8em; }
+            .kpi-label { font-size: 0.88em; }
+            .contrato-value { font-size: 3em; }
+            .dash-card { padding: 28px; }
+            .dash-card-title { font-size: 1.25em; margin-bottom: 20px; }
+        }
+
+        /* Tablet landscape (1024px - 1279px) */
+        @media (max-width: 1279px) {
+            .dash-grid {
+                grid-template-columns: 440px 1fr;
+                gap: 12px;
+                padding: 12px 16px 16px;
+            }
+            .ranking-header, .ranking-item { grid-template-columns: 40px 1fr 110px 90px; }
+            .ranking-item { padding: 10px 10px; }
+            .rank-avatar { width: 38px; height: 38px; }
+            .rank-name { font-size: 0.88em; }
+            .rank-sales, .rank-conversion { font-size: 0.88em; }
+            .rank-pending { font-size: 0.72em; }
+            .today-value { font-size: 2.2em; }
+            .today-card { padding: 20px 18px; }
+            .kpi-value { font-size: 1.2em; }
+            .kpi-icon { width: 42px; height: 42px; }
+            .contrato-value { font-size: 1.8em; }
+        }
+
+        /* Tablet portrait (768px - 1023px) */
+        @media (max-width: 1023px) {
+            .dash-grid {
+                grid-template-columns: 1fr;
+                height: auto;
+                overflow-y: auto;
+                overflow-x: hidden;
+                gap: 14px;
+                padding: 14px 16px 16px;
+            }
+            .dash-left, .dash-right { overflow: visible; }
+            .ranking-card { max-height: none; flex: none; }
+            .ranking-header, .ranking-item { grid-template-columns: 44px 1fr 130px 110px; }
+            .ranking-item { padding: 14px 14px; }
+            .rank-avatar { width: 44px; height: 44px; }
+            .rank-name { font-size: 0.95em; }
+            .rank-sales, .rank-conversion { font-size: 0.95em; }
+            .chart-card .chart-wrapper { min-height: 320px; }
+            .today-value { font-size: 2.6em; }
+            .today-card { padding: 28px 24px; }
+        }
+
+        /* Mobile landscape / small tablet (600px - 767px) */
+        @media (max-width: 767px) {
+            .dash-grid { padding: 10px 12px 14px; gap: 12px; }
+            .dash-card { padding: 16px; border-radius: 14px; }
+            .ranking-header, .ranking-item { grid-template-columns: 38px 1fr 100px 80px; }
+            .ranking-item { padding: 10px 8px; }
+            .rank-info { gap: 10px; padding-left: 8px; }
+            .rank-avatar { width: 36px; height: 36px; }
+            .rank-pos { width: 28px; height: 28px; font-size: 0.8em; }
+            .rank-name { font-size: 0.85em; }
+            .rank-pending { font-size: 0.7em; }
+            .rank-sales { font-size: 0.82em; }
+            .rank-conversion { font-size: 0.82em; }
+            .today-top { flex-direction: column; gap: 14px; align-items: stretch; }
+            .today-value { font-size: 2.2em; }
+            .today-card { padding: 20px 16px; }
+            .today-last-sale { padding: 12px 14px; }
+            .today-last-sale-avatar { width: 44px; height: 44px; }
             .chart-card .chart-wrapper { min-height: 280px; }
+            .kpis-bottom-row { grid-template-columns: 1fr; }
+            .kpi-card { padding: 16px; }
+            .kpi-value { font-size: 1.2em; }
+            .contrato-value { font-size: 1.8em; }
+            .comercial-ai-panel { width: 100vw; }
+            .comercial-ai-fab { bottom: 16px; right: 16px; width: 48px; height: 48px; }
+        }
+
+        /* Mobile portrait (até 480px) */
+        @media (max-width: 480px) {
+            .dash-grid { padding: 8px 8px 12px; gap: 10px; }
+            .dash-card { padding: 14px 12px; border-radius: 12px; }
+            .dash-card-title { font-size: 0.92em; gap: 8px; margin-bottom: 12px; }
+            .ranking-header, .ranking-item { grid-template-columns: 32px 1fr 85px 70px; }
+            .ranking-item { padding: 8px 6px; border-radius: 10px; }
+            .rank-info { gap: 8px; padding-left: 6px; }
+            .rank-avatar { width: 32px; height: 32px; }
+            .rank-pos { width: 24px; height: 24px; font-size: 0.75em; border-radius: 6px; }
+            .rank-name { font-size: 0.8em; }
+            .rank-pending { font-size: 0.65em; }
+            .rank-sales { font-size: 0.78em; }
+            .rank-conversion { font-size: 0.78em; }
+            .ranking-header span { font-size: 0.65em; }
+            .today-value { font-size: 1.8em; }
+            .today-card { padding: 16px 12px; }
+            .today-last-sale { padding: 10px 12px; gap: 10px; border-radius: 10px; }
+            .today-last-sale-badge { font-size: 0.65em; }
+            .today-last-sale-closer { font-size: 0.9em; }
+            .today-last-sale-value { font-size: 0.85em; }
+            .today-last-sale-avatar { width: 38px; height: 38px; }
+            .today-progress-bar { height: 8px; }
+            .today-progress-labels { font-size: 0.8em; }
+            .chart-card .chart-wrapper { min-height: 240px; }
+            .contratos-grid { gap: 10px; }
+            .contrato-item { padding: 12px; }
+            .contrato-value { font-size: 1.5em; }
+            .contrato-label { font-size: 0.68em; }
+            .kpi-card { padding: 14px; gap: 12px; }
+            .kpi-icon { width: 38px; height: 38px; border-radius: 10px; }
+            .kpi-label { font-size: 0.7em; }
+            .kpi-value { font-size: 1.1em; }
+            .comercial-ai-fab { bottom: 12px; right: 12px; width: 44px; height: 44px; }
         }
     </style>
 </head>
@@ -550,12 +686,11 @@
                 </button>
                 <h1 class="header-main-title">Dashboard Comercial</h1>
                 <div class="header-controls">
-                    <button class="btn-refresh" id="btnRefreshDash" onclick="loadDashboardData()" title="Atualizar dados">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <button class="btn-icon-small btn-sync-sheets" id="btnRefreshDash" onclick="loadDashboardData()" title="Atualizar dados">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
                             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
                         </svg>
-                        Atualizar
                     </button>
                     <span class="user-display-name" id="userDisplayName"></span>
                     <button class="btn-icon-small btn-logout" onclick="hubstromLogout()" title="Sair">
