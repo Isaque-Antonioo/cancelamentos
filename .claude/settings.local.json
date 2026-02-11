@@ -22,7 +22,8 @@
       "Bash(node:*)",
       "Bash(powershell -Command:*)",
       "WebFetch(domain:docs.google.com)",
-      "WebFetch(domain:doc-0g-58-sheets.googleusercontent.com)"
+      "WebFetch(domain:doc-0g-58-sheets.googleusercontent.com)",
+      "WebFetch(domain:doc-0c-0c-sheets.googleusercontent.com)"
     ]
   }
 }

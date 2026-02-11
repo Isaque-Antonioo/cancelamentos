@@ -12,499 +12,740 @@
     <!-- Estilos -->
     <link rel="stylesheet" href="css/styles.css">
 
-    <!-- Estilos específicos para o embed -->
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
     <style>
-        /* Header compacto — sem subtítulo, só header-top */
-        .header {
-            margin-bottom: 10px;
-            padding: 14px 24px;
-        }
+        /* Header compacto */
+        .header { margin-bottom: 0; padding: 14px 24px; }
+        .header-top { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
 
-        .header-top {
-            margin-bottom: 0;
-            padding-bottom: 0;
-            border-bottom: none;
-        }
-
-        .dashboard-container {
-            width: 100%;
+        /* ======================== DASHBOARD GRID ======================== */
+        .dash-grid {
+            display: grid;
+            grid-template-columns: 480px 1fr;
+            grid-template-rows: auto auto;
+            gap: 16px;
+            padding: 16px 24px 24px;
             height: calc(100vh - 70px);
-            background: #0f172a;
-            border-radius: 12px;
             overflow: hidden;
-            position: relative;
         }
 
-        .dashboard-container iframe {
-            width: calc(100% + 17px);
+        /* Coluna esquerda: ranking + contratados hoje */
+        .dash-left {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow: hidden;
+        }
+
+        /* Coluna direita: chart + KPIs */
+        .dash-right {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow: hidden;
+        }
+
+        /* ======================== CARDS BASE ======================== */
+        .dash-card {
+            background: linear-gradient(145deg, #131c2e, #0f172a);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .dash-card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #e2e8f0;
+            font-size: 1.05em;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .dash-card-title svg {
+            color: #35cca3;
+            flex-shrink: 0;
+        }
+
+        /* ======================== RANKING CLOSERS ======================== */
+        .ranking-card {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .ranking-header {
+            display: grid;
+            grid-template-columns: 44px 1fr 130px 110px;
+            padding: 0 12px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            margin-bottom: 8px;
+        }
+
+        .ranking-header span {
+            font-size: 0.75em;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .ranking-item {
+            display: grid;
+            grid-template-columns: 44px 1fr 130px 110px;
+            align-items: center;
+            padding: 14px 12px;
+            border-radius: 12px;
+            transition: background 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .ranking-item:hover {
+            background: rgba(53, 204, 163, 0.04);
+        }
+
+        .ranking-item.rank-1 {
+            background: linear-gradient(135deg, rgba(53, 204, 163, 0.08), rgba(53, 204, 163, 0.02));
+            border-color: rgba(53, 204, 163, 0.15);
+        }
+
+        .rank-pos {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9em;
+            color: #e2e8f0;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .rank-1 .rank-pos { background: linear-gradient(135deg, #35cca3, #2ba882); color: #0a0f14; }
+        .rank-2 .rank-pos { background: rgba(53, 204, 163, 0.2); color: #35cca3; }
+        .rank-3 .rank-pos { background: rgba(53, 204, 163, 0.1); color: #35cca3; }
+
+        .rank-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-left: 12px;
+        }
+
+        .rank-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .rank-1 .rank-avatar { border-color: #35cca3; }
+
+        .rank-name {
+            font-weight: 600;
+            color: #e2e8f0;
+            font-size: 0.95em;
+        }
+
+        .rank-pending {
+            font-size: 0.78em;
+            color: #f59e0b;
+            margin-top: 2px;
+        }
+
+        .rank-pending.empty { color: #64748b; }
+
+        .rank-sales {
+            text-align: right;
+            font-weight: 600;
+            color: #35cca3;
+            font-size: 0.95em;
+        }
+
+        .rank-conversion {
+            text-align: right;
+            font-weight: 600;
+            color: #e2e8f0;
+            font-size: 0.95em;
+        }
+
+        /* ======================== CONTRATADOS HOJE ======================== */
+        .today-card {
+            background: linear-gradient(145deg, #0f2a20, #0f172a);
+            border-color: rgba(53, 204, 163, 0.15);
+        }
+
+        .today-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .today-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #35cca3;
+        }
+
+        .today-last-sale {
+            background: rgba(255,255,255,0.04);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .today-last-sale-badge {
+            font-size: 0.7em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #f59e0b;
+            font-weight: 600;
+        }
+
+        .today-last-sale-info {
+            flex: 1;
+        }
+
+        .today-last-sale-closer {
+            font-weight: 600;
+            color: #e2e8f0;
+            font-size: 0.95em;
+        }
+
+        .today-last-sale-closer .elite {
+            color: #f59e0b;
+            font-size: 0.85em;
+            margin-left: 4px;
+        }
+
+        .today-last-sale-value {
+            color: #35cca3;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .today-last-sale-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(249, 158, 11, 0.3);
+        }
+
+        .today-progress {
+            margin-top: 16px;
+        }
+
+        .today-progress-bar {
+            height: 10px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .today-progress-fill {
             height: 100%;
-            border: none;
-            background: #0f172a;
+            background: linear-gradient(90deg, #35cca3, #2ba882);
+            border-radius: 8px;
+            transition: width 1s ease;
         }
 
-        .dashboard-container::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 17px;
-            height: 28px;
-            background: #0f172a;
-            z-index: 10;
-            pointer-events: none;
+        .today-progress-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.82em;
         }
 
-        .loading-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: #0f172a;
+        .today-progress-current { color: #35cca3; font-weight: 600; }
+        .today-progress-meta { color: #64748b; }
+
+        /* ======================== CHART ======================== */
+        .chart-card {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-card .chart-wrapper {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+        }
+
+        /* ======================== KPIs GRID BOTTOM ======================== */
+        .kpis-bottom {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .kpis-bottom-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .kpi-card {
+            background: linear-gradient(145deg, #131c2e, #0f172a);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .kpi-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .kpi-icon.green { background: rgba(53, 204, 163, 0.12); color: #35cca3; }
+        .kpi-icon.blue { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+        .kpi-icon.yellow { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+        .kpi-icon.purple { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+
+        .kpi-data {}
+        .kpi-label { font-size: 0.78em; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; margin-bottom: 4px; }
+        .kpi-value { font-size: 1.4em; font-weight: 700; color: #e2e8f0; }
+        .kpi-value.accent { color: #35cca3; }
+
+        /* ======================== CONTRATOS DO MES ======================== */
+        .contratos-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .contrato-item {
+            text-align: center;
+            padding: 16px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .contrato-label {
+            font-size: 0.75em;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .contrato-value {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .contrato-value svg { color: #35cca3; }
+        .contrato-value.pending svg { color: #f59e0b; }
+
+        /* ======================== LOADING ======================== */
+        .dash-loading {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 100;
-            transition: opacity 0.5s ease;
+            height: calc(100vh - 70px);
         }
 
-        .loading-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .loading-overlay .spinner {
-            width: 50px;
-            height: 50px;
+        .dash-loading .spinner {
+            width: 50px; height: 50px;
             border: 4px solid rgba(53, 204, 163, 0.2);
             border-top-color: #35cca3;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
 
-        .loading-overlay p {
-            margin-top: 20px;
-            color: #94a3b8;
-            font-size: 1rem;
-        }
+        .dash-loading p { margin-top: 20px; color: #94a3b8; font-size: 1rem; }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Botão flutuante de IA */
-        .comercial-ai-fab {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #35cca3, #2ba882);
-            border: none;
-            color: #0a0f14;
-            cursor: pointer;
-            z-index: 200;
+        /* ======================== SYNC INDICATOR ======================== */
+        .sync-info {
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 6px;
+            font-size: 0.72em;
+            color: #475569;
+            margin-left: auto;
+        }
+
+        .sync-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #35cca3;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* ======================== FAB + PANEL IA ======================== */
+        .comercial-ai-fab {
+            position: fixed; bottom: 24px; right: 24px;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: linear-gradient(135deg, #35cca3, #2ba882);
+            border: none; color: #0a0f14; cursor: pointer;
+            z-index: 200; display: flex; align-items: center; justify-content: center;
             box-shadow: 0 6px 24px rgba(53, 204, 163, 0.4);
             transition: all 0.3s ease;
         }
+        .comercial-ai-fab:hover { transform: scale(1.1); box-shadow: 0 8px 32px rgba(53, 204, 163, 0.6); }
+        .comercial-ai-fab.active { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 6px 24px rgba(239, 68, 68, 0.4); }
+        .comercial-ai-fab.active svg { transform: rotate(45deg); }
 
-        .comercial-ai-fab:hover {
-            transform: scale(1.1);
-            box-shadow: 0 8px 32px rgba(53, 204, 163, 0.6);
-        }
-
-        .comercial-ai-fab.active {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            box-shadow: 0 6px 24px rgba(239, 68, 68, 0.4);
-        }
-
-        .comercial-ai-fab.active svg {
-            transform: rotate(45deg);
-        }
-
-        /* Painel lateral de IA */
         .comercial-ai-panel {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 520px;
-            max-width: 100vw;
-            height: 100vh;
-            background: #0f172a;
-            border-left: 1px solid rgba(53, 204, 163, 0.2);
-            z-index: 300;
-            display: flex;
-            flex-direction: column;
+            position: fixed; top: 0; right: 0;
+            width: 520px; max-width: 100vw; height: 100vh;
+            background: #0f172a; border-left: 1px solid rgba(53, 204, 163, 0.2);
+            z-index: 300; display: flex; flex-direction: column;
             box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
             animation: slideInRight 0.3s ease;
         }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
-        @keyframes slideInRight {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
+        .comercial-ai-panel-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .comercial-ai-panel-header h3 { color: #35cca3; font-size: 1.1em; }
+        .comercial-ai-panel-body { flex: 1; overflow-y: auto; padding: 20px; }
+        .comercial-ai-desc { color: #94a3b8; font-size: 0.9em; margin-bottom: 16px; }
+        .comercial-gid-row { display: flex; gap: 10px; align-items: flex-end; }
+        .comercial-gid-field { flex: 1; }
+        .comercial-gid-field label { display: block; font-size: 0.82em; color: #94a3b8; margin-bottom: 6px; }
+        .comercial-gid-field input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #e2e8f0; font-size: 0.95em; }
+        .comercial-fetch-status { display: block; margin-top: 8px; font-size: 0.82em; min-height: 1.2em; }
+        .comercial-ai-textarea { width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #e2e8f0; font-size: 0.85em; resize: vertical; font-family: monospace; }
+
+        /* Refresh button */
+        .btn-refresh {
+            background: none; border: 1px solid rgba(53,204,163,0.2); color: #35cca3;
+            padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.78em;
+            display: flex; align-items: center; gap: 6px; transition: all 0.2s;
         }
+        .btn-refresh:hover { background: rgba(53,204,163,0.1); border-color: #35cca3; }
+        .btn-refresh.loading svg { animation: spin 1s linear infinite; }
 
-        .comercial-ai-panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .comercial-ai-panel-header h3 {
-            color: #35cca3;
-            font-size: 1.1em;
-            margin: 0;
-        }
-
-        .comercial-ai-panel-body {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-        }
-
-        .comercial-ai-desc {
-            color: #94a3b8;
-            font-size: 0.9em;
-            margin-bottom: 16px;
-            line-height: 1.5;
-        }
-
-        .comercial-ai-textarea {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            color: #e2e8f0;
-            font-family: 'Segoe UI', sans-serif;
-            font-size: 0.88em;
-            padding: 14px;
-            resize: vertical;
-            min-height: 120px;
-            line-height: 1.6;
-        }
-
-        .comercial-ai-textarea:focus {
-            outline: none;
-            border-color: rgba(53, 204, 163, 0.5);
-        }
-
-        .comercial-ai-textarea::placeholder {
-            color: #4a5568;
-        }
-
-        .comercial-gid-row {
-            display: flex;
-            gap: 10px;
-            align-items: flex-end;
-            margin-bottom: 8px;
-        }
-
-        .comercial-gid-field {
-            flex: 1;
-        }
-
-        .comercial-gid-field label {
-            display: block;
-            font-size: 0.8em;
-            color: #94a3b8;
-            margin-bottom: 6px;
-            font-weight: 600;
-        }
-
-        .comercial-gid-field input {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            color: #e2e8f0;
-            font-size: 0.9em;
-            padding: 10px 12px;
-        }
-
-        .comercial-gid-field input:focus {
-            outline: none;
-            border-color: rgba(53, 204, 163, 0.5);
-        }
-
-        .btn-fetch-sheets {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 16px;
-            background: linear-gradient(135deg, #35cca3, #2ba882);
-            color: #0a0f14;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.85em;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.2s;
-        }
-
-        .btn-fetch-sheets:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 16px rgba(53, 204, 163, 0.3);
-        }
-
-        .btn-fetch-sheets:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-fetch-sheets.loading svg {
-            animation: spin 1s linear infinite;
-        }
-
-        .comercial-fetch-status {
-            display: block;
-            font-size: 0.8em;
-            margin-bottom: 4px;
-            min-height: 18px;
-        }
-
-        .comercial-ai-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 16px;
-            flex-wrap: wrap;
-        }
-
-        .comercial-ai-actions .btn-generate-large {
-            flex: 1;
-            min-width: unset;
-            padding: 12px 20px;
-        }
-
-        .comercial-ai-panel .ai-results-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .comercial-ai-panel .ai-result-card {
-            margin-top: 16px;
-        }
-
-        @media (max-width: 768px) {
-            .dashboard-container {
-                height: calc(100vh - 80px);
-                border-radius: 10px;
-            }
-            .comercial-ai-panel {
-                width: 100vw;
-            }
+        /* Responsive */
+        @media (max-width: 900px) {
+            .dash-grid { grid-template-columns: 1fr; height: auto; overflow: auto; }
+            .chart-card .chart-wrapper { min-height: 280px; }
         }
     </style>
-
-    <!-- Verificacao de autenticacao -->
-    <script src="js/auth.js"></script>
 </head>
 <body>
-    <div class="container">
-        <!-- Menu Lateral -->
-        <nav class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <h3>Dashboards</h3>
-                <button class="sidebar-close" onclick="toggleSidebar()">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-            <ul class="sidebar-menu">
-                <li class="sidebar-item">
-                    <a href="index.html">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M18 20V10M12 20V4M6 20v-6"/>
-                        </svg>
-                        <span>Cancelamentos</span>
-                    </a>
-                </li>
-                <li class="sidebar-item active">
-                    <a href="comercial.html">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="1" x2="12" y2="23"/>
-                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                        </svg>
-                        <span>Comercial</span>
-                    </a>
-                </li>
-                <li class="sidebar-item disabled">
-                    <a href="#">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                            <circle cx="9" cy="7" r="4"/>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                        </svg>
-                        <span>CS</span>
-                        <span class="badge-soon">Em breve</span>
-                    </a>
-                </li>
-                <li class="sidebar-item">
-                    <a href="suporte.html">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                        </svg>
-                        <span>Suporte</span>
-                    </a>
-                </li>
-                <li class="sidebar-item sidebar-admin-only">
-                    <a href="admin.html">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="3"/>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                        </svg>
-                        <span>Admin</span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <!-- Sidebar -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <svg width="28" height="28" viewBox="0 0 200 200" fill="none">
+                <path d="M161 85c2.7-1.2 5.6.8 5.6 3.7v50.3c0 1.6-.9 3-2.4 3.7L35.2 199.9c-.9.4-1.9-.3-1.9-1.2v-54.4c0-1.6.9-3 2.4-3.7L161 85z" fill="#35CCA3"/>
+                <path d="M164.8.1c.9-.4 1.9.3 1.9 1.2v54.4c0 1.6-.9 3-2.4 3.7L39 114.9c-2.7 1.2-5.6-.8-5.6-3.7V61c0-1.6.9-3 2.4-3.7L164.8.1z" fill="#35CCA3"/>
+            </svg>
+            <span>Hubstrom</span>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="index.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Cancelamentos</a></li>
+            <li><a href="suporte.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Suporte Técnico</a></li>
+            <li><a href="comercial.html" class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>Comercial</a></li>
+        </ul>
+    </nav>
 
+    <div class="main-content">
         <header class="header">
             <div class="header-top">
-                <button class="hamburger-btn" onclick="toggleSidebar()" title="Menu">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <line x1="3" y1="12" x2="21" y2="12"></line>
-                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
                     </svg>
                 </button>
                 <h1 class="header-main-title">Dashboard Comercial</h1>
                 <div class="header-controls">
+                    <button class="btn-refresh" id="btnRefreshDash" onclick="loadDashboardData()" title="Atualizar dados">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                        </svg>
+                        Atualizar
+                    </button>
                     <span class="user-display-name" id="userDisplayName"></span>
                     <button class="btn-icon-small btn-logout" onclick="hubstromLogout()" title="Sair">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                            <polyline points="16 17 21 12 16 7"/>
-                            <line x1="21" y1="12" x2="9" y2="12"/>
+                            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
                         </svg>
                     </button>
                 </div>
             </div>
         </header>
 
-        <!-- Botão flutuante de IA -->
-        <button class="comercial-ai-fab" onclick="toggleComercialAI()" id="btnComercialAIFab" title="Análise com IA">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5"/>
-                <path d="M2 12l10 5 10-5"/>
-            </svg>
-        </button>
+        <!-- Loading -->
+        <div class="dash-loading" id="dashLoading">
+            <div class="spinner"></div>
+            <p>Carregando dados comerciais...</p>
+        </div>
 
-        <!-- Painel de IA Comercial -->
-        <div class="comercial-ai-panel" id="comercialAiPanel" style="display: none;">
-            <div class="comercial-ai-panel-header">
-                <h3>Análise com IA — Comercial</h3>
-                <button class="modal-close" onclick="toggleComercialAI()">&times;</button>
-            </div>
-            <div class="comercial-ai-panel-body">
-                <p class="comercial-ai-desc">Busque os dados da planilha comercial automaticamente. Atualize o GID quando mudar o mês.</p>
-
-                <div class="comercial-gid-row">
-                    <div class="comercial-gid-field">
-                        <label for="comercialGidInput">GID da aba do mês</label>
-                        <input type="text" id="comercialGidInput" placeholder="Ex: 1234622450" />
-                    </div>
-                    <button class="btn-fetch-sheets" onclick="fetchComercialData()" id="btnFetchComercial" title="Buscar dados da planilha">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/>
+        <!-- Dashboard Grid -->
+        <div class="dash-grid" id="dashGrid" style="display: none;">
+            <!-- ======= COLUNA ESQUERDA ======= -->
+            <div class="dash-left">
+                <!-- Ranking de Closers -->
+                <div class="dash-card ranking-card">
+                    <div class="dash-card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                         </svg>
-                        Buscar Dados
-                    </button>
+                        Ranking Especialistas
+                        <div class="sync-info"><div class="sync-dot"></div>Sincronizado</div>
+                    </div>
+                    <div class="ranking-header">
+                        <span>#</span>
+                        <span>Especialista</span>
+                        <span style="text-align:right">Vendas</span>
+                        <span style="text-align:right">Conversão</span>
+                    </div>
+                    <div id="rankingList"></div>
                 </div>
-                <span id="comercialFetchStatus" class="comercial-fetch-status"></span>
 
-                <textarea id="comercialDataInput" class="comercial-ai-textarea" rows="6" placeholder="Os dados da planilha serão carregados aqui automaticamente. Ou cole dados manualmente." style="margin-top: 12px;"></textarea>
-                <div class="comercial-ai-actions">
-                    <button class="btn-generate-large" onclick="generateComercialAIAnalysis()" id="btnComercialAI">
-                        <div class="btn-generate-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                                <path d="M2 17l10 5 10-5"/>
-                                <path d="M2 12l10 5 10-5"/>
+                <!-- Contratados Hoje -->
+                <div class="dash-card today-card">
+                    <div class="today-top">
+                        <div>
+                            <div style="font-size:0.78em;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Contratados hoje</div>
+                            <div class="today-value" id="todayValue">R$ 0,00</div>
+                        </div>
+                        <div class="today-last-sale" id="todayLastSale">
+                            <div class="today-last-sale-info">
+                                <div class="today-last-sale-badge">Venda concretizada!</div>
+                                <div class="today-last-sale-closer" id="lastSaleCloser">-</div>
+                                <div class="today-last-sale-value" id="lastSaleValue">-</div>
+                            </div>
+                            <img class="today-last-sale-avatar" id="lastSaleAvatar" src="" alt="" style="display:none">
+                        </div>
+                    </div>
+                    <div class="today-progress">
+                        <div class="today-progress-bar">
+                            <div class="today-progress-fill" id="todayProgressFill" style="width:0%"></div>
+                        </div>
+                        <div class="today-progress-labels">
+                            <span class="today-progress-current" id="todayProgressCurrent">R$ 0,00</span>
+                            <span class="today-progress-meta">/ <span id="todayProgressMeta">R$ 0,00</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======= COLUNA DIREITA ======= -->
+            <div class="dash-right">
+                <!-- Gráfico de Barras -->
+                <div class="dash-card chart-card">
+                    <div class="dash-card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+                            <line x1="6" y1="20" x2="6" y2="14"/>
+                        </svg>
+                        Panorama do Mês
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="kpiChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Cards KPIs -->
+                <div class="kpis-bottom-row">
+                    <!-- Contratos do mês -->
+                    <div class="dash-card" style="padding:16px;">
+                        <div class="dash-card-title" style="margin-bottom:12px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            Contratos do mês
+                        </div>
+                        <div class="contratos-grid">
+                            <div class="contrato-item">
+                                <div class="contrato-label">Pagos</div>
+                                <div class="contrato-value" id="contratosPagos">
+                                    <span>0</span>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 8l-8 8"/><path d="M8 8l8 8"/></svg>
+                                </div>
+                            </div>
+                            <div class="contrato-item">
+                                <div class="contrato-label">Pendentes</div>
+                                <div class="contrato-value pending" id="contratosPendentes">
+                                    <span>0</span>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vendas + Taxa -->
+                    <div style="display:flex;flex-direction:column;gap:16px;">
+                        <div class="kpi-card">
+                            <div class="kpi-icon green">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <div class="kpi-label">Vendas do mês (total)</div>
+                                <div class="kpi-value accent" id="kpiVendasTotal">R$ 0,00</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon blue">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <div class="kpi-label">Taxa de conversão</div>
+                                <div class="kpi-value" id="kpiTaxaConversao">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gerados + Meta Semanal -->
+                <div class="kpis-bottom-row">
+                    <div class="kpi-card">
+                        <div class="kpi-icon yellow">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
                             </svg>
                         </div>
-                        <div class="btn-generate-text">
-                            <span class="btn-generate-title">Gerar Análise</span>
-                            <span class="btn-generate-subtitle">Insights, previsões e recomendações</span>
+                        <div class="kpi-data">
+                            <div class="kpi-label">Contratos gerados</div>
+                            <div class="kpi-value" id="kpiGerados">R$ 0,00</div>
                         </div>
-                    </button>
-                    <button class="btn-config-ai" onclick="openComercialConfigModal()" title="Configurar API Key">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="3"/>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon purple">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </div>
+                        <div class="kpi-data">
+                            <div class="kpi-label">Meta semanal</div>
+                            <div class="kpi-value" id="kpiMetaSemanal">R$ 0,00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botão flutuante de IA -->
+    <button class="comercial-ai-fab" onclick="toggleComercialAI()" id="btnComercialAIFab" title="Análise com IA">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+        </svg>
+    </button>
+
+    <!-- Painel de IA Comercial -->
+    <div class="comercial-ai-panel" id="comercialAiPanel" style="display: none;">
+        <div class="comercial-ai-panel-header">
+            <h3>Análise com IA — Comercial</h3>
+            <button class="modal-close" onclick="toggleComercialAI()">&times;</button>
+        </div>
+        <div class="comercial-ai-panel-body">
+            <p class="comercial-ai-desc">Busque os dados da planilha comercial automaticamente. Atualize o GID quando mudar o mês.</p>
+            <div class="comercial-gid-row">
+                <div class="comercial-gid-field">
+                    <label for="comercialGidInput">GID da aba do mês</label>
+                    <input type="text" id="comercialGidInput" placeholder="Ex: 1234622450" />
+                </div>
+                <button class="btn-fetch-sheets" onclick="fetchComercialData()" id="btnFetchComercial" title="Buscar dados da planilha">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/>
+                    </svg>
+                    Buscar Dados
+                </button>
+            </div>
+            <span id="comercialFetchStatus" class="comercial-fetch-status"></span>
+            <textarea id="comercialDataInput" class="comercial-ai-textarea" rows="6" placeholder="Os dados da planilha serão carregados aqui automaticamente." style="margin-top: 12px;"></textarea>
+            <div class="comercial-ai-actions" style="display:flex;gap:10px;align-items:center;margin-top:16px;">
+                <button class="btn-generate-large" onclick="generateComercialAIAnalysis()" id="btnComercialAI">
+                    <div class="btn-generate-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
                         </svg>
-                    </button>
-                    <span id="comercialApiStatus" class="api-status-indicator"></span>
-                </div>
-                <div id="comercialAiLoading" class="ai-loading" style="display: none;">
-                    <div class="spinner"></div>
-                    <span>Analisando dados comerciais com Claude AI...</span>
-                </div>
-                <!-- Resultados -->
-                <div id="comercialAiResults" style="display: none;">
-                    <div class="ai-results-grid">
-                        <div class="ai-result-card">
-                            <h3>Insights</h3>
-                            <ul class="insight-list" id="comercialInsightsList"></ul>
-                        </div>
-                        <div class="ai-result-card">
-                            <h3>Alertas e Previsões</h3>
-                            <ul class="insight-list" id="comercialAlertsList"></ul>
-                        </div>
                     </div>
-                    <div class="ai-result-card" style="margin-top: 20px;">
-                        <h3>Recomendações</h3>
-                        <div id="comercialRecommendationsList" class="recommendations-container"></div>
+                    <div class="btn-generate-text">
+                        <span class="btn-generate-title">Gerar Análise</span>
+                        <span class="btn-generate-subtitle">Insights, previsões e recomendações</span>
                     </div>
-                </div>
+                </button>
+                <button class="btn-config-ai" onclick="openComercialConfigModal()" title="Configurar API Key">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </button>
+                <span id="comercialApiStatus" class="api-status-indicator"></span>
             </div>
-        </div>
-
-        <!-- Modal Config API Comercial -->
-        <div id="comercialConfigModal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Configuração da API</h3>
-                    <button class="modal-close" onclick="closeComercialConfigModal()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <label for="comercialApiKeyInput">Chave da API Anthropic (Claude)</label>
-                    <input type="password" id="comercialApiKeyInput" placeholder="sk-ant-api03-..." />
-                    <p class="api-help">
-                        Obtenha sua chave em: <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color: #35cca3;">console.anthropic.com</a>
-                    </p>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-secondary" onclick="closeComercialConfigModal()">Cancelar</button>
-                    <button class="btn-primary" onclick="saveComercialApiKey()">Salvar</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Dashboard Container -->
-        <div class="dashboard-container">
-            <div class="loading-overlay" id="loadingOverlay">
+            <div id="comercialAiLoading" class="ai-loading" style="display: none;">
                 <div class="spinner"></div>
-                <p>Carregando dashboard...</p>
+                <span>Analisando dados comerciais com Claude AI...</span>
             </div>
-            <iframe
-                id="lookerFrame"
-                src="https://lookerstudio.google.com/embed/reporting/000b8c9f-c96a-4fae-954f-a04fc36b12d3"
-                frameborder="0"
-                allowfullscreen
-                sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-                onload="hideLoading()">
-            </iframe>
+            <div id="comercialAiResults" style="display: none;">
+                <div class="ai-results-grid">
+                    <div class="ai-result-card"><h3>Insights</h3><ul class="insight-list" id="comercialInsightsList"></ul></div>
+                    <div class="ai-result-card"><h3>Alertas e Previsões</h3><ul class="insight-list" id="comercialAlertsList"></ul></div>
+                </div>
+                <div class="ai-result-card" style="margin-top: 20px;">
+                    <h3>Recomendações</h3>
+                    <div id="comercialRecommendationsList" class="recommendations-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Config API -->
+    <div id="comercialConfigModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Configuração da API</h3>
+                <button class="modal-close" onclick="closeComercialConfigModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label for="comercialApiKeyInput">Chave da API Anthropic (Claude)</label>
+                <input type="password" id="comercialApiKeyInput" placeholder="sk-ant-api03-..." />
+                <p class="api-help">Obtenha sua chave em: <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color: #35cca3;">console.anthropic.com</a></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeComercialConfigModal()">Cancelar</button>
+                <button class="btn-primary" onclick="saveComercialApiKey()">Salvar</button>
+            </div>
         </div>
     </div>
 
@@ -513,81 +754,350 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="js/firebase-config.js"></script>
 
-    <!-- Scripts -->
     <script>
-        // Habilitar transições do sidebar após carregamento
+        // ===================================
+        // CONFIGURAÇÃO
+        // ===================================
+        const DASH_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRI1EKZHFoHXg58egC-gRnZb1Ul7EDKoB9bqPwDd0qAEoHtuVlFi2dnbMD0MGN7GLbi_Dql9gc2-lhJ/pub';
+        const COMERCIAL_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSSQ7mve2qz75gYNsmGqBj8yuyQO5JQU80qBcULnAYJ0MdYh373F0RD0DGc0Qpb5z7AjTdyyGyXQ1BP/pub';
+
+        const GIDS = {
+            dados: 0,
+            closer: 1901844287,
+            ultimaVenda: 697721200
+        };
+
+        let kpiChart = null;
+        let autoRefreshTimer = null;
+
+        // ===================================
+        // SIDEBAR
+        // ===================================
         document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(function() {
-                document.getElementById('sidebar').classList.add('ready');
-            }, 50);
+            setTimeout(function() { document.getElementById('sidebar').classList.add('ready'); }, 50);
         });
 
         function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('sidebarOverlay');
             sidebar.classList.toggle('active');
             overlay.classList.toggle('active');
-
-            if (sidebar.classList.contains('active')) {
-                document.body.style.overflow = 'hidden';
-            } else {
-                document.body.style.overflow = '';
-            }
+            document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
         }
 
-        // Fechar sidebar com ESC
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                const sidebar = document.getElementById('sidebar');
-                if (sidebar.classList.contains('active')) {
-                    toggleSidebar();
-                }
+                var sidebar = document.getElementById('sidebar');
+                if (sidebar.classList.contains('active')) toggleSidebar();
             }
         });
 
-        // Ocultar loading quando iframe carregar
-        function hideLoading() {
-            setTimeout(function() {
-                const overlay = document.getElementById('loadingOverlay');
-                if (overlay) {
-                    overlay.classList.add('hidden');
+        // ===================================
+        // CSV PARSER
+        // ===================================
+        function parseCSVLine(line) {
+            var result = [], current = '', inQuotes = false;
+            for (var i = 0; i < line.length; i++) {
+                var ch = line[i];
+                if (ch === '"') {
+                    if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+                    else inQuotes = !inQuotes;
+                } else if (ch === ',' && !inQuotes) {
+                    result.push(current.trim()); current = '';
+                } else {
+                    current += ch;
                 }
-            }, 500);
+            }
+            result.push(current.trim());
+            return result;
         }
 
-        // Timeout para esconder loading mesmo se o iframe demorar
-        setTimeout(hideLoading, 5000);
+        function parseMoneyValue(str) {
+            if (!str) return 0;
+            return parseFloat(str.replace(/R\$\s?/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+        }
+
+        function formatMoney(value) {
+            return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
 
         // ===================================
-        // IA COMERCIAL
+        // FETCH DATA FROM SHEETS
         // ===================================
-        const COMERCIAL_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSSQ7mve2qz75gYNsmGqBj8yuyQO5JQU80qBcULnAYJ0MdYh373F0RD0DGc0Qpb5z7AjTdyyGyXQ1BP/pub';
+        async function fetchSheetCSV(gid) {
+            var url = DASH_SHEET_URL + '?gid=' + gid + '&single=true&output=csv&_t=' + Date.now();
+            var response = await fetch(url, { cache: 'no-store' });
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return await response.text();
+        }
+
+        async function loadDashboardData() {
+            var btn = document.getElementById('btnRefreshDash');
+            if (btn) btn.classList.add('loading');
+
+            try {
+                // Fetch all 3 tabs in parallel
+                var [dadosCSV, closerCSV, vendaCSV] = await Promise.all([
+                    fetchSheetCSV(GIDS.dados),
+                    fetchSheetCSV(GIDS.closer),
+                    fetchSheetCSV(GIDS.ultimaVenda)
+                ]);
+
+                // Parse Dados (KPIs)
+                var dadosLines = dadosCSV.split('\n').filter(function(l) { return l.trim(); });
+                var dadosHeaders = parseCSVLine(dadosLines[0]);
+                var dadosValues = dadosLines.length > 1 ? parseCSVLine(dadosLines[1]) : [];
+
+                // Build KPI map by header name
+                var kpis = {};
+                for (var i = 0; i < dadosHeaders.length; i++) {
+                    kpis[dadosHeaders[i]] = dadosValues[i] || '';
+                }
+
+                // Parse Closer (ranking)
+                var closerLines = closerCSV.split('\n').filter(function(l) { return l.trim(); });
+                var closers = [];
+                for (var i = 1; i < closerLines.length; i++) {
+                    var cols = parseCSVLine(closerLines[i]);
+                    if (cols[0]) {
+                        closers.push({
+                            nome: cols[0],
+                            taxaConversao: cols[1] || '0%',
+                            totalVendas: cols[2] || 'R$ 0,00',
+                            foto: cols[3] || '',
+                            pendente: cols[4] || ''
+                        });
+                    }
+                }
+
+                // Sort closers by total sales (descending)
+                closers.sort(function(a, b) {
+                    return parseMoneyValue(b.totalVendas) - parseMoneyValue(a.totalVendas);
+                });
+
+                // Parse Última Venda
+                var vendaLines = vendaCSV.split('\n').filter(function(l) { return l.trim(); });
+                var ultimaVenda = null;
+                if (vendaLines.length > 1) {
+                    var vCols = parseCSVLine(vendaLines[1]);
+                    ultimaVenda = { closer: vCols[0] || '', foto: vCols[1] || '', valor: vCols[2] || '' };
+                }
+
+                // RENDER
+                renderKPIs(kpis);
+                renderChart(kpis);
+                renderRanking(closers);
+                renderToday(kpis, ultimaVenda);
+
+                // Show dashboard, hide loading
+                document.getElementById('dashLoading').style.display = 'none';
+                document.getElementById('dashGrid').style.display = 'grid';
+
+                console.log('Dashboard atualizado com sucesso');
+
+            } catch (error) {
+                console.error('Erro ao carregar dados do dashboard:', error);
+                document.getElementById('dashLoading').innerHTML = '<p style="color:#f87171;">Erro ao carregar dados: ' + error.message + '</p><button class="btn-refresh" onclick="loadDashboardData()" style="margin-top:16px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Tentar novamente</button>';
+            } finally {
+                if (btn) btn.classList.remove('loading');
+            }
+        }
+
+        // ===================================
+        // RENDER KPIs
+        // ===================================
+        function renderKPIs(kpis) {
+            // Vendas do mês (Total)
+            document.getElementById('kpiVendasTotal').textContent = kpis['Total'] || 'R$ 0,00';
+
+            // Taxa de Conversão
+            document.getElementById('kpiTaxaConversao').textContent = kpis['Taxa de Conversão'] || '0%';
+
+            // Contratos Gerados (campo "Equipe" na planilha)
+            document.getElementById('kpiGerados').textContent = kpis['Equipe'] || kpis['Gerados'] || 'R$ 0,00';
+
+            // Meta Semanal
+            document.getElementById('kpiMetaSemanal').textContent = kpis['Meta Semanal'] || 'R$ 0,00';
+
+            // Contratos do mês
+            document.getElementById('contratosPagos').querySelector('span').textContent = kpis['Contratos Assinados'] || '0';
+            document.getElementById('contratosPendentes').querySelector('span').textContent = kpis['Contratos Pendentes'] || '0';
+        }
+
+        // ===================================
+        // RENDER CHART
+        // ===================================
+        function renderChart(kpis) {
+            var ctx = document.getElementById('kpiChart').getContext('2d');
+
+            var assinados = parseMoneyValue(kpis['Assinados']);
+            var gerados = parseMoneyValue(kpis['Equipe'] || kpis['Gerados']);
+            var total = parseMoneyValue(kpis['Total']);
+            var desistentes = parseMoneyValue(kpis['Desistentes']);
+            var pendentes = parseMoneyValue(kpis['Pendentes']);
+            var meta = parseMoneyValue(kpis['Meta']);
+
+            var labels = ['Assinados', 'Gerados', 'Total', 'Desistentes', 'Pendentes', 'Meta'];
+            var values = [assinados, gerados, total, desistentes, pendentes, meta];
+            var colors = ['#35cca3', '#22c55e', '#3b82f6', '#ef4444', '#f59e0b', '#6366f1'];
+
+            if (kpiChart) kpiChart.destroy();
+
+            kpiChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                        maxBarThickness: 60
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            color: '#e2e8f0',
+                            font: { size: 11, weight: '600' },
+                            formatter: function(value) { return formatMoney(value); }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8', font: { size: 12 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.04)' },
+                            ticks: {
+                                color: '#64748b',
+                                font: { size: 11 },
+                                callback: function(v) {
+                                    if (v >= 1000) return (v / 1000).toFixed(0) + ' mil';
+                                    return v;
+                                }
+                            }
+                        }
+                    },
+                    animation: { duration: 800 }
+                },
+                plugins: [ChartDataLabels]
+            });
+        }
+
+        // ===================================
+        // RENDER RANKING
+        // ===================================
+        function renderRanking(closers) {
+            var container = document.getElementById('rankingList');
+            var html = '';
+
+            closers.forEach(function(closer, idx) {
+                var rank = idx + 1;
+                var rankClass = rank <= 3 ? ' rank-' + rank : '';
+                var pendingDisplay = closer.pendente ? closer.pendente : '';
+                var pendingClass = pendingDisplay ? '' : ' empty';
+
+                html += '<div class="ranking-item' + rankClass + '">';
+                html += '<div class="rank-pos">' + rank + '</div>';
+                html += '<div class="rank-info">';
+                if (closer.foto) {
+                    html += '<img class="rank-avatar" src="' + closer.foto + '" alt="' + closer.nome + '" onerror="this.style.display=\'none\'">';
+                }
+                html += '<div><div class="rank-name">' + closer.nome + '</div>';
+                if (pendingDisplay) {
+                    html += '<div class="rank-pending' + pendingClass + '">' + pendingDisplay + ' pendente</div>';
+                }
+                html += '</div></div>';
+                html += '<div class="rank-sales">' + closer.totalVendas + '</div>';
+                html += '<div class="rank-conversion">' + closer.taxaConversao + '</div>';
+                html += '</div>';
+            });
+
+            container.innerHTML = html;
+        }
+
+        // ===================================
+        // RENDER CONTRATADOS HOJE
+        // ===================================
+        function renderToday(kpis, ultimaVenda) {
+            var diaValue = kpis['Dia'] || 'R$ 0,00';
+            var metaDiaria = kpis['Meta Diária'] || 'R$ 3.500,00';
+
+            document.getElementById('todayValue').textContent = diaValue;
+            document.getElementById('todayProgressCurrent').textContent = diaValue;
+            document.getElementById('todayProgressMeta').textContent = metaDiaria;
+
+            // Progress bar
+            var diaNum = parseMoneyValue(diaValue);
+            var metaNum = parseMoneyValue(metaDiaria);
+            var pct = metaNum > 0 ? Math.min((diaNum / metaNum) * 100, 100) : 0;
+            document.getElementById('todayProgressFill').style.width = pct + '%';
+
+            // Última venda
+            if (ultimaVenda && ultimaVenda.closer) {
+                document.getElementById('lastSaleCloser').innerHTML = ultimaVenda.closer + '<span class="elite"> | Elite</span>';
+                document.getElementById('lastSaleValue').textContent = ultimaVenda.valor;
+                var avatar = document.getElementById('lastSaleAvatar');
+                if (ultimaVenda.foto) {
+                    avatar.src = ultimaVenda.foto;
+                    avatar.style.display = 'block';
+                }
+            }
+        }
+
+        // ===================================
+        // AUTO-REFRESH (5 minutos)
+        // ===================================
+        function startAutoRefresh() {
+            if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+            autoRefreshTimer = setInterval(function() {
+                console.log('Auto-refresh dashboard...');
+                loadDashboardData();
+            }, 5 * 60 * 1000);
+        }
+
+        // ===================================
+        // INIT
+        // ===================================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            startAutoRefresh();
+        });
+
+        // ===================================
+        // IA COMERCIAL (mantido do original)
+        // ===================================
 
         // Carregar GID salvo do Firebase
         document.addEventListener('firebaseReady', async function() {
             try {
-                const savedGid = await getComercialGidFromFirebase();
-                const gidInput = document.getElementById('comercialGidInput');
+                var savedGid = await getComercialGidFromFirebase();
+                var gidInput = document.getElementById('comercialGidInput');
                 if (gidInput) gidInput.value = savedGid || '1234622450';
             } catch (e) {
-                const gidInput = document.getElementById('comercialGidInput');
+                var gidInput = document.getElementById('comercialGidInput');
                 if (gidInput) gidInput.value = localStorage.getItem('comercial_gid') || '1234622450';
             }
         });
 
         async function fetchComercialData() {
-            const gidInput = document.getElementById('comercialGidInput');
-            const gid = gidInput ? gidInput.value.trim() : '';
-            const statusEl = document.getElementById('comercialFetchStatus');
-            const btn = document.getElementById('btnFetchComercial');
+            var gidInput = document.getElementById('comercialGidInput');
+            var gid = gidInput ? gidInput.value.trim() : '';
+            var statusEl = document.getElementById('comercialFetchStatus');
+            var btn = document.getElementById('btnFetchComercial');
 
             if (!gid) {
                 if (statusEl) { statusEl.textContent = 'Informe o GID da aba.'; statusEl.style.color = '#f87171'; }
                 return;
             }
 
-            // Salvar GID no Firebase
             if (typeof saveComercialGidToFirebase === 'function') {
                 await saveComercialGidToFirebase(gid);
             }
@@ -596,18 +1106,15 @@
             if (statusEl) { statusEl.textContent = 'Buscando dados...'; statusEl.style.color = '#94a3b8'; }
 
             try {
-                const csvUrl = COMERCIAL_SHEET_URL + '?gid=' + gid + '&single=true&output=csv&_t=' + Date.now();
-                const response = await fetch(csvUrl, { cache: 'no-store' });
-
+                var csvUrl = COMERCIAL_SHEET_URL + '?gid=' + gid + '&single=true&output=csv&_t=' + Date.now();
+                var response = await fetch(csvUrl, { cache: 'no-store' });
                 if (!response.ok) throw new Error('HTTP ' + response.status);
 
-                const csvText = await response.text();
-                const lines = csvText.split('\n').filter(function(l) { return l.trim(); });
-
+                var csvText = await response.text();
+                var lines = csvText.split('\n').filter(function(l) { return l.trim(); });
                 if (lines.length < 2) throw new Error('Planilha vazia ou sem dados.');
 
-                const headers = parseCSVLine(lines[0]);
-                // Mapear headers corretos (coluna A="Indicador", B="Valor KPI")
+                var headers = parseCSVLine(lines[0]);
                 var cleanHeaders = headers.map(function(h, idx) {
                     var t = (h || '').trim();
                     if (idx === 0) return 'Indicador';
@@ -621,146 +1128,74 @@
 
                 for (var i = 1; i < lines.length; i++) {
                     var values = parseCSVLine(lines[i]);
-
-                    // Contar quantas colunas (C em diante, idx>=2) têm valor real
                     var mainDataCount = 0;
                     for (var k = 2; k < values.length; k++) {
                         var val = (values[k] || '').trim();
                         if (val && val !== 'R$ 0,00') mainDataCount++;
                     }
 
-                    // Se não tem dados nas colunas principais (C-R), pular linha
                     if (mainDataCount === 0) {
-                        // Mas checar se tem KPI nas colunas A/B
                         var colA = (values[0] || '').trim();
                         var colB = (values[1] || '').trim();
-                        if (colA && colB) {
-                            kpiSection += colA + ': ' + colB + '\n';
-                        }
+                        if (colA && colB) kpiSection += colA + ': ' + colB + '\n';
                         continue;
                     }
 
-                    // Extrair KPI das colunas A/B se existir nesta linha
                     var colA = (values[0] || '').trim();
                     var colB = (values[1] || '').trim();
-                    if (colA && colB) {
-                        kpiSection += colA + ': ' + colB + '\n';
-                    }
+                    if (colA && colB) kpiSection += colA + ': ' + colB + '\n';
 
-                    // Montar linha com dados das colunas C-R
                     var row = [];
                     for (var j = 2; j < cleanHeaders.length; j++) {
                         var h = cleanHeaders[j];
                         var v = (values[j] || '').trim();
                         if (h && v) row.push(h + ': ' + v);
                     }
-                    if (row.length > 0) {
-                        dataSection += row.join(' | ') + '\n';
-                        dataCount++;
-                    }
+                    if (row.length > 0) { dataSection += row.join(' | ') + '\n'; dataCount++; }
                 }
 
-                // Montar resultado final: KPIs primeiro, depois dados
                 var formattedData = '';
-                if (kpiSection.trim()) {
-                    formattedData += '=== RESUMO / KPIs DO PERÍODO ===\n' + kpiSection.trim() + '\n\n';
-                }
+                if (kpiSection.trim()) formattedData += '=== RESUMO / KPIs DO PERÍODO ===\n' + kpiSection.trim() + '\n\n';
                 formattedData += '=== NEGOCIAÇÕES ===\n' + dataSection.trim();
 
                 var textarea = document.getElementById('comercialDataInput');
                 if (textarea) textarea.value = formattedData.trim();
-
-                if (statusEl) {
-                    statusEl.textContent = dataCount + ' negociações carregadas.';
-                    statusEl.style.color = '#35cca3';
-                }
+                if (statusEl) { statusEl.textContent = dataCount + ' negociações carregadas.'; statusEl.style.color = '#35cca3'; }
 
             } catch (error) {
                 console.error('Erro ao buscar planilha comercial:', error);
-                if (statusEl) {
-                    statusEl.textContent = 'Erro: ' + error.message;
-                    statusEl.style.color = '#f87171';
-                }
+                if (statusEl) { statusEl.textContent = 'Erro: ' + error.message; statusEl.style.color = '#f87171'; }
             } finally {
                 if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
             }
         }
 
-        function parseCSVLine(line) {
-            var result = [];
-            var current = '';
-            var inQuotes = false;
-            for (var i = 0; i < line.length; i++) {
-                var ch = line[i];
-                if (ch === '"') {
-                    if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
-                    else inQuotes = !inQuotes;
-                } else if (ch === ',' && !inQuotes) {
-                    result.push(current); current = '';
-                } else {
-                    current += ch;
-                }
-            }
-            result.push(current);
-            return result;
-        }
-        function getComercialApiKey() {
-            return localStorage.getItem('anthropic_api_key') || '';
-        }
-
-        function hasComercialApiKey() {
-            const key = getComercialApiKey();
-            return key && key.startsWith('sk-ant-');
-        }
+        function getComercialApiKey() { return localStorage.getItem('anthropic_api_key') || ''; }
+        function hasComercialApiKey() { var key = getComercialApiKey(); return key && key.startsWith('sk-ant-'); }
 
         function updateComercialApiStatus() {
-            const el = document.getElementById('comercialApiStatus');
+            var el = document.getElementById('comercialApiStatus');
             if (el) {
-                if (hasComercialApiKey()) {
-                    el.textContent = '\u2713 API Key configurada';
-                    el.style.color = '#35cca3';
-                } else {
-                    el.textContent = '\u2717 API Key não configurada';
-                    el.style.color = '#f87171';
-                }
+                if (hasComercialApiKey()) { el.textContent = '\u2713 API Key configurada'; el.style.color = '#35cca3'; }
+                else { el.textContent = '\u2717 API Key não configurada'; el.style.color = '#f87171'; }
             }
         }
 
         function toggleComercialAI() {
-            const panel = document.getElementById('comercialAiPanel');
-            const fab = document.getElementById('btnComercialAIFab');
-            if (panel.style.display === 'none') {
-                panel.style.display = 'flex';
-                fab.classList.add('active');
-                updateComercialApiStatus();
-            } else {
-                panel.style.display = 'none';
-                fab.classList.remove('active');
-            }
+            var panel = document.getElementById('comercialAiPanel');
+            var fab = document.getElementById('btnComercialAIFab');
+            if (panel.style.display === 'none') { panel.style.display = 'flex'; fab.classList.add('active'); updateComercialApiStatus(); }
+            else { panel.style.display = 'none'; fab.classList.remove('active'); }
         }
 
-        function openComercialConfigModal() {
-            const modal = document.getElementById('comercialConfigModal');
-            const input = document.getElementById('comercialApiKeyInput');
-            if (modal) {
-                modal.style.display = 'flex';
-                if (input) input.value = getComercialApiKey();
-            }
-        }
-
-        function closeComercialConfigModal() {
-            const modal = document.getElementById('comercialConfigModal');
-            if (modal) modal.style.display = 'none';
-        }
+        function openComercialConfigModal() { var m = document.getElementById('comercialConfigModal'); var i = document.getElementById('comercialApiKeyInput'); if (m) { m.style.display = 'flex'; if (i) i.value = getComercialApiKey(); } }
+        function closeComercialConfigModal() { var m = document.getElementById('comercialConfigModal'); if (m) m.style.display = 'none'; }
 
         function saveComercialApiKey() {
-            const input = document.getElementById('comercialApiKeyInput');
+            var input = document.getElementById('comercialApiKeyInput');
             if (!input) return;
-            const key = input.value.trim();
-            if (!key.startsWith('sk-ant-')) {
-                alert('Chave inválida. A chave deve começar com "sk-ant-"');
-                return;
-            }
+            var key = input.value.trim();
+            if (!key.startsWith('sk-ant-')) { alert('Chave inválida. A chave deve começar com "sk-ant-"'); return; }
             localStorage.setItem('anthropic_api_key', key);
             closeComercialConfigModal();
             updateComercialApiStatus();
@@ -770,62 +1205,40 @@
             var dataInput = document.getElementById('comercialDataInput');
             var rawData = dataInput ? dataInput.value.trim() : '';
 
-            // Se não tem dados, tentar buscar automaticamente
             if (!rawData) {
                 await fetchComercialData();
                 rawData = dataInput ? dataInput.value.trim() : '';
-                if (!rawData) {
-                    alert('Nenhum dado encontrado. Verifique o GID da aba.');
-                    return;
-                }
+                if (!rawData) { alert('Nenhum dado encontrado. Verifique o GID da aba.'); return; }
             }
 
-            if (!hasComercialApiKey()) {
-                openComercialConfigModal();
-                return;
-            }
+            if (!hasComercialApiKey()) { openComercialConfigModal(); return; }
 
-            const btn = document.getElementById('btnComercialAI');
-            const loading = document.getElementById('comercialAiLoading');
-            const results = document.getElementById('comercialAiResults');
-
+            var btn = document.getElementById('btnComercialAI');
+            var loading = document.getElementById('comercialAiLoading');
+            var results = document.getElementById('comercialAiResults');
             if (btn) btn.disabled = true;
             if (loading) loading.style.display = 'flex';
             if (results) results.style.display = 'none';
 
             try {
-                const prompt = buildComercialPrompt(rawData);
-
-                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                var prompt = buildComercialPrompt(rawData);
+                var response = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': getComercialApiKey(),
-                        'anthropic-version': '2023-06-01',
-                        'anthropic-dangerous-direct-browser-access': 'true'
-                    },
-                    body: JSON.stringify({
-                        model: 'claude-3-haiku-20240307',
-                        max_tokens: 3000,
-                        messages: [{ role: 'user', content: prompt }]
-                    })
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': getComercialApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+                    body: JSON.stringify({ model: 'claude-3-haiku-20240307', max_tokens: 3000, messages: [{ role: 'user', content: prompt }] })
                 });
 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error?.message || 'Erro na API');
-                }
+                if (!response.ok) { var error = await response.json(); throw new Error(error.error?.message || 'Erro na API'); }
 
-                const result = await response.json();
-                const content = result.content[0].text;
-                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                var result = await response.json();
+                var content = result.content[0].text;
+                var jsonMatch = content.match(/\{[\s\S]*\}/);
                 if (!jsonMatch) throw new Error('Resposta inválida da IA');
-                const analysis = JSON.parse(jsonMatch[0]);
+                var analysis = JSON.parse(jsonMatch[0]);
 
                 renderComercialInsights(analysis.insights || []);
                 renderComercialAlerts(analysis.alertas || []);
                 renderComercialRecommendations(analysis.recommendations || []);
-
                 if (results) results.style.display = 'block';
 
             } catch (error) {
@@ -838,97 +1251,7 @@
         }
 
         function buildComercialPrompt(rawData) {
-            return `Você é um analista comercial especializado em performance de vendas de SaaS B2B.
-
-Analise os seguintes dados comerciais e gere insights, alertas/previsões e recomendações de ações.
-
-## ESTRUTURA DOS DADOS:
-
-Os dados são divididos em duas seções:
-
-### SEÇÃO 1 — RESUMO / KPIs DO PERÍODO:
-Indicadores consolidados do mês, sempre nesta estrutura:
-- **Gerados**: Valor total gerado no período (R$)
-- **Assinados**: Valor total de contratos assinados (R$)
-- **Total**: Valor total do pipeline (R$)
-- **Dia**: Valor médio por dia útil (R$)
-- **Pendentes**: Valor total pendente de fechamento (R$)
-- **Meta**: Meta mensal de vendas (R$)
-- **Desistentes**: Valor perdido por desistências (R$)
-- **Taxa de Conversão**: Percentual individual de cada closer e da equipe geral
-- **Novos**: Valor de contratos novos (R$)
-- **Upsell**: Valor de upsell em clientes existentes (R$)
-- **Reativação**: Valor de reativações de clientes (R$)
-
-### SEÇÃO 2 — NEGOCIAÇÕES (cada linha é um lead/cliente):
-Cada negociação possui os seguintes campos:
-- **Negociação**: Data em que o lead entrou no funil
-- **Contabilidade - RAZÃO SOCIAL**: Razão social / nome da empresa (ID interno)
-- **Nome/ Responsável**: Nome do contato principal do cliente
-- **Data o fechamento**: Data em que o cliente fechou (vazio = ainda não fechou)
-- **Closer**: Vendedor/especialista responsável pela negociação
-- **Status**: Estado atual — Pendente, Desistente, Contratado, Não Qualificado, Gerado
-- **Plano**: Tipo do plano — Enterprise, Professional, Starter, Avulso
-- **Clientes**: Quantidade de clientes que o plano comporta
-- **Valor**: Valor cheio do plano (sem desconto)
-- **Desc.**: Porcentagem de desconto aplicado
-- **Valor c/ desconto**: Valor final negociado com desconto
-- **Setup a vista**: Valor do setup pago à vista (R$ 0,00 se não pagou)
-- **Setup Parcelado**: Valor do setup parcelado
-- **Contrato**: Tipo — Novo, Reativação, Upsell, Indicação
-- **ID**: ID interno do lead/cliente
-- **Pagamento**: Status do pagamento — Pendente ou Pago (vazio = ainda sem pagamento)
-
-## DADOS COMERCIAIS DO PERÍODO:
-
-${rawData}
-
-## INSTRUÇÕES:
-
-Use o mapeamento de colunas acima para interpretar corretamente os dados CSV.
-
-Gere uma análise em formato JSON com a seguinte estrutura:
-
-{
-  "insights": [
-    {
-      "tipo": "critico|alerta|positivo",
-      "titulo": "Título curto e impactante",
-      "descricao": "Descrição detalhada do insight baseado nos dados"
-    }
-  ],
-  "alertas": [
-    {
-      "nivel": "alto|medio|baixo",
-      "titulo": "Alerta ou previsão",
-      "descricao": "Detalhe do alerta, tendência ou previsão"
-    }
-  ],
-  "recommendations": [
-    {
-      "prioridade": 1,
-      "titulo": "Título da recomendação",
-      "descricao": "Descrição da ação recomendada",
-      "impacto": "Impacto esperado"
-    }
-  ]
-}
-
-IMPORTANTE:
-- Gere 4-6 insights sobre a performance comercial (conversão, ticket médio, comparativo entre closers, progresso vs meta, descontos praticados, mix de planos)
-- Gere 3-5 alertas ou previsões (tendências, riscos, gargalos no funil, desistências, pendentes sem fechamento, setup não pago, meta em risco)
-- Gere 4-5 recomendações práticas ordenadas por prioridade (ações para cada closer, estratégias de fechamento de pendentes, otimização de descontos, gestão de pipeline)
-- Baseie-se APENAS nos dados fornecidos
-- Seja específico com números e porcentagens
-- Compare performance entre closers (coluna G) usando taxa de conversão, valor total negociado e quantidade de contratos
-- Analise a distribuição por Status (coluna H): quantos Contratados vs Pendentes vs Desistentes vs Gerados
-- Analise o mix de planos (coluna I) e tipos de contrato (coluna P: Novo, Reativação, Upsell, Indicação)
-- Compare Valor Cheio (K) vs Valor Negociado (M) para entender a média de desconto praticada
-- Identifique clientes Pendentes (H) que têm alto valor (M) como oportunidades prioritárias
-- Use os dados de resumo das colunas A/B (Meta, Gerados, Assinados, Pendentes, Desistentes) para calcular progresso e projeções
-- Projete tendências se possível
-
-Responda APENAS com o JSON, sem texto adicional.`;
+            return 'Você é um analista comercial especializado em performance de vendas de SaaS B2B.\n\nAnalise os seguintes dados comerciais e gere insights, alertas/previsões e recomendações de ações.\n\n## ESTRUTURA DOS DADOS:\n\nOs dados são divididos em duas seções:\n\n### SEÇÃO 1 — RESUMO / KPIs DO PERÍODO:\nIndicadores consolidados do mês, sempre nesta estrutura:\n- **Gerados**: Valor total gerado no período (R$)\n- **Assinados**: Valor total de contratos assinados (R$)\n- **Total**: Valor total do pipeline (R$)\n- **Dia**: Valor médio por dia útil (R$)\n- **Pendentes**: Valor total pendente de fechamento (R$)\n- **Meta**: Meta mensal de vendas (R$)\n- **Desistentes**: Valor perdido por desistências (R$)\n- **Taxa de Conversão**: Percentual individual de cada closer e da equipe geral\n- **Novos**: Valor de contratos novos (R$)\n- **Upsell**: Valor de upsell em clientes existentes (R$)\n- **Reativação**: Valor de reativações de clientes (R$)\n\n### SEÇÃO 2 — NEGOCIAÇÕES (cada linha é um lead/cliente):\nCada negociação possui os seguintes campos:\n- **Negociação**: Data em que o lead entrou no funil\n- **Contabilidade - RAZÃO SOCIAL**: Razão social / nome da empresa (ID interno)\n- **Nome/ Responsável**: Nome do contato principal do cliente\n- **Data o fechamento**: Data em que o cliente fechou (vazio = ainda não fechou)\n- **Closer**: Vendedor/especialista responsável pela negociação\n- **Status**: Estado atual — Pendente, Desistente, Contratado, Não Qualificado, Gerado\n- **Plano**: Tipo do plano — Enterprise, Professional, Starter, Avulso\n- **Clientes**: Quantidade de clientes que o plano comporta\n- **Valor**: Valor cheio do plano (sem desconto)\n- **Desc.**: Porcentagem de desconto aplicado\n- **Valor c/ desconto**: Valor final negociado com desconto\n- **Setup a vista**: Valor do setup pago à vista (R$ 0,00 se não pagou)\n- **Setup Parcelado**: Valor do setup parcelado\n- **Contrato**: Tipo — Novo, Reativação, Upsell, Indicação\n- **ID**: ID interno do lead/cliente\n- **Pagamento**: Status do pagamento — Pendente ou Pago (vazio = ainda sem pagamento)\n\n## DADOS COMERCIAIS DO PERÍODO:\n\n' + rawData + '\n\n## INSTRUÇÕES:\n\nUse o mapeamento de colunas acima para interpretar corretamente os dados CSV.\n\nGere uma análise em formato JSON com a seguinte estrutura:\n\n{\n  "insights": [\n    {\n      "tipo": "critico|alerta|positivo",\n      "titulo": "Título curto e impactante",\n      "descricao": "Descrição detalhada do insight baseado nos dados"\n    }\n  ],\n  "alertas": [\n    {\n      "nivel": "alto|medio|baixo",\n      "titulo": "Alerta ou previsão",\n      "descricao": "Detalhe do alerta, tendência ou previsão"\n    }\n  ],\n  "recommendations": [\n    {\n      "prioridade": 1,\n      "titulo": "Título da recomendação",\n      "descricao": "Descrição da ação recomendada",\n      "impacto": "Impacto esperado"\n    }\n  ]\n}\n\nIMPORTANTE:\n- Gere 4-6 insights sobre a performance comercial (conversão, ticket médio, comparativo entre closers, progresso vs meta, descontos praticados, mix de planos)\n- Gere 3-5 alertas ou previsões (tendências, riscos, gargalos no funil, desistências, pendentes sem fechamento, setup não pago, meta em risco)\n- Gere 4-5 recomendações práticas ordenadas por prioridade (ações para cada closer, estratégias de fechamento de pendentes, otimização de descontos, gestão de pipeline)\n- Baseie-se APENAS nos dados fornecidos\n- Seja específico com números e porcentagens\n- Compare performance entre closers usando taxa de conversão, valor total negociado e quantidade de contratos\n- Analise a distribuição por Status: quantos Contratados vs Pendentes vs Desistentes vs Gerados\n- Analise o mix de planos e tipos de contrato (Novo, Reativação, Upsell, Indicação)\n- Identifique clientes Pendentes que têm alto valor como oportunidades prioritárias\n- Use os dados de resumo (Meta, Gerados, Assinados, Pendentes, Desistentes) para calcular progresso e projeções\n- Projete tendências se possível\n\nResponda APENAS com o JSON, sem texto adicional.';
         }
 
         function escapeHTML(str) {
@@ -937,25 +1260,25 @@ Responda APENAS com o JSON, sem texto adicional.`;
         }
 
         function renderComercialInsights(insights) {
-            const el = document.getElementById('comercialInsightsList');
+            var el = document.getElementById('comercialInsightsList');
             if (!el) return;
-            const icons = { critico: '\uD83D\uDD34', alerta: '\uD83D\uDFE1', positivo: '\uD83D\uDFE2' };
-            el.innerHTML = insights.map(i =>
-                '<li><strong>' + (icons[i.tipo] || '\uD83D\uDD35') + ' ' + escapeHTML(i.titulo) + ':</strong> ' + escapeHTML(i.descricao) + '</li>'
-            ).join('');
+            var icons = { critico: '\uD83D\uDD34', alerta: '\uD83D\uDFE1', positivo: '\uD83D\uDFE2' };
+            el.innerHTML = insights.map(function(i) {
+                return '<li><strong>' + (icons[i.tipo] || '\uD83D\uDD35') + ' ' + escapeHTML(i.titulo) + ':</strong> ' + escapeHTML(i.descricao) + '</li>';
+            }).join('');
         }
 
         function renderComercialAlerts(alerts) {
-            const el = document.getElementById('comercialAlertsList');
+            var el = document.getElementById('comercialAlertsList');
             if (!el) return;
-            const icons = { alto: '\uD83D\uDD34', medio: '\uD83D\uDFE1', baixo: '\uD83D\uDFE2' };
-            el.innerHTML = alerts.map(a =>
-                '<li><strong>' + (icons[a.nivel] || '\uD83D\uDFE1') + ' ' + escapeHTML(a.titulo) + ':</strong> ' + escapeHTML(a.descricao) + '</li>'
-            ).join('');
+            var icons = { alto: '\uD83D\uDD34', medio: '\uD83D\uDFE1', baixo: '\uD83D\uDFE2' };
+            el.innerHTML = alerts.map(function(a) {
+                return '<li><strong>' + (icons[a.nivel] || '\uD83D\uDFE1') + ' ' + escapeHTML(a.titulo) + ':</strong> ' + escapeHTML(a.descricao) + '</li>';
+            }).join('');
         }
 
         function renderComercialRecommendations(recs) {
-            const el = document.getElementById('comercialRecommendationsList');
+            var el = document.getElementById('comercialRecommendationsList');
             if (!el) return;
             el.innerHTML = recs.map(function(rec, i) {
                 return '<article class="recommendation-card"><h4>' + (i + 1) + '. ' + escapeHTML(rec.titulo) + '</h4><p>' + escapeHTML(rec.descricao) + '</p>' +
@@ -964,7 +1287,6 @@ Responda APENAS com o JSON, sem texto adicional.`;
             }).join('');
         }
 
-        // Inicializar status
         document.addEventListener('DOMContentLoaded', updateComercialApiStatus);
     </script>
 </body>
