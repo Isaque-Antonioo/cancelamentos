@@ -980,7 +980,7 @@
                 }
 
                 // RENDER
-                renderKPIs(kpis);
+                renderKPIs(kpis, closers);
                 renderChart(kpis);
                 renderRanking(closers);
                 renderToday(kpis, ultimaVenda);
@@ -1002,12 +1002,21 @@
         // ===================================
         // RENDER KPIs
         // ===================================
-        function renderKPIs(kpis) {
+        function renderKPIs(kpis, closers) {
             // Vendas do mês (Total)
             document.getElementById('kpiVendasTotal').textContent = kpis['Total'] || 'R$ 0,00';
 
-            // Taxa de Conversão
-            document.getElementById('kpiTaxaConversao').textContent = kpis['Taxa de Conversão'] || '0%';
+            // Taxa de Conversão — média global calculada a partir dos closers
+            var taxaMedia = 0;
+            if (closers && closers.length > 0) {
+                var soma = 0;
+                for (var i = 0; i < closers.length; i++) {
+                    var taxa = closers[i].taxaConversao.replace('%', '').replace(',', '.').trim();
+                    soma += parseFloat(taxa) || 0;
+                }
+                taxaMedia = soma / closers.length;
+            }
+            document.getElementById('kpiTaxaConversao').textContent = taxaMedia.toFixed(2).replace('.', ',') + '%';
 
             // Contratos Gerados (campo "Equipe" na planilha)
             document.getElementById('kpiGerados').textContent = kpis['Equipe'] || kpis['Gerados'] || 'R$ 0,00';
