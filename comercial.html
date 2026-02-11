@@ -91,28 +91,35 @@
 
         .ranking-header {
             display: grid;
-            grid-template-columns: clamp(32px, 3.5vw, 56px) 1fr clamp(85px, 10vw, 170px) clamp(70px, 8vw, 140px);
-            padding: 0 clamp(6px, 0.8vw, 16px) clamp(6px, 0.8vh, 12px);
+            grid-template-columns: clamp(32px, 3vw, 50px) 1fr auto auto;
+            padding: 0 clamp(8px, 1vw, 18px) clamp(6px, 0.8vh, 12px);
             border-bottom: 1px solid rgba(255,255,255,0.06);
-            margin-bottom: clamp(4px, 0.5vh, 8px);
+            margin-bottom: clamp(4px, 0.6vh, 10px);
         }
 
         .ranking-header span {
-            font-size: clamp(0.6em, 0.7vw, 0.88em);
+            font-size: clamp(0.6em, 0.7vw, 0.85em);
             color: #64748b;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-weight: 600;
         }
 
+        .ranking-header span:nth-child(3),
+        .ranking-header span:nth-child(4) {
+            text-align: center;
+            min-width: clamp(80px, 8vw, 140px);
+        }
+
         .ranking-item {
             display: grid;
-            grid-template-columns: clamp(32px, 3.5vw, 56px) 1fr clamp(85px, 10vw, 170px) clamp(70px, 8vw, 140px);
+            grid-template-columns: clamp(32px, 3vw, 50px) 1fr auto auto;
             align-items: center;
-            padding: clamp(6px, 0.8vh, 20px) clamp(6px, 0.8vw, 18px);
-            border-radius: clamp(8px, 0.8vw, 14px);
+            padding: clamp(8px, 1.2vh, 18px) clamp(8px, 1vw, 18px);
+            border-radius: clamp(10px, 1vw, 16px);
             transition: background 0.2s;
             border: 1px solid transparent;
+            margin-bottom: clamp(2px, 0.4vh, 6px);
         }
 
         .ranking-item:hover {
@@ -136,14 +143,14 @@
         }
 
         .rank-pos {
-            width: clamp(24px, 2.5vw, 44px);
-            height: clamp(24px, 2.5vw, 44px);
-            border-radius: clamp(6px, 0.6vw, 10px);
+            width: clamp(28px, 2.8vw, 46px);
+            height: clamp(28px, 2.8vw, 46px);
+            border-radius: clamp(8px, 0.7vw, 12px);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: clamp(0.7em, 0.8vw, 1.1em);
+            font-size: clamp(0.8em, 0.95vw, 1.2em);
             color: #e2e8f0;
             background: rgba(255,255,255,0.05);
         }
@@ -155,16 +162,17 @@
         .rank-info {
             display: flex;
             align-items: center;
-            gap: clamp(6px, 0.8vw, 14px);
-            padding-left: clamp(6px, 0.8vw, 14px);
+            gap: clamp(10px, 1vw, 18px);
+            padding-left: clamp(8px, 0.8vw, 16px);
         }
 
         .rank-avatar {
-            width: clamp(28px, 3.2vw, 58px);
-            height: clamp(28px, 3.2vw, 58px);
+            width: clamp(40px, 4vw, 64px);
+            height: clamp(40px, 4vw, 64px);
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid rgba(255,255,255,0.1);
+            border: 3px solid rgba(255,255,255,0.1);
+            flex-shrink: 0;
         }
 
         .rank-1 .rank-avatar { border-color: #ffd700; }
@@ -174,29 +182,40 @@
         .rank-name {
             font-weight: 600;
             color: #e2e8f0;
-            font-size: clamp(0.7em, 0.85vw, 1.15em);
+            font-size: clamp(0.85em, 1vw, 1.2em);
         }
 
         .rank-pending {
-            font-size: clamp(0.6em, 0.65vw, 0.85em);
+            font-size: clamp(0.6em, 0.65vw, 0.82em);
             color: #f59e0b;
-            margin-top: 1px;
+            margin-top: 2px;
         }
 
         .rank-pending.empty { color: #64748b; }
 
+        .rank-sales-col {
+            text-align: center;
+            min-width: clamp(80px, 8vw, 140px);
+        }
+
         .rank-sales {
-            text-align: right;
-            font-weight: 600;
+            font-weight: 700;
             color: #35cca3;
-            font-size: clamp(0.7em, 0.85vw, 1.15em);
+            font-size: clamp(0.82em, 0.95vw, 1.15em);
+        }
+
+        .rank-sales-pending {
+            font-size: clamp(0.55em, 0.6vw, 0.75em);
+            color: #f59e0b;
+            margin-top: 2px;
         }
 
         .rank-conversion {
-            text-align: right;
-            font-weight: 600;
+            text-align: center;
+            font-weight: 700;
             color: #e2e8f0;
-            font-size: clamp(0.7em, 0.85vw, 1.15em);
+            font-size: clamp(0.82em, 0.95vw, 1.15em);
+            min-width: clamp(80px, 8vw, 140px);
         }
 
         /* ======================== CONTRATADOS HOJE ======================== */
@@ -621,8 +640,8 @@
                     <div class="ranking-header">
                         <span>#</span>
                         <span>Especialista</span>
-                        <span style="text-align:right">Vendas</span>
-                        <span style="text-align:right">Conversão</span>
+                        <span>Vendas</span>
+                        <span>Conversão %</span>
                     </div>
                     <div id="rankingList"></div>
                 </div>
@@ -1143,7 +1162,6 @@
                 var rank = idx + 1;
                 var rankClass = rank <= 3 ? ' rank-' + rank : '';
                 var pendingDisplay = closer.pendente ? closer.pendente : '';
-                var pendingClass = pendingDisplay ? '' : ' empty';
 
                 html += '<div class="ranking-item' + rankClass + '">';
                 html += '<div class="rank-pos">' + rank + '</div>';
@@ -1151,12 +1169,14 @@
                 if (closer.foto) {
                     html += '<img class="rank-avatar" src="' + closer.foto + '" alt="' + closer.nome + '" onerror="this.style.display=\'none\'">';
                 }
-                html += '<div><div class="rank-name">' + closer.nome + '</div>';
-                if (pendingDisplay) {
-                    html += '<div class="rank-pending' + pendingClass + '">' + pendingDisplay + ' pendente</div>';
-                }
-                html += '</div></div>';
+                html += '<div><div class="rank-name">' + closer.nome + '</div></div>';
+                html += '</div>';
+                html += '<div class="rank-sales-col">';
                 html += '<div class="rank-sales">' + closer.totalVendas + '</div>';
+                if (pendingDisplay) {
+                    html += '<div class="rank-sales-pending">' + pendingDisplay + ' pendente</div>';
+                }
+                html += '</div>';
                 html += '<div class="rank-conversion">' + closer.taxaConversao + '</div>';
                 html += '</div>';
             });
