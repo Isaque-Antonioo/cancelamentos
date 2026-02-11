@@ -20,49 +20,61 @@
     <script src="js/auth.js"></script>
 
     <style>
+        /* ======================== HEADER COMPACTO PARA TV ======================== */
+        .header {
+            margin-bottom: 0;
+            padding: clamp(8px, 1vh, 20px) clamp(12px, 1.5vw, 32px);
+        }
+        .header-top {
+            margin-bottom: 0;
+        }
+
         /* ======================== DASHBOARD GRID ======================== */
         .dash-grid {
             display: grid;
-            grid-template-columns: 580px 1fr;
-            grid-template-rows: auto auto;
-            gap: 16px;
-            padding: 16px 24px 24px;
-            height: calc(100vh - 70px);
+            grid-template-columns: 38% 1fr;
+            grid-template-rows: 1fr;
+            gap: 1vh 1vw;
+            padding: 1vh 1.5vw 1.2vh;
+            height: calc(100vh - clamp(50px, 6vh, 100px));
             overflow: hidden;
+            box-sizing: border-box;
         }
 
         /* Coluna esquerda: ranking + contratados hoje */
         .dash-left {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 1.2vh;
             overflow: hidden;
+            min-height: 0;
         }
 
         /* Coluna direita: chart + KPIs */
         .dash-right {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 1.2vh;
             overflow: hidden;
+            min-height: 0;
         }
 
         /* ======================== CARDS BASE ======================== */
         .dash-card {
             background: linear-gradient(145deg, #131c2e, #0f172a);
             border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 16px;
-            padding: 20px;
+            border-radius: clamp(10px, 1.2vw, 20px);
+            padding: clamp(10px, 1.5vh, 24px) clamp(10px, 1.2vw, 24px);
         }
 
         .dash-card-title {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: clamp(6px, 0.6vw, 12px);
             color: #e2e8f0;
-            font-size: 1.05em;
+            font-size: clamp(0.75em, 1vw, 1.15em);
             font-weight: 600;
-            margin-bottom: 16px;
+            margin-bottom: clamp(6px, 1vh, 16px);
         }
 
         .dash-card-title svg {
@@ -79,14 +91,14 @@
 
         .ranking-header {
             display: grid;
-            grid-template-columns: 44px 1fr 130px 110px;
-            padding: 0 12px 12px;
+            grid-template-columns: clamp(32px, 3.5vw, 56px) 1fr clamp(85px, 10vw, 170px) clamp(70px, 8vw, 140px);
+            padding: 0 clamp(6px, 0.8vw, 16px) clamp(6px, 0.8vh, 12px);
             border-bottom: 1px solid rgba(255,255,255,0.06);
-            margin-bottom: 8px;
+            margin-bottom: clamp(4px, 0.5vh, 8px);
         }
 
         .ranking-header span {
-            font-size: 0.75em;
+            font-size: clamp(0.6em, 0.7vw, 0.88em);
             color: #64748b;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -95,10 +107,10 @@
 
         .ranking-item {
             display: grid;
-            grid-template-columns: 44px 1fr 130px 110px;
+            grid-template-columns: clamp(32px, 3.5vw, 56px) 1fr clamp(85px, 10vw, 170px) clamp(70px, 8vw, 140px);
             align-items: center;
-            padding: 14px 14px;
-            border-radius: 12px;
+            padding: clamp(6px, 0.8vh, 20px) clamp(6px, 0.8vw, 18px);
+            border-radius: clamp(8px, 0.8vw, 14px);
             transition: background 0.2s;
             border: 1px solid transparent;
         }
@@ -124,14 +136,14 @@
         }
 
         .rank-pos {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: clamp(24px, 2.5vw, 44px);
+            height: clamp(24px, 2.5vw, 44px);
+            border-radius: clamp(6px, 0.6vw, 10px);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 0.9em;
+            font-size: clamp(0.7em, 0.8vw, 1.1em);
             color: #e2e8f0;
             background: rgba(255,255,255,0.05);
         }
@@ -143,13 +155,13 @@
         .rank-info {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding-left: 12px;
+            gap: clamp(6px, 0.8vw, 14px);
+            padding-left: clamp(6px, 0.8vw, 14px);
         }
 
         .rank-avatar {
-            width: 44px;
-            height: 44px;
+            width: clamp(28px, 3.2vw, 58px);
+            height: clamp(28px, 3.2vw, 58px);
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid rgba(255,255,255,0.1);
@@ -162,13 +174,13 @@
         .rank-name {
             font-weight: 600;
             color: #e2e8f0;
-            font-size: 0.95em;
+            font-size: clamp(0.7em, 0.85vw, 1.15em);
         }
 
         .rank-pending {
-            font-size: 0.78em;
+            font-size: clamp(0.6em, 0.65vw, 0.85em);
             color: #f59e0b;
-            margin-top: 2px;
+            margin-top: 1px;
         }
 
         .rank-pending.empty { color: #64748b; }
@@ -177,14 +189,14 @@
             text-align: right;
             font-weight: 600;
             color: #35cca3;
-            font-size: 0.95em;
+            font-size: clamp(0.7em, 0.85vw, 1.15em);
         }
 
         .rank-conversion {
             text-align: right;
             font-weight: 600;
             color: #e2e8f0;
-            font-size: 0.95em;
+            font-size: clamp(0.7em, 0.85vw, 1.15em);
         }
 
         /* ======================== CONTRATADOS HOJE ======================== */
@@ -192,33 +204,33 @@
             flex: 0 0 auto;
             background: linear-gradient(145deg, #0f2a20, #0f172a);
             border-color: rgba(53, 204, 163, 0.15);
-            padding: 28px 24px;
+            padding: clamp(12px, 1.8vh, 28px) clamp(10px, 1.5vw, 24px);
         }
 
         .today-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: clamp(8px, 1.2vh, 20px);
         }
 
         .today-value {
-            font-size: 2.6em;
+            font-size: clamp(1.4em, 2.2vw, 3.4em);
             font-weight: 700;
             color: #35cca3;
         }
 
         .today-last-sale {
             background: rgba(255,255,255,0.04);
-            border-radius: 14px;
-            padding: 16px 20px;
+            border-radius: clamp(8px, 1vw, 14px);
+            padding: clamp(8px, 1vh, 16px) clamp(10px, 1.2vw, 20px);
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: clamp(8px, 1vw, 14px);
         }
 
         .today-last-sale-badge {
-            font-size: 0.78em;
+            font-size: clamp(0.6em, 0.7vw, 0.85em);
             text-transform: uppercase;
             letter-spacing: 1px;
             color: #f59e0b;
@@ -232,7 +244,7 @@
         .today-last-sale-closer {
             font-weight: 600;
             color: #e2e8f0;
-            font-size: 1.05em;
+            font-size: clamp(0.8em, 0.9vw, 1.15em);
         }
 
         .today-last-sale-closer .elite {
@@ -244,24 +256,24 @@
         .today-last-sale-value {
             color: #35cca3;
             font-weight: 600;
-            font-size: 1em;
+            font-size: clamp(0.8em, 0.85vw, 1.1em);
             margin-top: 2px;
         }
 
         .today-last-sale-avatar {
-            width: 52px;
-            height: 52px;
+            width: clamp(36px, 3.8vw, 60px);
+            height: clamp(36px, 3.8vw, 60px);
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid rgba(249, 158, 11, 0.3);
         }
 
         .today-progress {
-            margin-top: 20px;
+            margin-top: clamp(8px, 1.2vh, 20px);
         }
 
         .today-progress-bar {
-            height: 12px;
+            height: clamp(6px, 1vh, 14px);
             background: rgba(255,255,255,0.06);
             border-radius: 8px;
             overflow: hidden;
@@ -277,8 +289,8 @@
         .today-progress-labels {
             display: flex;
             justify-content: space-between;
-            margin-top: 10px;
-            font-size: 0.92em;
+            margin-top: clamp(4px, 0.6vh, 10px);
+            font-size: clamp(0.72em, 0.8vw, 1em);
         }
 
         .today-progress-current { color: #35cca3; font-weight: 600; }
@@ -302,29 +314,29 @@
         .kpis-bottom {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
+            gap: clamp(8px, 1vw, 16px);
         }
 
         .kpis-bottom-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 16px;
+            gap: clamp(8px, 1vw, 16px);
         }
 
         .kpi-card {
             background: linear-gradient(145deg, #131c2e, #0f172a);
             border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 16px;
-            padding: 20px;
+            border-radius: clamp(10px, 1.2vw, 20px);
+            padding: clamp(10px, 1.2vh, 20px) clamp(10px, 1vw, 20px);
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: clamp(8px, 1vw, 16px);
         }
 
         .kpi-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
+            width: clamp(32px, 3.5vw, 56px);
+            height: clamp(32px, 3.5vw, 56px);
+            border-radius: clamp(8px, 0.8vw, 14px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -337,41 +349,41 @@
         .kpi-icon.purple { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
 
         .kpi-data {}
-        .kpi-label { font-size: 0.78em; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; margin-bottom: 4px; }
-        .kpi-value { font-size: 1.4em; font-weight: 700; color: #e2e8f0; }
+        .kpi-label { font-size: clamp(0.6em, 0.7vw, 0.88em); color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; margin-bottom: 2px; }
+        .kpi-value { font-size: clamp(1em, 1.2vw, 1.8em); font-weight: 700; color: #e2e8f0; }
         .kpi-value.accent { color: #35cca3; }
 
         /* ======================== CONTRATOS DO MES ======================== */
         .contratos-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 16px;
+            gap: clamp(8px, 1vw, 16px);
         }
 
         .contrato-item {
             text-align: center;
-            padding: 16px;
+            padding: clamp(8px, 1vh, 16px);
             background: rgba(255,255,255,0.02);
-            border-radius: 12px;
+            border-radius: clamp(8px, 0.8vw, 14px);
             border: 1px solid rgba(255,255,255,0.04);
         }
 
         .contrato-label {
-            font-size: 0.75em;
+            font-size: clamp(0.6em, 0.65vw, 0.85em);
             color: #64748b;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 8px;
+            margin-bottom: clamp(4px, 0.5vh, 8px);
         }
 
         .contrato-value {
-            font-size: 2.2em;
+            font-size: clamp(1.4em, 1.8vw, 3em);
             font-weight: 700;
             color: #e2e8f0;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: clamp(6px, 0.6vw, 10px);
         }
 
         .contrato-value svg { color: #35cca3; }
@@ -383,7 +395,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: calc(100vh - 70px);
+            height: calc(100vh - 60px);
         }
 
         .dash-loading .spinner {
@@ -457,78 +469,11 @@
 
         /* ======================== RESPONSIVE ======================== */
 
-        /* TV / Monitor grande (1920px+) */
-        @media (min-width: 1920px) {
-            .dash-grid {
-                grid-template-columns: 640px 1fr;
-                gap: 24px;
-                padding: 20px 32px 32px;
-            }
-            .ranking-item { padding: 18px 16px; }
-            .ranking-header, .ranking-item { grid-template-columns: 50px 1fr 150px 120px; }
-            .rank-pos { width: 38px; height: 38px; font-size: 1em; }
-            .rank-avatar { width: 52px; height: 52px; }
-            .rank-name { font-size: 1.05em; }
-            .rank-sales, .rank-conversion { font-size: 1.05em; }
-            .rank-pending { font-size: 0.85em; }
-            .today-value { font-size: 3em; }
-            .today-last-sale-closer { font-size: 1.15em; }
-            .today-last-sale-value { font-size: 1.1em; }
-            .today-last-sale-avatar { width: 60px; height: 60px; }
-            .today-progress-bar { height: 14px; }
-            .kpi-value { font-size: 1.6em; }
-            .kpi-icon { width: 56px; height: 56px; }
-            .contrato-value { font-size: 2.6em; }
-            .dash-card { padding: 24px; border-radius: 20px; }
-            .dash-card-title { font-size: 1.15em; }
-        }
-
-        /* TV Ultra Wide (2560px+) */
-        @media (min-width: 2560px) {
-            .dash-grid {
-                grid-template-columns: 760px 1fr;
-                gap: 28px;
-                padding: 24px 40px 40px;
-                height: calc(100vh - 80px);
-            }
-            .ranking-header, .ranking-item { grid-template-columns: 56px 1fr 170px 140px; }
-            .ranking-item { padding: 20px 18px; }
-            .rank-pos { width: 44px; height: 44px; font-size: 1.1em; border-radius: 10px; }
-            .rank-avatar { width: 58px; height: 58px; }
-            .rank-name { font-size: 1.15em; }
-            .rank-sales, .rank-conversion { font-size: 1.15em; }
-            .today-value { font-size: 3.4em; }
-            .kpi-value { font-size: 1.8em; }
-            .kpi-label { font-size: 0.88em; }
-            .contrato-value { font-size: 3em; }
-            .dash-card { padding: 28px; }
-            .dash-card-title { font-size: 1.25em; margin-bottom: 20px; }
-        }
-
-        /* Tablet landscape (1024px - 1279px) */
-        @media (max-width: 1279px) {
-            .dash-grid {
-                grid-template-columns: 440px 1fr;
-                gap: 12px;
-                padding: 12px 16px 16px;
-            }
-            .ranking-header, .ranking-item { grid-template-columns: 40px 1fr 110px 90px; }
-            .ranking-item { padding: 10px 10px; }
-            .rank-avatar { width: 38px; height: 38px; }
-            .rank-name { font-size: 0.88em; }
-            .rank-sales, .rank-conversion { font-size: 0.88em; }
-            .rank-pending { font-size: 0.72em; }
-            .today-value { font-size: 2.2em; }
-            .today-card { padding: 20px 18px; }
-            .kpi-value { font-size: 1.2em; }
-            .kpi-icon { width: 42px; height: 42px; }
-            .contrato-value { font-size: 1.8em; }
-        }
-
-        /* Tablet portrait (768px - 1023px) */
+        /* Tablet portrait e menor (< 1024px) - layout single column com scroll */
         @media (max-width: 1023px) {
             .dash-grid {
                 grid-template-columns: 1fr;
+                grid-template-rows: auto;
                 height: auto;
                 overflow-y: auto;
                 overflow-x: hidden;
@@ -537,76 +482,26 @@
             }
             .dash-left, .dash-right { overflow: visible; }
             .ranking-card { max-height: none; flex: none; }
-            .ranking-header, .ranking-item { grid-template-columns: 44px 1fr 130px 110px; }
-            .ranking-item { padding: 14px 14px; }
-            .rank-avatar { width: 44px; height: 44px; }
-            .rank-name { font-size: 0.95em; }
-            .rank-sales, .rank-conversion { font-size: 0.95em; }
             .chart-card .chart-wrapper { min-height: 320px; }
-            .today-value { font-size: 2.6em; }
-            .today-card { padding: 28px 24px; }
         }
 
-        /* Mobile landscape / small tablet (600px - 767px) */
+        /* Mobile landscape (< 768px) */
         @media (max-width: 767px) {
             .dash-grid { padding: 10px 12px 14px; gap: 12px; }
             .dash-card { padding: 16px; border-radius: 14px; }
-            .ranking-header, .ranking-item { grid-template-columns: 38px 1fr 100px 80px; }
-            .ranking-item { padding: 10px 8px; }
-            .rank-info { gap: 10px; padding-left: 8px; }
-            .rank-avatar { width: 36px; height: 36px; }
-            .rank-pos { width: 28px; height: 28px; font-size: 0.8em; }
-            .rank-name { font-size: 0.85em; }
-            .rank-pending { font-size: 0.7em; }
-            .rank-sales { font-size: 0.82em; }
-            .rank-conversion { font-size: 0.82em; }
             .today-top { flex-direction: column; gap: 14px; align-items: stretch; }
-            .today-value { font-size: 2.2em; }
-            .today-card { padding: 20px 16px; }
-            .today-last-sale { padding: 12px 14px; }
-            .today-last-sale-avatar { width: 44px; height: 44px; }
-            .chart-card .chart-wrapper { min-height: 280px; }
             .kpis-bottom-row { grid-template-columns: 1fr; }
-            .kpi-card { padding: 16px; }
-            .kpi-value { font-size: 1.2em; }
-            .contrato-value { font-size: 1.8em; }
+            .chart-card .chart-wrapper { min-height: 280px; }
             .comercial-ai-panel { width: 100vw; }
             .comercial-ai-fab { bottom: 16px; right: 16px; width: 48px; height: 48px; }
         }
 
-        /* Mobile portrait (até 480px) */
+        /* Mobile portrait (< 480px) */
         @media (max-width: 480px) {
             .dash-grid { padding: 8px 8px 12px; gap: 10px; }
             .dash-card { padding: 14px 12px; border-radius: 12px; }
             .dash-card-title { font-size: 0.92em; gap: 8px; margin-bottom: 12px; }
-            .ranking-header, .ranking-item { grid-template-columns: 32px 1fr 85px 70px; }
-            .ranking-item { padding: 8px 6px; border-radius: 10px; }
-            .rank-info { gap: 8px; padding-left: 6px; }
-            .rank-avatar { width: 32px; height: 32px; }
-            .rank-pos { width: 24px; height: 24px; font-size: 0.75em; border-radius: 6px; }
-            .rank-name { font-size: 0.8em; }
-            .rank-pending { font-size: 0.65em; }
-            .rank-sales { font-size: 0.78em; }
-            .rank-conversion { font-size: 0.78em; }
-            .ranking-header span { font-size: 0.65em; }
-            .today-value { font-size: 1.8em; }
-            .today-card { padding: 16px 12px; }
-            .today-last-sale { padding: 10px 12px; gap: 10px; border-radius: 10px; }
-            .today-last-sale-badge { font-size: 0.65em; }
-            .today-last-sale-closer { font-size: 0.9em; }
-            .today-last-sale-value { font-size: 0.85em; }
-            .today-last-sale-avatar { width: 38px; height: 38px; }
-            .today-progress-bar { height: 8px; }
-            .today-progress-labels { font-size: 0.8em; }
             .chart-card .chart-wrapper { min-height: 240px; }
-            .contratos-grid { gap: 10px; }
-            .contrato-item { padding: 12px; }
-            .contrato-value { font-size: 1.5em; }
-            .contrato-label { font-size: 0.68em; }
-            .kpi-card { padding: 14px; gap: 12px; }
-            .kpi-icon { width: 38px; height: 38px; border-radius: 10px; }
-            .kpi-label { font-size: 0.7em; }
-            .kpi-value { font-size: 1.1em; }
             .comercial-ai-fab { bottom: 12px; right: 12px; width: 44px; height: 44px; }
         }
     </style>
@@ -736,7 +631,7 @@
                 <div class="dash-card today-card">
                     <div class="today-top">
                         <div>
-                            <div style="font-size:0.88em;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600;">Contratados hoje</div>
+                            <div style="font-size:clamp(0.65em,0.75vw,0.95em);color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:clamp(4px,0.6vh,8px);font-weight:600;">Contratados hoje</div>
                             <div class="today-value" id="todayValue">R$ 0,00</div>
                         </div>
                         <div class="today-last-sale" id="todayLastSale">
@@ -779,8 +674,8 @@
                 <!-- Cards KPIs -->
                 <div class="kpis-bottom-row">
                     <!-- Contratos do mês -->
-                    <div class="dash-card" style="padding:16px;">
-                        <div class="dash-card-title" style="margin-bottom:12px;">
+                    <div class="dash-card">
+                        <div class="dash-card-title">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                 <polyline points="22 4 12 14.01 9 11.01"/>
@@ -806,7 +701,7 @@
                     </div>
 
                     <!-- Vendas + Taxa -->
-                    <div style="display:flex;flex-direction:column;gap:16px;">
+                    <div style="display:flex;flex-direction:column;gap:clamp(8px, 1vh, 16px);">
                         <div class="kpi-card">
                             <div class="kpi-icon green">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
