@@ -460,6 +460,36 @@
         .contrato-value svg { color: #35CCA3; }
         .contrato-value.pending svg { color: #E8BB34; }
 
+        .contratos-vendas-total {
+            display: flex;
+            align-items: center;
+            gap: clamp(8px, 0.8vw, 14px);
+            margin-top: clamp(8px, 1vh, 14px);
+            padding: clamp(8px, 1vh, 14px) clamp(10px, 1vw, 18px);
+            background: rgba(53, 204, 163, 0.06);
+            border-radius: clamp(8px, 0.8vw, 14px);
+            border: 1px solid rgba(53, 204, 163, 0.12);
+        }
+
+        .contratos-vendas-data {
+            flex: 1;
+            text-align: center;
+        }
+
+        .contratos-vendas-label {
+            font-size: clamp(0.6em, 0.65vw, 0.85em);
+            color: #8c95a3;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .contratos-vendas-value {
+            font-size: clamp(1.2em, 1.5vw, 2.2em);
+            font-weight: 800;
+            color: #35CCA3;
+        }
+
         /* ======================== LOADING ======================== */
         .dash-loading {
             display: flex;
@@ -794,7 +824,7 @@
 
                 <!-- Cards KPIs -->
                 <div class="kpis-bottom-row">
-                    <!-- Contratos do mês -->
+                    <!-- Contratos do mês + Vendas do mês -->
                     <div class="dash-card">
                         <div class="dash-card-title">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -819,9 +849,18 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="contratos-vendas-total">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#35CCA3" stroke-width="2">
+                                <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                            <div class="contratos-vendas-data">
+                                <div class="contratos-vendas-label">Vendas do mês (total)</div>
+                                <div class="contratos-vendas-value" id="kpiVendasTotal">R$ 0,00</div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Vendas + Taxa -->
+                    <!-- KPIs direita -->
                     <div style="display:flex;flex-direction:column;gap:clamp(8px, 1vh, 16px);">
                         <div class="kpi-card">
                             <div class="kpi-icon yellow">
@@ -847,26 +886,10 @@
                                 <div class="kpi-value" id="kpiTaxaConversao">0%</div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Gerados + Meta Semanal -->
-                <div class="kpis-bottom-row">
-                    <div class="kpi-card">
-                        <div class="kpi-icon green">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                            </svg>
-                        </div>
-                        <div class="kpi-data">
-                            <div class="kpi-label">Vendas do mês (total)</div>
-                            <div class="kpi-value accent" id="kpiVendasTotal">R$ 0,00</div>
-                        </div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-icon purple">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <div class="kpi-card">
+                            <div class="kpi-icon purple">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                                 <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
                                 <line x1="3" y1="10" x2="21" y2="10"/>
                             </svg>
