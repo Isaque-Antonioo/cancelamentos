@@ -93,8 +93,11 @@ function onSheetEdit(e) {
       source: 'apps_script'
     };
 
-    // Enviar para Firebase
+    // Enviar para Firebase (real-time)
     sendToFirebase(payload);
+
+    // Salvar snapshot mensal (histórico)
+    saveMonthlySnapshot(payload);
 
     Logger.log('Dados enviados para Firebase com sucesso!');
   } catch (error) {
@@ -200,6 +203,41 @@ function sendToFirebase(data) {
   if (code !== 200) {
     Logger.log('Erro Firebase HTTP ' + code + ': ' + response.getContentText());
     throw new Error('Firebase retornou HTTP ' + code);
+  }
+}
+
+// ===================== MONTHLY SNAPSHOT =====================
+
+/**
+ * Salva snapshot mensal no Firebase para histórico.
+ * Path: comercial_history/{YYYY-MM}
+ */
+function saveMonthlySnapshot(data) {
+  var now = new Date();
+  var year = now.getFullYear();
+  var month = (now.getMonth() + 1).toString().padStart(2, '0');
+  var monthKey = year + '-' + month;
+
+  var url = FIREBASE_URL + '/comercial_history/' + monthKey + '.json';
+
+  var snapshot = {
+    kpis: data.kpis,
+    closers: data.closers,
+    ultimaVenda: data.ultimaVenda,
+    savedAt: Date.now(),
+    savedISO: now.toISOString()
+  };
+
+  var options = {
+    method: 'put',
+    contentType: 'application/json',
+    payload: JSON.stringify(snapshot),
+    muteHttpExceptions: true
+  };
+
+  var response = UrlFetchApp.fetch(url, options);
+  if (response.getResponseCode() === 200) {
+    Logger.log('Snapshot mensal salvo: ' + monthKey);
   }
 }
 

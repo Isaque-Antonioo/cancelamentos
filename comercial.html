@@ -733,6 +733,9 @@
                 </button>
                 <h1 class="header-main-title">Dashboard Comercial</h1>
                 <div class="header-controls">
+                    <select id="comercialMonthFilter" class="month-selector" onchange="handleComercialMonthChange(this.value)">
+                        <option value="live">Mês atual (ao vivo)</option>
+                    </select>
                     <button class="btn-icon-small btn-sync-sheets" id="btnRefreshDash" onclick="loadDashboardData()" title="Sincronizar com Google Sheets">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/>
@@ -1013,6 +1016,7 @@
         let lastTodayValue = 0;
         let firebaseListenerActive = false;
         let lastFirebaseHash = '';
+        let currentViewMode = 'live'; // 'live' ou '2025-02' etc.
 
         // ===================================
         // SIDEBAR
@@ -1190,6 +1194,9 @@
 
                 // Sincronizar dados para Firebase (real-time para outros clientes)
                 syncToFirebase(kpis, closers, ultimaVenda);
+
+                // Salvar snapshot mensal (histórico)
+                saveMonthlySnapshot(kpis, closers, ultimaVenda);
 
                 // Show dashboard, hide loading
                 document.getElementById('dashLoading').style.display = 'none';
@@ -1582,6 +1589,9 @@
                 var newDiaValue = parseMoneyValue(data.kpis['Dia'] || 'R$ 0,00');
                 var isNewSale = lastTodayValue > 0 && newDiaValue > lastTodayValue;
 
+                // Só atualizar se estiver no modo ao vivo
+                if (currentViewMode !== 'live') return;
+
                 showNotification('Dados atualizados em tempo real!', 'success');
                 renderFromFirebaseData(data);
 
@@ -1640,6 +1650,104 @@
         }
 
         // ===================================
+        // HISTÓRICO MENSAL
+        // ===================================
+
+        // Retorna chave do mês atual: "2025-02"
+        function getCurrentMonthKey() {
+            var now = new Date();
+            var year = now.getFullYear();
+            var month = (now.getMonth() + 1).toString().padStart(2, '0');
+            return year + '-' + month;
+        }
+
+        // Retorna nome legível: "Fevereiro 2025"
+        function getMonthLabel(monthKey) {
+            var meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+            var parts = monthKey.split('-');
+            var monthIndex = parseInt(parts[1]) - 1;
+            return meses[monthIndex] + ' ' + parts[0];
+        }
+
+        // Salvar snapshot do mês atual no Firebase
+        function saveMonthlySnapshot(kpis, closers, ultimaVenda) {
+            if (!isFirebaseReady()) return;
+
+            var monthKey = getCurrentMonthKey();
+
+            var snapshot = {
+                kpis: kpis,
+                closers: closers,
+                ultimaVenda: ultimaVenda,
+                savedAt: Date.now(),
+                savedISO: new Date().toISOString()
+            };
+
+            database.ref('comercial_history/' + monthKey).set(snapshot);
+            console.log('Snapshot mensal salvo:', monthKey);
+        }
+
+        // Carregar lista de meses disponíveis e popular dropdown
+        function loadMonthOptions() {
+            if (!isFirebaseReady()) return;
+
+            database.ref('comercial_history').once('value', function(snapshot) {
+                var select = document.getElementById('comercialMonthFilter');
+                if (!select || !snapshot.exists()) return;
+
+                var data = snapshot.val();
+                var months = Object.keys(data).sort().reverse();
+
+                // Limpar opções antigas (manter "ao vivo")
+                select.innerHTML = '<option value="live">Mês atual (ao vivo)</option>';
+
+                var currentMonth = getCurrentMonthKey();
+
+                for (var i = 0; i < months.length; i++) {
+                    var opt = document.createElement('option');
+                    opt.value = months[i];
+                    opt.textContent = getMonthLabel(months[i]);
+                    if (months[i] === currentMonth) {
+                        opt.textContent += ' (atual)';
+                    }
+                    select.appendChild(opt);
+                }
+            });
+        }
+
+        // Navegar para um mês específico
+        function handleComercialMonthChange(value) {
+            currentViewMode = value;
+
+            if (value === 'live') {
+                // Voltar ao modo ao vivo
+                showNotification('Voltando ao modo ao vivo...', 'info');
+                loadDashboardData();
+                startAutoRefresh();
+                startQuickPoll();
+                return;
+            }
+
+            // Parar atualizações automáticas ao ver histórico
+            if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+            if (quickPollTimer) clearInterval(quickPollTimer);
+
+            // Carregar dados do mês do Firebase
+            showNotification('Carregando ' + getMonthLabel(value) + '...', 'info');
+
+            database.ref('comercial_history/' + value).once('value', function(snapshot) {
+                if (!snapshot.exists()) {
+                    showNotification('Nenhum dado encontrado para este mês', 'error');
+                    return;
+                }
+
+                var data = snapshot.val();
+                renderFromFirebaseData(data);
+                showNotification(getMonthLabel(value) + ' carregado!', 'success');
+            });
+        }
+
+        // ===================================
         // INIT
         // ===================================
         document.addEventListener('DOMContentLoaded', function() {
@@ -1650,9 +1758,11 @@
             // Iniciar Firebase listener quando estiver pronto
             if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
                 startFirebaseListener();
+                loadMonthOptions();
             } else {
                 window.addEventListener('firebaseReady', function() {
                     startFirebaseListener();
+                    loadMonthOptions();
                 });
             }
         });
