@@ -254,6 +254,49 @@
             display: flex;
             align-items: center;
             gap: clamp(8px, 1vw, 14px);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        /* Neon border rodando continuamente */
+        .today-last-sale::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: conic-gradient(
+                from var(--neon-angle, 0deg),
+                transparent 0%,
+                #35CCA3 10%,
+                #68C9AE 20%,
+                transparent 30%,
+                transparent 50%,
+                #E8BB34 60%,
+                #35CCA3 70%,
+                transparent 80%
+            );
+            border-radius: inherit;
+            z-index: -2;
+            animation: neonSpin 3s linear infinite;
+        }
+
+        .today-last-sale::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px; right: 2px; bottom: 2px;
+            background: linear-gradient(145deg, #0F2A23, #0F172A);
+            border-radius: clamp(6px, 0.8vw, 12px);
+            z-index: -1;
+        }
+
+        @property --neon-angle {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
+
+        @keyframes neonSpin {
+            to { --neon-angle: 360deg; }
         }
 
         .today-last-sale-badge {
@@ -460,40 +503,55 @@
             50% { opacity: 0.3; }
         }
 
-        /* ======================== ANIMAÇÃO NOVA VENDA ======================== */
+        /* ======================== ANIMACAO NOVA VENDA ======================== */
         @keyframes cashIn {
             0% { transform: scale(1); text-shadow: 0 0 0 transparent; }
-            15% { transform: scale(1.25); text-shadow: 0 0 30px rgba(53, 204, 163, 0.6); }
-            30% { transform: scale(1.1); }
-            45% { transform: scale(1.2); text-shadow: 0 0 20px rgba(53, 204, 163, 0.4); }
+            10% { transform: scale(1.3); text-shadow: 0 0 40px rgba(53, 204, 163, 0.8); }
+            25% { transform: scale(1.05); }
+            40% { transform: scale(1.2); text-shadow: 0 0 25px rgba(53, 204, 163, 0.5); }
             100% { transform: scale(1); text-shadow: 0 0 0 transparent; }
         }
 
         @keyframes flashCard {
-            0% { box-shadow: inset 0 0 0 rgba(53, 204, 163, 0); }
-            20% { box-shadow: inset 0 0 40px rgba(53, 204, 163, 0.15), 0 0 30px rgba(53, 204, 163, 0.2); }
-            100% { box-shadow: inset 0 0 0 rgba(53, 204, 163, 0), 0 0 0 rgba(53, 204, 163, 0); }
+            0% { box-shadow: inset 0 0 0 rgba(53, 204, 163, 0); border-color: rgba(53, 204, 163, 0.15); }
+            15% { box-shadow: inset 0 0 60px rgba(53, 204, 163, 0.12), 0 0 50px rgba(53, 204, 163, 0.25); border-color: rgba(53, 204, 163, 0.5); }
+            100% { box-shadow: inset 0 0 0 rgba(53, 204, 163, 0); border-color: rgba(53, 204, 163, 0.15); }
         }
 
-        @keyframes moneyFloat {
-            0% { opacity: 1; transform: translateY(0) scale(1); }
-            100% { opacity: 0; transform: translateY(-60px) scale(1.5); }
+        @keyframes confettiFall {
+            0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+            100% { opacity: 0; transform: translateY(calc(100vh - 100px)) rotate(720deg) scale(0.5); }
+        }
+
+        @keyframes moneyRain {
+            0% { opacity: 1; transform: translateY(-20px) scale(1.2); }
+            50% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(80px) scale(0.6); }
         }
 
         .today-card.cash-animation {
-            animation: flashCard 1.5s ease-out;
+            animation: flashCard 2s ease-out;
         }
 
         .today-value.cash-animation {
-            animation: cashIn 1.2s ease-out;
+            animation: cashIn 1.5s ease-out;
         }
 
-        .money-float {
+        .confetti-piece {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            pointer-events: none;
+            z-index: 999;
+            animation: confettiFall linear forwards;
+        }
+
+        .money-rain {
             position: absolute;
-            font-size: clamp(1.2em, 2vw, 2.5em);
             pointer-events: none;
             z-index: 10;
-            animation: moneyFloat 1.8s ease-out forwards;
+            font-size: clamp(1.5em, 2.5vw, 3em);
+            animation: moneyRain 2.5s ease-out forwards;
         }
 
         /* ======================== FAB + PANEL IA ======================== */
@@ -1288,34 +1346,58 @@
             // Reset animations
             card.classList.remove('cash-animation');
             value.classList.remove('cash-animation');
-            void card.offsetWidth; // force reflow
+            void card.offsetWidth;
 
-            // Trigger animations
+            // Trigger card + value animations
             card.classList.add('cash-animation');
             value.classList.add('cash-animation');
 
-            // Emojis flutuando
-            var emojis = ['💰', '💵', '🤑', '💲'];
-            for (var i = 0; i < 4; i++) {
+            // === CONFETES pela tela inteira ===
+            var confettiColors = ['#35CCA3', '#68C9AE', '#E8BB34', '#0DABCE', '#2FB490', '#E7E7E7'];
+            var shapes = ['circle', 'rect'];
+            for (var i = 0; i < 60; i++) {
                 (function(idx) {
                     setTimeout(function() {
                         var el = document.createElement('div');
-                        el.className = 'money-float';
-                        el.textContent = emojis[idx % emojis.length];
-                        el.style.left = (20 + Math.random() * 60) + '%';
-                        el.style.top = '30%';
-                        card.style.position = 'relative';
-                        card.appendChild(el);
-                        setTimeout(function() { el.remove(); }, 1900);
-                    }, idx * 200);
+                        el.className = 'confetti-piece';
+                        var color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+                        var shape = shapes[Math.floor(Math.random() * shapes.length)];
+                        el.style.background = color;
+                        el.style.borderRadius = shape === 'circle' ? '50%' : '2px';
+                        el.style.width = (6 + Math.random() * 8) + 'px';
+                        el.style.height = (6 + Math.random() * 8) + 'px';
+                        el.style.left = (Math.random() * 100) + 'vw';
+                        el.style.top = '-10px';
+                        el.style.animationDuration = (2 + Math.random() * 2) + 's';
+                        el.style.animationDelay = (Math.random() * 0.5) + 's';
+                        document.body.appendChild(el);
+                        setTimeout(function() { el.remove(); }, 5000);
+                    }, idx * 30);
                 })(i);
             }
 
-            // Limpar classe após animação
+            // === Chuva de dinheiro no card ===
+            var moneyEmojis = ['💰', '💵', '💲', '🤑', '💎', '🏆'];
+            card.style.position = 'relative';
+            for (var j = 0; j < 8; j++) {
+                (function(idx) {
+                    setTimeout(function() {
+                        var el = document.createElement('div');
+                        el.className = 'money-rain';
+                        el.textContent = moneyEmojis[idx % moneyEmojis.length];
+                        el.style.left = (5 + Math.random() * 85) + '%';
+                        el.style.top = (-5 + Math.random() * 20) + '%';
+                        card.appendChild(el);
+                        setTimeout(function() { el.remove(); }, 3000);
+                    }, idx * 150);
+                })(j);
+            }
+
+            // Limpar classes
             setTimeout(function() {
                 card.classList.remove('cash-animation');
                 value.classList.remove('cash-animation');
-            }, 2000);
+            }, 3000);
 
             // Tocar som
             playCashSound();
