@@ -1011,6 +1011,8 @@
         let kpiChart = null;
         let autoRefreshTimer = null;
         let lastTodayValue = 0;
+        let firebaseListenerActive = false;
+        let lastFirebaseHash = '';
 
         // ===================================
         // SIDEBAR
@@ -1185,6 +1187,9 @@
                 renderChart(kpis);
                 renderRanking(closers);
                 renderToday(kpis, ultimaVenda);
+
+                // Sincronizar dados para Firebase (real-time para outros clientes)
+                syncToFirebase(kpis, closers, ultimaVenda);
 
                 // Show dashboard, hide loading
                 document.getElementById('dashLoading').style.display = 'none';
@@ -1498,19 +1503,112 @@
         }
 
         // ===================================
-        // AUTO-REFRESH (5 min completo)
+        // FIREBASE REAL-TIME SYNC
+        // ===================================
+
+        // Gerar hash simples para detectar mudanças
+        function simpleHash(str) {
+            var hash = 0;
+            for (var i = 0; i < str.length; i++) {
+                var char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return hash.toString(36);
+        }
+
+        // Salvar dados parsed no Firebase para real-time
+        function syncToFirebase(kpis, closers, ultimaVenda) {
+            if (!isFirebaseReady()) return;
+
+            try {
+                var dataToSync = {
+                    kpis: kpis,
+                    closers: closers,
+                    ultimaVenda: ultimaVenda,
+                    updatedAt: Date.now(),
+                    updatedISO: new Date().toISOString()
+                };
+
+                database.ref('comercial_live').set(dataToSync);
+                lastFirebaseHash = simpleHash(JSON.stringify(dataToSync.kpis) + JSON.stringify(dataToSync.closers));
+                console.log('Dados sincronizados para Firebase comercial_live');
+            } catch (e) {
+                console.error('Erro ao sincronizar para Firebase:', e);
+            }
+        }
+
+        // Renderizar a partir de dados do Firebase
+        function renderFromFirebaseData(data) {
+            if (!data || !data.kpis) return;
+
+            var kpis = data.kpis;
+            var closers = data.closers || [];
+            var ultimaVenda = data.ultimaVenda || null;
+
+            // Ordenar closers
+            closers.sort(function(a, b) {
+                return parseMoneyValue(b.totalVendas) - parseMoneyValue(a.totalVendas);
+            });
+
+            // Render
+            renderKPIs(kpis, closers);
+            renderChart(kpis);
+            renderRanking(closers);
+            renderToday(kpis, ultimaVenda);
+
+            // Show dashboard
+            document.getElementById('dashLoading').style.display = 'none';
+            document.getElementById('dashGrid').style.display = 'grid';
+        }
+
+        // Iniciar listener Firebase em tempo real
+        function startFirebaseListener() {
+            if (!isFirebaseReady() || firebaseListenerActive) return;
+
+            database.ref('comercial_live').on('value', function(snapshot) {
+                if (!snapshot.exists()) return;
+
+                var data = snapshot.val();
+                var newHash = simpleHash(JSON.stringify(data.kpis) + JSON.stringify(data.closers));
+
+                // Ignorar se os dados são os mesmos que acabamos de enviar
+                if (newHash === lastFirebaseHash) return;
+
+                console.log('Firebase: dados alterados em tempo real!');
+                lastFirebaseHash = newHash;
+
+                // Detectar se houve nova venda (valor do dia aumentou)
+                var newDiaValue = parseMoneyValue(data.kpis['Dia'] || 'R$ 0,00');
+                var isNewSale = lastTodayValue > 0 && newDiaValue > lastTodayValue;
+
+                showNotification('Dados atualizados em tempo real!', 'success');
+                renderFromFirebaseData(data);
+
+                // Trigger animação de venda se o valor do dia aumentou
+                if (isNewSale) {
+                    setTimeout(function() { triggerCashAnimation(); }, 300);
+                }
+            });
+
+            firebaseListenerActive = true;
+            console.log('Firebase real-time listener ativo para comercial_live');
+        }
+
+        // ===================================
+        // AUTO-REFRESH (5 min — sync planilha → Firebase)
         // ===================================
         function startAutoRefresh() {
             if (autoRefreshTimer) clearInterval(autoRefreshTimer);
             autoRefreshTimer = setInterval(function() {
-                console.log('Auto-refresh completo...');
-                showNotification('Atualizando dados automaticamente...', 'info');
+                console.log('Auto-refresh: sincronizando planilha → Firebase...');
+                showNotification('Sincronizando com planilha...', 'info');
                 loadDashboardData();
             }, 5 * 60 * 1000);
         }
 
         // ===================================
-        // POLLING RÁPIDO (30s) — detecta mudanças na planilha
+        // POLLING RÁPIDO (30s) — sync planilha → Firebase
         // ===================================
         let quickPollTimer = null;
 
@@ -1530,14 +1628,13 @@
 
                     var newDiaValue = parseMoneyValue(kpis['Dia'] || 'R$ 0,00');
 
-                    // Se o valor mudou, faz refresh completo
+                    // Se o valor mudou, faz refresh completo (que vai sincronizar para Firebase)
                     if (newDiaValue !== lastTodayValue) {
-                        console.log('Mudança detectada! De ' + lastTodayValue + ' para ' + newDiaValue);
-                        showNotification('Novos dados detectados! Atualizando...', 'info');
+                        console.log('Polling: mudança detectada! De ' + lastTodayValue + ' para ' + newDiaValue);
                         loadDashboardData();
                     }
                 } catch (e) {
-                    // Silencioso — não interrompe o polling
+                    // Silencioso
                 }
             }, 30 * 1000);
         }
@@ -1549,6 +1646,15 @@
             loadDashboardData();
             startAutoRefresh();
             startQuickPoll();
+
+            // Iniciar Firebase listener quando estiver pronto
+            if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
+                startFirebaseListener();
+            } else {
+                window.addEventListener('firebaseReady', function() {
+                    startFirebaseListener();
+                });
+            }
         });
 
         // ===================================
