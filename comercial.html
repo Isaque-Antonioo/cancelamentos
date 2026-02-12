@@ -376,7 +376,7 @@
         .kpi-icon.yellow { background: rgba(232, 187, 52, 0.15); color: #E8BB34; }
         .kpi-icon.purple { background: rgba(13, 171, 206, 0.15); color: #0DABCE; }
 
-        .kpi-data {}
+        .kpi-data { text-align: center; flex: 1; }
         .kpi-label { font-size: clamp(0.6em, 0.7vw, 0.88em); color: #8c95a3; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; margin-bottom: 2px; }
         .kpi-value { font-size: clamp(1em, 1.2vw, 1.8em); font-weight: 700; color: #e7e7e7; }
         .kpi-value.accent { color: #35CCA3; }
@@ -1063,16 +1063,15 @@
         function renderChart(kpis) {
             var ctx = document.getElementById('kpiChart').getContext('2d');
 
+            var metaValue = parseMoneyValue(kpis['Meta']);
+
             var items = [
                 { label: 'Assinados', value: parseMoneyValue(kpis['Assinados']), color: '#35CCA3' },
                 { label: 'Gerados', value: parseMoneyValue(kpis['Equipe'] || kpis['Gerados']), color: '#68C9AE' },
-                { label: 'Total', value: parseMoneyValue(kpis['Total']), color: '#1696B3' },
+                { label: 'Total', value: parseMoneyValue(kpis['Total']), color: '#2FB490' },
                 { label: 'Desistentes', value: parseMoneyValue(kpis['Desistentes']), color: '#E05D5D' },
-                { label: 'Pendentes', value: parseMoneyValue(kpis['Pendentes']), color: '#E8BB34' },
-                { label: 'Meta', value: parseMoneyValue(kpis['Meta']), color: '#0DABCE' }
+                { label: 'Pendentes', value: parseMoneyValue(kpis['Pendentes']), color: '#E8BB34' }
             ];
-
-            var metaValue = items.find(function(i) { return i.label === 'Meta'; }).value;
 
             // Ordenar do maior para o menor
             items.sort(function(a, b) { return b.value - a.value; });
