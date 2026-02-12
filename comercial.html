@@ -419,7 +419,7 @@
         .kpi-icon.yellow { background: rgba(232, 187, 52, 0.15); color: #E8BB34; }
         .kpi-icon.purple { background: rgba(13, 171, 206, 0.15); color: #0DABCE; }
 
-        .kpi-data { text-align: center; flex: 1; }
+        .kpi-data { text-align: left; flex: 1; }
         .kpi-label { font-size: clamp(0.6em, 0.7vw, 0.88em); color: #8c95a3; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; margin-bottom: 2px; }
         .kpi-value { font-size: clamp(1em, 1.2vw, 1.8em); font-weight: 700; color: #e7e7e7; }
         .kpi-value.accent { color: #35CCA3; }
@@ -890,13 +890,14 @@
                             <div class="kpi-icon purple">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                                <line x1="3" y1="10" x2="21" y2="10"/>
-                            </svg>
-                        </div>
-                        <div class="kpi-data">
-                            <div class="kpi-label">Meta semanal</div>
-                            <div class="kpi-value" id="kpiMetaSemanal">R$ 0,00</div>
+                                    <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                            </div>
+                            <div class="kpi-data">
+                                <div class="kpi-label">Meta semanal</div>
+                                <div class="kpi-value" id="kpiMetaSemanal">R$ 0,00</div>
+                            </div>
                         </div>
                     </div>
                 </div>
