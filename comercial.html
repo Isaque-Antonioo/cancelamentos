@@ -460,6 +460,42 @@
             50% { opacity: 0.3; }
         }
 
+        /* ======================== ANIMAÇÃO NOVA VENDA ======================== */
+        @keyframes cashIn {
+            0% { transform: scale(1); text-shadow: 0 0 0 transparent; }
+            15% { transform: scale(1.25); text-shadow: 0 0 30px rgba(53, 204, 163, 0.6); }
+            30% { transform: scale(1.1); }
+            45% { transform: scale(1.2); text-shadow: 0 0 20px rgba(53, 204, 163, 0.4); }
+            100% { transform: scale(1); text-shadow: 0 0 0 transparent; }
+        }
+
+        @keyframes flashCard {
+            0% { box-shadow: inset 0 0 0 rgba(53, 204, 163, 0); }
+            20% { box-shadow: inset 0 0 40px rgba(53, 204, 163, 0.15), 0 0 30px rgba(53, 204, 163, 0.2); }
+            100% { box-shadow: inset 0 0 0 rgba(53, 204, 163, 0), 0 0 0 rgba(53, 204, 163, 0); }
+        }
+
+        @keyframes moneyFloat {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-60px) scale(1.5); }
+        }
+
+        .today-card.cash-animation {
+            animation: flashCard 1.5s ease-out;
+        }
+
+        .today-value.cash-animation {
+            animation: cashIn 1.2s ease-out;
+        }
+
+        .money-float {
+            position: absolute;
+            font-size: clamp(1.2em, 2vw, 2.5em);
+            pointer-events: none;
+            z-index: 10;
+            animation: moneyFloat 1.8s ease-out forwards;
+        }
+
         /* ======================== FAB + PANEL IA ======================== */
         .comercial-ai-fab {
             position: fixed; bottom: 24px; right: 24px;
@@ -893,6 +929,7 @@
 
         let kpiChart = null;
         let autoRefreshTimer = null;
+        let lastTodayValue = 0;
 
         // ===================================
         // SIDEBAR
@@ -1193,18 +1230,116 @@
         }
 
         // ===================================
+        // SOM DE CAIXA REGISTRADORA
+        // ===================================
+        function playCashSound() {
+            var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Som de moedas caindo
+            function playTone(freq, start, duration, gain) {
+                var osc = audioCtx.createOscillator();
+                var g = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
+                g.gain.setValueAtTime(gain, audioCtx.currentTime + start);
+                g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + start + duration);
+                osc.connect(g);
+                g.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + start);
+                osc.stop(audioCtx.currentTime + start + duration);
+            }
+
+            // Sequência "cha-ching!"
+            playTone(1200, 0, 0.08, 0.3);
+            playTone(1600, 0.06, 0.08, 0.3);
+            playTone(2400, 0.12, 0.15, 0.25);
+            playTone(2000, 0.2, 0.3, 0.2);
+            playTone(2600, 0.22, 0.4, 0.15);
+
+            // Ruído metálico (moedas)
+            var bufferSize = audioCtx.sampleRate * 0.3;
+            var buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            var data = buffer.getChannelData(0);
+            for (var i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.15));
+            }
+            var noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            var filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 4000;
+            filter.Q.value = 2;
+            var noiseGain = audioCtx.createGain();
+            noiseGain.gain.setValueAtTime(0.08, audioCtx.currentTime + 0.1);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+            noise.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(audioCtx.destination);
+            noise.start(audioCtx.currentTime + 0.1);
+        }
+
+        // ===================================
+        // ANIMAÇÃO NOVA VENDA
+        // ===================================
+        function triggerCashAnimation() {
+            var card = document.querySelector('.today-card');
+            var value = document.getElementById('todayValue');
+
+            // Reset animations
+            card.classList.remove('cash-animation');
+            value.classList.remove('cash-animation');
+            void card.offsetWidth; // force reflow
+
+            // Trigger animations
+            card.classList.add('cash-animation');
+            value.classList.add('cash-animation');
+
+            // Emojis flutuando
+            var emojis = ['💰', '💵', '🤑', '💲'];
+            for (var i = 0; i < 4; i++) {
+                (function(idx) {
+                    setTimeout(function() {
+                        var el = document.createElement('div');
+                        el.className = 'money-float';
+                        el.textContent = emojis[idx % emojis.length];
+                        el.style.left = (20 + Math.random() * 60) + '%';
+                        el.style.top = '30%';
+                        card.style.position = 'relative';
+                        card.appendChild(el);
+                        setTimeout(function() { el.remove(); }, 1900);
+                    }, idx * 200);
+                })(i);
+            }
+
+            // Limpar classe após animação
+            setTimeout(function() {
+                card.classList.remove('cash-animation');
+                value.classList.remove('cash-animation');
+            }, 2000);
+
+            // Tocar som
+            playCashSound();
+        }
+
+        // ===================================
         // RENDER CONTRATADOS HOJE
         // ===================================
         function renderToday(kpis, ultimaVenda) {
             var diaValue = kpis['Dia'] || 'R$ 0,00';
             var metaDiaria = kpis['Meta Diária'] || 'R$ 3.500,00';
+            var diaNum = parseMoneyValue(diaValue);
 
             document.getElementById('todayValue').textContent = diaValue;
             document.getElementById('todayProgressCurrent').textContent = diaValue;
             document.getElementById('todayProgressMeta').textContent = metaDiaria;
 
+            // Detectar aumento de valor — dispara animação + som
+            if (lastTodayValue > 0 && diaNum > lastTodayValue) {
+                triggerCashAnimation();
+            }
+            lastTodayValue = diaNum;
+
             // Progress bar
-            var diaNum = parseMoneyValue(diaValue);
             var metaNum = parseMoneyValue(metaDiaria);
             var pct = metaNum > 0 ? Math.min((diaNum / metaNum) * 100, 100) : 0;
             document.getElementById('todayProgressFill').style.width = pct + '%';
