@@ -1357,14 +1357,46 @@
         }
 
         // ===================================
-        // AUTO-REFRESH (5 minutos)
+        // AUTO-REFRESH (5 min completo)
         // ===================================
         function startAutoRefresh() {
             if (autoRefreshTimer) clearInterval(autoRefreshTimer);
             autoRefreshTimer = setInterval(function() {
-                console.log('Auto-refresh dashboard...');
+                console.log('Auto-refresh completo...');
                 loadDashboardData();
             }, 5 * 60 * 1000);
+        }
+
+        // ===================================
+        // POLLING RÁPIDO (30s) — detecta mudanças na planilha
+        // ===================================
+        let quickPollTimer = null;
+
+        function startQuickPoll() {
+            if (quickPollTimer) clearInterval(quickPollTimer);
+            quickPollTimer = setInterval(async function() {
+                try {
+                    var dadosCSV = await fetchSheetCSV(GIDS.dados);
+                    var dadosLines = dadosCSV.split('\n').filter(function(l) { return l.trim(); });
+                    var dadosHeaders = parseCSVLine(dadosLines[0]);
+                    var dadosValues = dadosLines.length > 1 ? parseCSVLine(dadosLines[1]) : [];
+
+                    var kpis = {};
+                    for (var i = 0; i < dadosHeaders.length; i++) {
+                        kpis[dadosHeaders[i]] = dadosValues[i] || '';
+                    }
+
+                    var newDiaValue = parseMoneyValue(kpis['Dia'] || 'R$ 0,00');
+
+                    // Se o valor mudou, faz refresh completo
+                    if (newDiaValue !== lastTodayValue) {
+                        console.log('Mudança detectada! De ' + lastTodayValue + ' para ' + newDiaValue);
+                        loadDashboardData();
+                    }
+                } catch (e) {
+                    // Silencioso — não interrompe o polling
+                }
+            }, 30 * 1000);
         }
 
         // ===================================
@@ -1373,6 +1405,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadDashboardData();
             startAutoRefresh();
+            startQuickPoll();
         });
 
         // ===================================
