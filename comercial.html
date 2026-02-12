@@ -703,10 +703,9 @@
                 </button>
                 <h1 class="header-main-title">Dashboard Comercial</h1>
                 <div class="header-controls">
-                    <button class="btn-icon-small btn-sync-sheets" id="btnRefreshDash" onclick="loadDashboardData()" title="Atualizar dados">
+                    <button class="btn-icon-small btn-sync-sheets" id="btnRefreshDash" onclick="loadDashboardData()" title="Sincronizar com Google Sheets">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                            <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/>
                         </svg>
                     </button>
                     <span class="user-display-name" id="userDisplayName"></span>
@@ -1050,9 +1049,64 @@
             return await response.text();
         }
 
+        // ===================================
+        // TOAST NOTIFICATION
+        // ===================================
+        function showNotification(message, type) {
+            var existing = document.querySelector('.comercial-notification');
+            if (existing) existing.remove();
+
+            var colors = {
+                success: { bg: 'rgba(53, 204, 163, 0.15)', border: '#35CCA3', text: '#35CCA3' },
+                error:   { bg: 'rgba(224, 93, 93, 0.15)',  border: '#E05D5D', text: '#E05D5D' },
+                info:    { bg: 'rgba(22, 150, 179, 0.15)',  border: '#1696B3', text: '#1696B3' }
+            };
+            var c = colors[type] || colors.info;
+
+            var icons = {
+                success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+                error:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+                info:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>'
+            };
+
+            var notification = document.createElement('div');
+            notification.className = 'comercial-notification';
+            notification.innerHTML = '<span style="display:flex;align-items:center;gap:8px;color:' + c.text + '">' + (icons[type] || icons.info) + ' ' + message + '</span>';
+            Object.assign(notification.style, {
+                position: 'fixed',
+                top: '24px',
+                right: '24px',
+                background: c.bg,
+                border: '1px solid ' + c.border,
+                borderRadius: '12px',
+                padding: '12px 20px',
+                fontSize: '13px',
+                fontFamily: "'Poppins', sans-serif",
+                fontWeight: '500',
+                backdropFilter: 'blur(10px)',
+                zIndex: '10000',
+                opacity: '0',
+                transform: 'translateY(-10px)',
+                transition: 'all 0.3s ease'
+            });
+
+            document.body.appendChild(notification);
+            requestAnimationFrame(function() {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateY(0)';
+            });
+
+            setTimeout(function() {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(10px)';
+                setTimeout(function() { notification.remove(); }, 300);
+            }, 3000);
+        }
+
         async function loadDashboardData() {
             var btn = document.getElementById('btnRefreshDash');
             if (btn) btn.classList.add('loading');
+            showNotification('Sincronizando dados...', 'info');
 
             try {
                 // Fetch all 3 tabs in parallel
@@ -1113,9 +1167,11 @@
                 document.getElementById('dashGrid').style.display = 'grid';
 
                 console.log('Dashboard atualizado com sucesso');
+                showNotification('Dashboard atualizado!', 'success');
 
             } catch (error) {
                 console.error('Erro ao carregar dados do dashboard:', error);
+                showNotification('Erro ao atualizar dados', 'error');
                 document.getElementById('dashLoading').innerHTML = '<p style="color:#f87171;">Erro ao carregar dados: ' + error.message + '</p><button class="btn-refresh" onclick="loadDashboardData()" style="margin-top:16px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Tentar novamente</button>';
             } finally {
                 if (btn) btn.classList.remove('loading');
@@ -1292,10 +1348,27 @@
         // ===================================
         var cashAudio = new Audio('assets/cash-sound.mp3');
         cashAudio.volume = 0.8;
+        var audioUnlocked = false;
+
+        // Desbloquear áudio no primeiro clique (política de autoplay do navegador)
+        function unlockAudio() {
+            if (audioUnlocked) return;
+            cashAudio.play().then(function() {
+                cashAudio.pause();
+                cashAudio.currentTime = 0;
+                audioUnlocked = true;
+                console.log('Audio desbloqueado');
+            }).catch(function() {});
+        }
+        document.addEventListener('click', unlockAudio, { once: false });
+        document.addEventListener('touchstart', unlockAudio, { once: false });
+        document.addEventListener('keydown', unlockAudio, { once: false });
 
         function playCashSound() {
             cashAudio.currentTime = 0;
-            cashAudio.play().catch(function() {});
+            cashAudio.play().catch(function(e) {
+                console.log('Audio bloqueado pelo navegador, clique na tela para desbloquear');
+            });
         }
 
         // ===================================
@@ -1407,6 +1480,7 @@
             if (autoRefreshTimer) clearInterval(autoRefreshTimer);
             autoRefreshTimer = setInterval(function() {
                 console.log('Auto-refresh completo...');
+                showNotification('Atualizando dados automaticamente...', 'info');
                 loadDashboardData();
             }, 5 * 60 * 1000);
         }
@@ -1435,6 +1509,7 @@
                     // Se o valor mudou, faz refresh completo
                     if (newDiaValue !== lastTodayValue) {
                         console.log('Mudança detectada! De ' + lastTodayValue + ' para ' + newDiaValue);
+                        showNotification('Novos dados detectados! Atualizando...', 'info');
                         loadDashboardData();
                     }
                 } catch (e) {
