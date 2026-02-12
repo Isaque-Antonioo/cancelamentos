@@ -24,7 +24,14 @@
       "WebFetch(domain:docs.google.com)",
       "WebFetch(domain:doc-0g-58-sheets.googleusercontent.com)",
       "WebFetch(domain:doc-0c-0c-sheets.googleusercontent.com)",
-      "WebFetch(domain:hubstrom.com)"
+      "WebFetch(domain:hubstrom.com)",
+      "Bash(where:*)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(python -m pip install:*)",
+      "Bash(python3 -m pip install:*)",
+      "Bash(npx --yes yt-dlp:*)",
+      "Bash(ls:*)"
     ]
   }
 }

@@ -1288,52 +1288,14 @@
         }
 
         // ===================================
-        // SOM DE CAIXA REGISTRADORA
+        // SOM DE NOVA VENDA
         // ===================================
+        var cashAudio = new Audio('assets/cash-sound.mp3');
+        cashAudio.volume = 0.8;
+
         function playCashSound() {
-            var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-            // Som de moedas caindo
-            function playTone(freq, start, duration, gain) {
-                var osc = audioCtx.createOscillator();
-                var g = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
-                g.gain.setValueAtTime(gain, audioCtx.currentTime + start);
-                g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + start + duration);
-                osc.connect(g);
-                g.connect(audioCtx.destination);
-                osc.start(audioCtx.currentTime + start);
-                osc.stop(audioCtx.currentTime + start + duration);
-            }
-
-            // Sequência "cha-ching!"
-            playTone(1200, 0, 0.08, 0.3);
-            playTone(1600, 0.06, 0.08, 0.3);
-            playTone(2400, 0.12, 0.15, 0.25);
-            playTone(2000, 0.2, 0.3, 0.2);
-            playTone(2600, 0.22, 0.4, 0.15);
-
-            // Ruído metálico (moedas)
-            var bufferSize = audioCtx.sampleRate * 0.3;
-            var buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            var data = buffer.getChannelData(0);
-            for (var i = 0; i < bufferSize; i++) {
-                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.15));
-            }
-            var noise = audioCtx.createBufferSource();
-            noise.buffer = buffer;
-            var filter = audioCtx.createBiquadFilter();
-            filter.type = 'bandpass';
-            filter.frequency.value = 4000;
-            filter.Q.value = 2;
-            var noiseGain = audioCtx.createGain();
-            noiseGain.gain.setValueAtTime(0.08, audioCtx.currentTime + 0.1);
-            noiseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-            noise.connect(filter);
-            filter.connect(noiseGain);
-            noiseGain.connect(audioCtx.destination);
-            noise.start(audioCtx.currentTime + 0.1);
+            cashAudio.currentTime = 0;
+            cashAudio.play().catch(function() {});
         }
 
         // ===================================
