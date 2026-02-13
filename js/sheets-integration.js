@@ -126,6 +126,12 @@ async function fetchFromGoogleSheets(url, customGid = null) {
 
 // Sincronizar dados da planilha para o mês selecionado
 async function syncFromSheets() {
+    // Se Firebase RT está ativo, avisar que dados já estão em tempo real
+    if (firebaseRealtimeActive && cancelamentosListenerActive) {
+        showNotification('Dados já estão sincronizados em tempo real via Firebase.', 'info');
+        return true;
+    }
+
     const config = getSheetsConfig();
     if (!config || !config.url) {
         showNotification('Configure a URL da planilha primeiro.', 'warning');
@@ -419,21 +425,164 @@ async function removeSheetsConfiguration() {
     }
 }
 
+// ===================================
+// FIREBASE REAL-TIME LISTENER (cancelamentos)
+// ===================================
+let cancelamentosListenerActive = false;
+let lastCancelamentosChecksum = '';
+let currentListenerPath = '';
+let firebaseRealtimeActive = false;
+
+/**
+ * Converte dados do Firebase (headers + arrays) para objetos {header: valor}
+ * compatíveis com prepareDataSummary/updateKPIs/updateCharts.
+ *
+ * dataVersion 2: rows são arrays de valores, headers separados
+ * dataVersion 1 (ou sem): rows já são objetos (formato antigo)
+ */
+function convertFirebaseRowsToObjects(data) {
+    if (!data || !data.rows || !data.headers) return [];
+
+    const headers = data.headers;
+    const rows = data.rows;
+
+    // dataVersion 2: rows são arrays — reconstruir objetos
+    if (data.dataVersion === 2 || (rows.length > 0 && Array.isArray(rows[0]))) {
+        return rows.map(function(rowArray) {
+            const obj = {};
+            for (let i = 0; i < headers.length; i++) {
+                obj[headers[i]] = (rowArray[i] !== undefined && rowArray[i] !== null) ? rowArray[i] : '';
+            }
+            return obj;
+        });
+    }
+
+    // Formato antigo: rows já são objetos — retornar direto
+    return rows;
+}
+
+/**
+ * Inicia o listener Firebase para cancelamentos em tempo real.
+ * Usa o checksum do Apps Script para detecção confiável de mudanças.
+ */
+function startCancelamentosFirebaseListener() {
+    if (typeof isFirebaseReady !== 'function' || !isFirebaseReady()) return;
+    if (cancelamentosListenerActive) return;
+
+    const currentMonth = typeof getCurrentMonth === 'function' ? getCurrentMonth() : null;
+    if (!currentMonth) return;
+
+    attachCancelamentosListener(currentMonth);
+}
+
+/**
+ * Conecta o listener a um path específico de mês.
+ * Desconecta o anterior se existir.
+ */
+function attachCancelamentosListener(monthKey) {
+    if (!isFirebaseReady()) return;
+
+    // Desconectar listener anterior pelo path exato (não genérico)
+    if (currentListenerPath) {
+        database.ref(currentListenerPath).off('value');
+        console.log('[Cancelamentos RT] Listener desconectado:', currentListenerPath);
+    }
+
+    // Reset estado
+    lastCancelamentosChecksum = '';
+    currentListenerPath = 'cancelamentos_live/' + monthKey;
+    console.log('[Cancelamentos RT] Conectando listener:', currentListenerPath);
+
+    database.ref(currentListenerPath).on('value', function(snapshot) {
+        if (!snapshot.exists()) {
+            console.log('[Cancelamentos RT] Sem dados para', monthKey);
+            return;
+        }
+
+        const data = snapshot.val();
+        if (!data || !data.rows) return;
+
+        // Verificar se é fonte válida
+        if (data.source !== 'apps_script' && data.source !== 'apps_script_bulk') return;
+
+        // Usar checksum do Apps Script para detecção confiável de mudanças
+        const newChecksum = data.checksum || String(data.updatedAt || '');
+        if (newChecksum === lastCancelamentosChecksum) {
+            console.log('[Cancelamentos RT] Checksum igual, ignorando.');
+            return;
+        }
+
+        lastCancelamentosChecksum = newChecksum;
+        firebaseRealtimeActive = true;
+
+        console.log('[Cancelamentos RT] Dados atualizados! ' + data.totalRows + ' registros (checksum: ' + newChecksum + ')');
+
+        // Converter rows do Firebase para formato de objetos
+        const csvObjects = convertFirebaseRowsToObjects(data);
+
+        if (csvObjects.length === 0) {
+            console.warn('[Cancelamentos RT] Conversão retornou 0 registros.');
+            return;
+        }
+
+        // Atualizar dados globais
+        window.csvData = csvObjects;
+
+        // Atualizar dashboard
+        if (typeof prepareDataSummary === 'function') {
+            const summary = prepareDataSummary(window.csvData);
+            if (typeof updateKPIs === 'function') updateKPIs(summary);
+            if (typeof updateCharts === 'function') updateCharts(summary);
+        }
+
+        // Mostrar timestamp da última atualização
+        const updateTime = data.updatedISO ? new Date(data.updatedISO) : new Date();
+        const timeStr = updateTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        if (typeof showNotification === 'function') {
+            showNotification('Dados atualizados em tempo real (' + timeStr + ')', 'success');
+        }
+
+        updateSyncStatus();
+    });
+
+    cancelamentosListenerActive = true;
+
+    // Desabilitar auto-refresh quando Firebase RT está ativo
+    // O Firebase já atualiza em tempo real, polling CSV é desnecessário
+    if (autoRefreshInterval) {
+        console.log('[Cancelamentos RT] Desabilitando auto-refresh (Firebase RT ativo)');
+        stopAutoRefresh();
+    }
+}
+
+// Trocar listener quando mudar de mês
+function switchCancelamentosListener(newMonth) {
+    attachCancelamentosListener(newMonth);
+}
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
     const config = getSheetsConfig();
 
-    if (config && config.url) {
-        // Iniciar auto-refresh se configurado
-        if (config.refreshInterval > 0) {
-            startAutoRefresh(config.refreshInterval);
-        }
+    // Auto-refresh CSV será desabilitado quando Firebase RT conectar
+    if (config && config.url && config.refreshInterval > 0) {
+        startAutoRefresh(config.refreshInterval);
     }
 
     updateSyncStatus();
 
     // Atualizar status a cada minuto
     setInterval(updateSyncStatus, 60000);
+
+    // Iniciar Firebase listener quando estiver pronto
+    if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
+        startCancelamentosFirebaseListener();
+    } else {
+        window.addEventListener('firebaseReady', function() {
+            startCancelamentosFirebaseListener();
+        });
+    }
 });
 
 // Fechar modal clicando fora

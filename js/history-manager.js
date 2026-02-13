@@ -341,6 +341,11 @@ async function handleMonthChange(newMonthKey) {
         showNotification(`${formatMonthDisplay(newMonthKey)} - Sem dados. Sincronize com a planilha.`);
     }
 
+    // Trocar listener Firebase para o novo mês
+    if (typeof switchCancelamentosListener === 'function') {
+        switchCancelamentosListener(newMonthKey);
+    }
+
     // Atualizar seletor para mostrar indicadores atualizados
     await initMonthSelector();
 

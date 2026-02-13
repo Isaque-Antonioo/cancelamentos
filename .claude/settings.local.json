@@ -31,7 +31,8 @@
       "Bash(python -m pip install:*)",
       "Bash(python3 -m pip install:*)",
       "Bash(npx --yes yt-dlp:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(grep:*)"
     ]
   }
 }
