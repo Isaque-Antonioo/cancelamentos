@@ -1152,6 +1152,7 @@
         let firebaseListenerActive = false;
         let lastFirebaseHash = '';
         let currentViewMode = 'live'; // 'live' ou '2025-02' etc.
+        let appsScriptRealtimeActive = false; // True quando Apps Script está enviando dados via Firebase
 
         // ===================================
         // SIDEBAR
@@ -1660,8 +1661,16 @@
         }
 
         // Salvar dados parsed no Firebase para real-time
+        // NÃO escreve em comercial_live se Apps Script RT está ativo
+        // (senão sobrescreve dados frescos com dados do CSV que pode estar em cache)
         function syncToFirebase(kpis, closers, ultimaVenda) {
             if (!isFirebaseReady()) return;
+
+            // Se Apps Script está enviando dados via Firebase, não sobrescrever
+            if (appsScriptRealtimeActive) {
+                console.log('[Comercial] syncToFirebase ignorado — Apps Script RT ativo');
+                return;
+            }
 
             try {
                 var dataToSync = {
@@ -1669,7 +1678,8 @@
                     closers: closers,
                     ultimaVenda: ultimaVenda,
                     updatedAt: Date.now(),
-                    updatedISO: new Date().toISOString()
+                    updatedISO: new Date().toISOString(),
+                    source: 'dashboard_csv'
                 };
 
                 database.ref('comercial_live').set(dataToSync);
@@ -1712,12 +1722,23 @@
                 if (!snapshot.exists()) return;
 
                 var data = snapshot.val();
+
+                // Se veio do Apps Script, marcar RT ativo e parar polling CSV
+                if (data.source === 'apps_script' || data.source === 'apps_script_bulk') {
+                    if (!appsScriptRealtimeActive) {
+                        appsScriptRealtimeActive = true;
+                        console.log('[Comercial RT] Apps Script detectado — desabilitando polling CSV');
+                        if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+                        if (quickPollTimer) { clearInterval(quickPollTimer); quickPollTimer = null; }
+                    }
+                }
+
                 var newHash = simpleHash(JSON.stringify(data.kpis) + JSON.stringify(data.closers));
 
-                // Ignorar se os dados são os mesmos que acabamos de enviar
+                // Ignorar se os dados são os mesmos
                 if (newHash === lastFirebaseHash) return;
 
-                console.log('Firebase: dados alterados em tempo real!');
+                console.log('[Comercial RT] Dados alterados em tempo real!');
                 lastFirebaseHash = newHash;
 
                 // Detectar se houve nova venda (valor do dia aumentou)
@@ -1745,10 +1766,13 @@
 
         // ===================================
         // AUTO-REFRESH (5 min — sync planilha → Firebase)
+        // Desabilitado automaticamente quando Apps Script RT está ativo
         // ===================================
         function startAutoRefresh() {
+            if (appsScriptRealtimeActive) return; // Apps Script já envia em tempo real
             if (autoRefreshTimer) clearInterval(autoRefreshTimer);
             autoRefreshTimer = setInterval(function() {
+                if (appsScriptRealtimeActive) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; return; }
                 console.log('Auto-refresh: sincronizando planilha → Firebase...');
                 showNotification('Sincronizando com planilha...', 'info');
                 loadDashboardData();
@@ -1757,12 +1781,15 @@
 
         // ===================================
         // POLLING RÁPIDO (30s) — sync planilha → Firebase
+        // Desabilitado automaticamente quando Apps Script RT está ativo
         // ===================================
         let quickPollTimer = null;
 
         function startQuickPoll() {
+            if (appsScriptRealtimeActive) return; // Apps Script já envia em tempo real
             if (quickPollTimer) clearInterval(quickPollTimer);
             quickPollTimer = setInterval(async function() {
+                if (appsScriptRealtimeActive) { clearInterval(quickPollTimer); quickPollTimer = null; return; }
                 try {
                     var dadosCSV = await fetchSheetCSV(GIDS.dados);
                     var dadosLines = dadosCSV.split('\n').filter(function(l) { return l.trim(); });
@@ -1860,9 +1887,13 @@
             if (value === 'live') {
                 // Voltar ao modo ao vivo
                 showNotification('Voltando ao modo ao vivo...', 'info');
-                loadDashboardData();
-                startAutoRefresh();
-                startQuickPoll();
+                if (!appsScriptRealtimeActive) {
+                    // Sem Apps Script RT: usar polling CSV
+                    loadDashboardData();
+                    startAutoRefresh();
+                    startQuickPoll();
+                }
+                // Com Apps Script RT: o listener já vai renderizar os dados atuais
                 return;
             }
 
