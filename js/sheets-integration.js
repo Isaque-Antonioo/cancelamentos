@@ -493,7 +493,7 @@ function attachCancelamentosListener(monthKey) {
     currentListenerPath = 'cancelamentos_live/' + monthKey;
     console.log('[Cancelamentos RT] Conectando listener:', currentListenerPath);
 
-    database.ref(currentListenerPath).on('value', function(snapshot) {
+    database.ref(currentListenerPath).on('value', async function(snapshot) {
         if (!snapshot.exists()) {
             console.log('[Cancelamentos RT] Sem dados para', monthKey);
             return;
@@ -529,10 +529,39 @@ function attachCancelamentosListener(monthKey) {
         window.csvData = csvObjects;
 
         // Atualizar dashboard
+        let summary = null;
         if (typeof prepareDataSummary === 'function') {
-            const summary = prepareDataSummary(window.csvData);
+            summary = prepareDataSummary(window.csvData);
             if (typeof updateKPIs === 'function') updateKPIs(summary);
             if (typeof updateCharts === 'function') updateCharts(summary);
+        }
+
+        // Auto-save: persistir dados no Firebase sempre que RT atualizar
+        if (summary && typeof saveMonthData === 'function') {
+            try {
+                const kpis = {
+                    total: summary.total,
+                    cancelados: summary.status['Cancelado'] || 0,
+                    revertidos: summary.status['Revertido'] || 0,
+                    desistencia: summary.status['Desistência'] || 0,
+                    emTratativa: summary.status['Em negociação'] || 0,
+                    valorTotal: summary.valorTotal,
+                    valorCancelado: summary.valorCancelado,
+                    valorRevertido: summary.valorRevertido
+                };
+                const chartsData = typeof captureChartsData === 'function' ? captureChartsData() : {};
+                const sections = typeof captureSectionsFromScreen === 'function' ? captureSectionsFromScreen() : {};
+                await saveMonthData(monthKey, {
+                    summary: summary,
+                    kpis: kpis,
+                    csvData: window.csvData,
+                    chartsData: chartsData,
+                    sections: sections
+                });
+                console.log('[Cancelamentos RT] Auto-save OK para', monthKey);
+            } catch (e) {
+                console.warn('[Cancelamentos RT] Erro ao auto-salvar:', e);
+            }
         }
 
         // Mostrar timestamp da última atualização

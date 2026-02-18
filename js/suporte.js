@@ -2658,7 +2658,7 @@ function startSuporteFirebaseListener() {
 
     console.log('[Suporte RT] Conectando listener em suporte_live');
 
-    database.ref('suporte_live').on('value', function(snapshot) {
+    database.ref('suporte_live').on('value', async function(snapshot) {
         if (!snapshot.exists()) {
             console.log('[Suporte RT] Sem dados em suporte_live');
             return;
@@ -2699,6 +2699,14 @@ function startSuporteFirebaseListener() {
             clearInterval(refreshTimer);
             refreshTimer = null;
             console.log('[Suporte RT] Polling CSV desabilitado (Firebase RT ativo)');
+        }
+
+        // Auto-save: persistir snapshot no Firebase sempre que RT atualizar
+        try {
+            await autoSaveToFirebase();
+            console.log('[Suporte RT] Auto-save OK');
+        } catch (e) {
+            console.warn('[Suporte RT] Erro ao auto-salvar:', e);
         }
 
         // Timestamp

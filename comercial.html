@@ -611,13 +611,113 @@
         .comercial-ai-panel-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
         .comercial-ai-panel-header h3 { color: #35CCA3; font-size: 1.1em; }
         .comercial-ai-panel-body { flex: 1; overflow-y: auto; padding: 20px; }
-        .comercial-ai-desc { color: #B9C0CA; font-size: 0.9em; margin-bottom: 16px; }
-        .comercial-gid-row { display: flex; gap: 10px; align-items: flex-end; }
-        .comercial-gid-field { flex: 1; }
-        .comercial-gid-field label { display: block; font-size: 0.82em; color: #B9C0CA; margin-bottom: 6px; }
-        .comercial-gid-field input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #E7E7E7; font-size: 0.95em; }
-        .comercial-fetch-status { display: block; margin-top: 8px; font-size: 0.82em; min-height: 1.2em; }
-        .comercial-ai-textarea { width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #E7E7E7; font-size: 0.85em; resize: vertical; font-family: monospace; }
+        .comercial-fetch-status { font-size: 0.82em; min-height: 1.2em; }
+
+        /* Status RT */
+        .ai-rt-status {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 14px; border-radius: 10px; margin-bottom: 20px;
+            background: rgba(53,204,163,0.06); border: 1px solid rgba(53,204,163,0.15);
+        }
+        .ai-rt-status .rt-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: #35CCA3;
+            animation: rtPulse 2s ease-in-out infinite;
+        }
+        .ai-rt-status.waiting .rt-dot { background: #6B7280; animation: none; }
+        @keyframes rtPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* Campo de pergunta */
+        .ai-question-wrap { margin-bottom: 20px; }
+        .ai-question-wrap label {
+            display: block; font-size: 0.8em; color: #6B7280;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin-bottom: 8px; font-weight: 600;
+        }
+        .ai-question-input {
+            width: 100%; padding: 12px 14px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px; color: #E7E7E7; font-size: 0.92em;
+            resize: none; transition: border-color 0.2s;
+            font-family: inherit;
+        }
+        .ai-question-input:focus {
+            outline: none; border-color: rgba(53,204,163,0.4);
+            background: rgba(255,255,255,0.06);
+        }
+        .ai-question-input::placeholder { color: #4B5563; }
+
+        /* Botoes de acao */
+        .ai-action-buttons { display: flex; gap: 10px; margin-bottom: 16px; }
+        .ai-btn {
+            flex: 1; display: flex; align-items: center; gap: 12px;
+            padding: 14px 16px; border-radius: 12px; cursor: pointer;
+            border: 1px solid transparent; transition: all 0.2s ease;
+        }
+        .ai-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .ai-btn-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .ai-btn-text { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+        .ai-btn-title { font-size: 0.9em; font-weight: 600; }
+        .ai-btn-sub { font-size: 0.75em; opacity: 0.7; }
+
+        .ai-btn-resumo {
+            background: linear-gradient(135deg, rgba(53,204,163,0.12), rgba(53,204,163,0.04));
+            border-color: rgba(53,204,163,0.25); color: #E7E7E7;
+        }
+        .ai-btn-resumo:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(53,204,163,0.2), rgba(53,204,163,0.08));
+            border-color: rgba(53,204,163,0.4);
+        }
+        .ai-btn-resumo .ai-btn-icon { background: rgba(53,204,163,0.15); color: #35CCA3; }
+
+        .ai-btn-pergunta {
+            background: rgba(99,102,241,0.08);
+            border-color: rgba(99,102,241,0.2); color: #E7E7E7;
+        }
+        .ai-btn-pergunta:hover:not(:disabled) {
+            background: rgba(99,102,241,0.14);
+            border-color: rgba(99,102,241,0.35);
+        }
+        .ai-btn-pergunta .ai-btn-icon { background: rgba(99,102,241,0.15); color: #818CF8; }
+
+        /* Barra inferior (config + GID) */
+        .ai-bottom-bar {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 0; margin-bottom: 16px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .ai-config-btn {
+            width: 34px; height: 34px; border-radius: 8px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+            color: #9CA3AF; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .ai-config-btn:hover { background: rgba(255,255,255,0.1); color: #E7E7E7; }
+        .ai-api-status { font-size: 0.8em; }
+        .ai-gid-toggle {
+            margin-left: auto; color: #4B5563; font-size: 0.78em; cursor: pointer;
+            user-select: none;
+        }
+        .ai-gid-toggle summary { list-style: none; display: flex; align-items: center; gap: 4px; }
+        .ai-gid-toggle summary::-webkit-details-marker { display: none; }
+        .ai-gid-row {
+            display: flex; gap: 6px; margin-top: 8px; align-items: center;
+            padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 8px;
+        }
+        .ai-gid-input {
+            width: 130px; padding: 6px 10px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px; color: #E7E7E7; font-size: 0.82em;
+        }
+        .ai-gid-btn {
+            padding: 6px 12px; background: rgba(53,204,163,0.1);
+            border: 1px solid rgba(53,204,163,0.2); border-radius: 6px;
+            color: #35CCA3; font-size: 0.8em; cursor: pointer; transition: all 0.2s;
+        }
+        .ai-gid-btn:hover { background: rgba(53,204,163,0.2); }
 
         /* ======================== RESPONSIVE ======================== */
 
@@ -918,49 +1018,84 @@
     <!-- Painel de IA Comercial -->
     <div class="comercial-ai-panel" id="comercialAiPanel" style="display: none;">
         <div class="comercial-ai-panel-header">
-            <h3>Análise com IA — Comercial</h3>
+            <h3>IA Comercial</h3>
             <button class="modal-close" onclick="toggleComercialAI()">&times;</button>
         </div>
         <div class="comercial-ai-panel-body">
-            <p class="comercial-ai-desc">Busque os dados da planilha comercial automaticamente. Atualize o GID quando mudar o mês.</p>
-            <div class="comercial-gid-row">
-                <div class="comercial-gid-field">
-                    <label for="comercialGidInput">GID da aba do mês</label>
-                    <input type="text" id="comercialGidInput" placeholder="Ex: 1234622450" />
-                </div>
-                <button class="btn-fetch-sheets" onclick="fetchComercialData()" id="btnFetchComercial" title="Buscar dados da planilha">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/>
-                    </svg>
-                    Buscar Dados
-                </button>
+            <!-- Status dos dados em tempo real -->
+            <div class="ai-rt-status" id="comercialDataStatus">
+                <span class="rt-dot"></span>
+                <span id="comercialDataStatusText">Carregando dados em tempo real...</span>
             </div>
-            <span id="comercialFetchStatus" class="comercial-fetch-status"></span>
-            <textarea id="comercialDataInput" class="comercial-ai-textarea" rows="6" placeholder="Os dados da planilha serão carregados aqui automaticamente." style="margin-top: 12px;"></textarea>
-            <div class="comercial-ai-actions" style="display:flex;gap:10px;align-items:center;margin-top:16px;">
-                <button class="btn-generate-large" onclick="generateComercialAIAnalysis()" id="btnComercialAI">
-                    <div class="btn-generate-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+            <!-- Pergunta personalizada -->
+            <div class="ai-question-wrap">
+                <label>Faça uma pergunta sobre os dados</label>
+                <textarea id="comercialUserQuestion" class="ai-question-input" rows="2" placeholder="Ex: Qual closer tem a melhor taxa de conversão? / Quantas vendas estão pendentes?"></textarea>
+            </div>
+
+            <!-- Botões de ação -->
+            <div class="ai-action-buttons">
+                <button class="ai-btn ai-btn-resumo" onclick="generateComercialAIAnalysis('resumo')" id="btnComercialAI">
+                    <div class="ai-btn-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
                         </svg>
                     </div>
-                    <div class="btn-generate-text">
-                        <span class="btn-generate-title">Gerar Análise</span>
-                        <span class="btn-generate-subtitle">Insights, previsões e recomendações</span>
+                    <div class="ai-btn-text">
+                        <span class="ai-btn-title">Gerar Resumo</span>
+                        <span class="ai-btn-sub">Insights e recomendações</span>
                     </div>
                 </button>
-                <button class="btn-config-ai" onclick="openComercialConfigModal()" title="Configurar API Key">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <button class="ai-btn ai-btn-pergunta" onclick="generateComercialAIAnalysis('pergunta')" id="btnComercialQuestion">
+                    <div class="ai-btn-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <div class="ai-btn-text">
+                        <span class="ai-btn-title">Perguntar</span>
+                        <span class="ai-btn-sub">Resposta sobre um dado</span>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Barra inferior: config + API status + GID opcional -->
+            <div class="ai-bottom-bar">
+                <button class="ai-config-btn" onclick="openComercialConfigModal()" title="Configurar API Key">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"/>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                     </svg>
                 </button>
-                <span id="comercialApiStatus" class="api-status-indicator"></span>
+                <span id="comercialApiStatus" class="ai-api-status api-status-indicator"></span>
+                <details class="ai-gid-toggle">
+                    <summary>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        GID opcional
+                    </summary>
+                    <div class="ai-gid-row">
+                        <input type="text" id="comercialGidInput" class="ai-gid-input" placeholder="GID da aba" />
+                        <button onclick="fetchComercialData()" id="btnFetchComercial" class="ai-gid-btn">Buscar</button>
+                        <span id="comercialFetchStatus" class="comercial-fetch-status"></span>
+                    </div>
+                </details>
             </div>
+
             <div id="comercialAiLoading" class="ai-loading" style="display: none;">
                 <div class="spinner"></div>
                 <span>Analisando dados comerciais com Claude AI...</span>
             </div>
+
+            <!-- Resposta da pergunta -->
+            <div id="comercialAnswerResult" style="display: none;">
+                <div class="ai-result-card">
+                    <h3>Resposta</h3>
+                    <div id="comercialAnswerText" style="color: #D1D5DB; line-height: 1.6; white-space: pre-wrap;"></div>
+                </div>
+            </div>
+
+            <!-- Resultados do resumo -->
             <div id="comercialAiResults" style="display: none;">
                 <div class="ai-results-grid">
                     <div class="ai-result-card"><h3>Insights</h3><ul class="insight-list" id="comercialInsightsList"></ul></div>
@@ -1595,6 +1730,9 @@
                 showNotification('Dados atualizados em tempo real!', 'success');
                 renderFromFirebaseData(data);
 
+                // Auto-save: persistir snapshot no histórico sempre que RT atualizar
+                saveMonthlySnapshot(data.kpis, data.closers, data.ultimaVenda);
+
                 // Trigger animação de venda se o valor do dia aumentou
                 if (isNewSale) {
                     setTimeout(function() { triggerCashAnimation(); }, 300);
@@ -1768,21 +1906,96 @@
         });
 
         // ===================================
-        // IA COMERCIAL (mantido do original)
+        // ===================================
+        // IA COMERCIAL — FIREBASE RT + PERGUNTA CUSTOM
         // ===================================
 
-        // Carregar GID salvo do Firebase
-        document.addEventListener('firebaseReady', async function() {
-            try {
-                var savedGid = await getComercialGidFromFirebase();
-                var gidInput = document.getElementById('comercialGidInput');
-                if (gidInput) gidInput.value = savedGid || '1234622450';
-            } catch (e) {
-                var gidInput = document.getElementById('comercialGidInput');
-                if (gidInput) gidInput.value = localStorage.getItem('comercial_gid') || '1234622450';
+        // Cache dos dados em tempo real para a IA
+        var comercialAIData = null;
+
+        // Atualizar status dos dados quando Firebase atualiza
+        function updateComercialDataStatus() {
+            var statusEl = document.getElementById('comercialDataStatusText');
+            var containerEl = document.getElementById('comercialDataStatus');
+            if (!statusEl) return;
+
+            if (comercialAIData) {
+                var kpiCount = comercialAIData.kpis ? Object.keys(comercialAIData.kpis).length : 0;
+                var closerCount = comercialAIData.closers ? comercialAIData.closers.length : 0;
+                var time = comercialAIData.updatedISO ? new Date(comercialAIData.updatedISO).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+                statusEl.textContent = 'Dados em tempo real: ' + kpiCount + ' KPIs, ' + closerCount + ' closers' + (time ? ' (atualizado ' + time + ')' : '');
+                if (containerEl) containerEl.classList.remove('waiting');
+            } else {
+                statusEl.textContent = 'Aguardando dados do Firebase...';
+                if (containerEl) containerEl.classList.add('waiting');
+            }
+        }
+
+        // Escutar dados do comercial_live para a IA
+        document.addEventListener('firebaseReady', function() {
+            if (typeof database !== 'undefined' && database) {
+                database.ref('comercial_live').on('value', function(snapshot) {
+                    if (snapshot.exists()) {
+                        comercialAIData = snapshot.val();
+                        updateComercialDataStatus();
+                    }
+                });
+            }
+
+            // Carregar GID salvo (opcional)
+            if (typeof getComercialGidFromFirebase === 'function') {
+                getComercialGidFromFirebase().then(function(savedGid) {
+                    var gidInput = document.getElementById('comercialGidInput');
+                    if (gidInput && savedGid) gidInput.value = savedGid;
+                }).catch(function() {});
             }
         });
 
+        // Formatar dados do Firebase RT para texto legível pela IA
+        function formatFirebaseDataForAI() {
+            if (!comercialAIData) return '';
+
+            var text = '';
+            var kpis = comercialAIData.kpis || {};
+            var closers = comercialAIData.closers || [];
+            var ultimaVenda = comercialAIData.ultimaVenda || null;
+
+            // KPIs
+            text += '=== RESUMO / KPIs DO PERIODO ===\n';
+            for (var key in kpis) {
+                if (kpis.hasOwnProperty(key)) {
+                    text += key + ': ' + kpis[key] + '\n';
+                }
+            }
+
+            // Closers
+            if (closers.length > 0) {
+                text += '\n=== CLOSERS / VENDEDORES ===\n';
+                closers.forEach(function(c) {
+                    var parts = [];
+                    if (c.nome) parts.push('Nome: ' + c.nome);
+                    if (c.total) parts.push('Total: ' + c.total);
+                    if (c.conversao) parts.push('Conversao: ' + c.conversao);
+                    if (c.contratos) parts.push('Contratos: ' + c.contratos);
+                    if (c.meta) parts.push('Meta: ' + c.meta);
+                    if (parts.length > 0) text += parts.join(' | ') + '\n';
+                });
+            }
+
+            // Ultima venda
+            if (ultimaVenda) {
+                text += '\n=== ULTIMA VENDA ===\n';
+                for (var vKey in ultimaVenda) {
+                    if (ultimaVenda.hasOwnProperty(vKey)) {
+                        text += vKey + ': ' + ultimaVenda[vKey] + '\n';
+                    }
+                }
+            }
+
+            return text.trim();
+        }
+
+        // Buscar dados adicionais via GID (opcional)
         async function fetchComercialData() {
             var gidInput = document.getElementById('comercialGidInput');
             var gid = gidInput ? gidInput.value.trim() : '';
@@ -1790,7 +2003,7 @@
             var btn = document.getElementById('btnFetchComercial');
 
             if (!gid) {
-                if (statusEl) { statusEl.textContent = 'Informe o GID da aba.'; statusEl.style.color = '#f87171'; }
+                if (statusEl) { statusEl.textContent = 'Informe o GID.'; statusEl.style.color = '#f87171'; }
                 return;
             }
 
@@ -1798,8 +2011,8 @@
                 await saveComercialGidToFirebase(gid);
             }
 
-            if (btn) { btn.disabled = true; btn.classList.add('loading'); }
-            if (statusEl) { statusEl.textContent = 'Buscando dados...'; statusEl.style.color = '#B9C0CA'; }
+            if (btn) btn.disabled = true;
+            if (statusEl) { statusEl.textContent = 'Buscando...'; statusEl.style.color = '#B9C0CA'; }
 
             try {
                 var csvUrl = COMERCIAL_SHEET_URL + '?gid=' + gid + '&single=true&output=csv&_t=' + Date.now();
@@ -1808,7 +2021,7 @@
 
                 var csvText = await response.text();
                 var lines = csvText.split('\n').filter(function(l) { return l.trim(); });
-                if (lines.length < 2) throw new Error('Planilha vazia ou sem dados.');
+                if (lines.length < 2) throw new Error('Vazia');
 
                 var headers = parseCSVLine(lines[0]);
                 var cleanHeaders = headers.map(function(h, idx) {
@@ -1837,9 +2050,9 @@
                         continue;
                     }
 
-                    var colA = (values[0] || '').trim();
-                    var colB = (values[1] || '').trim();
-                    if (colA && colB) kpiSection += colA + ': ' + colB + '\n';
+                    var colA2 = (values[0] || '').trim();
+                    var colB2 = (values[1] || '').trim();
+                    if (colA2 && colB2) kpiSection += colA2 + ': ' + colB2 + '\n';
 
                     var row = [];
                     for (var j = 2; j < cleanHeaders.length; j++) {
@@ -1851,18 +2064,19 @@
                 }
 
                 var formattedData = '';
-                if (kpiSection.trim()) formattedData += '=== RESUMO / KPIs DO PERÍODO ===\n' + kpiSection.trim() + '\n\n';
-                formattedData += '=== NEGOCIAÇÕES ===\n' + dataSection.trim();
+                if (kpiSection.trim()) formattedData += '=== NEGOCIACOES (via GID) ===\n' + kpiSection.trim() + '\n\n';
+                formattedData += dataSection.trim();
 
-                var textarea = document.getElementById('comercialDataInput');
-                if (textarea) textarea.value = formattedData.trim();
-                if (statusEl) { statusEl.textContent = dataCount + ' negociações carregadas.'; statusEl.style.color = '#35cca3'; }
+                // Adicionar ao cache
+                if (!comercialAIData) comercialAIData = {};
+                comercialAIData._gidExtra = formattedData;
+
+                if (statusEl) { statusEl.textContent = dataCount + ' registros'; statusEl.style.color = '#35cca3'; }
 
             } catch (error) {
-                console.error('Erro ao buscar planilha comercial:', error);
                 if (statusEl) { statusEl.textContent = 'Erro: ' + error.message; statusEl.style.color = '#f87171'; }
             } finally {
-                if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
+                if (btn) btn.disabled = false;
             }
         }
 
@@ -1872,16 +2086,23 @@
         function updateComercialApiStatus() {
             var el = document.getElementById('comercialApiStatus');
             if (el) {
-                if (hasComercialApiKey()) { el.textContent = '\u2713 API Key configurada'; el.style.color = '#35cca3'; }
-                else { el.textContent = '\u2717 API Key não configurada'; el.style.color = '#f87171'; }
+                if (hasComercialApiKey()) { el.textContent = '\u2713 API configurada'; el.style.color = '#35cca3'; }
+                else { el.textContent = '\u2717 Sem API Key'; el.style.color = '#f87171'; }
             }
         }
 
         function toggleComercialAI() {
             var panel = document.getElementById('comercialAiPanel');
             var fab = document.getElementById('btnComercialAIFab');
-            if (panel.style.display === 'none') { panel.style.display = 'flex'; fab.classList.add('active'); updateComercialApiStatus(); }
-            else { panel.style.display = 'none'; fab.classList.remove('active'); }
+            if (panel.style.display === 'none') {
+                panel.style.display = 'flex';
+                fab.classList.add('active');
+                updateComercialApiStatus();
+                updateComercialDataStatus();
+            } else {
+                panel.style.display = 'none';
+                fab.classList.remove('active');
+            }
         }
 
         function openComercialConfigModal() { var m = document.getElementById('comercialConfigModal'); var i = document.getElementById('comercialApiKeyInput'); if (m) { m.style.display = 'flex'; if (i) i.value = getComercialApiKey(); } }
@@ -1891,59 +2112,97 @@
             var input = document.getElementById('comercialApiKeyInput');
             if (!input) return;
             var key = input.value.trim();
-            if (!key.startsWith('sk-ant-')) { alert('Chave inválida. A chave deve começar com "sk-ant-"'); return; }
+            if (!key.startsWith('sk-ant-')) { alert('Chave deve comecar com "sk-ant-"'); return; }
             localStorage.setItem('anthropic_api_key', key);
             closeComercialConfigModal();
             updateComercialApiStatus();
         }
 
-        async function generateComercialAIAnalysis() {
-            var dataInput = document.getElementById('comercialDataInput');
-            var rawData = dataInput ? dataInput.value.trim() : '';
+        async function generateComercialAIAnalysis(mode) {
+            // Obter dados do Firebase RT
+            var rawData = formatFirebaseDataForAI();
+
+            // Adicionar dados extras do GID se existirem
+            if (comercialAIData && comercialAIData._gidExtra) {
+                rawData += '\n\n' + comercialAIData._gidExtra;
+            }
 
             if (!rawData) {
-                await fetchComercialData();
-                rawData = dataInput ? dataInput.value.trim() : '';
-                if (!rawData) { alert('Nenhum dado encontrado. Verifique o GID da aba.'); return; }
+                alert('Nenhum dado disponivel. Aguarde os dados do Firebase ou use o GID.');
+                return;
             }
 
             if (!hasComercialApiKey()) { openComercialConfigModal(); return; }
 
-            var btn = document.getElementById('btnComercialAI');
+            var userQuestion = document.getElementById('comercialUserQuestion');
+            var question = userQuestion ? userQuestion.value.trim() : '';
+
+            // Se modo pergunta mas sem pergunta, avisar
+            if (mode === 'pergunta' && !question) {
+                alert('Digite uma pergunta no campo acima.');
+                return;
+            }
+
+            var btnResumo = document.getElementById('btnComercialAI');
+            var btnPergunta = document.getElementById('btnComercialQuestion');
             var loading = document.getElementById('comercialAiLoading');
             var results = document.getElementById('comercialAiResults');
-            if (btn) btn.disabled = true;
+            var answerResult = document.getElementById('comercialAnswerResult');
+
+            if (btnResumo) btnResumo.disabled = true;
+            if (btnPergunta) btnPergunta.disabled = true;
             if (loading) loading.style.display = 'flex';
             if (results) results.style.display = 'none';
+            if (answerResult) answerResult.style.display = 'none';
 
             try {
-                var prompt = buildComercialPrompt(rawData);
+                var prompt;
+                if (mode === 'pergunta') {
+                    prompt = buildQuestionPrompt(rawData, question);
+                } else {
+                    prompt = buildComercialPrompt(rawData);
+                }
+
                 var response = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-api-key': getComercialApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
                     body: JSON.stringify({ model: 'claude-3-haiku-20240307', max_tokens: 3000, messages: [{ role: 'user', content: prompt }] })
                 });
 
-                if (!response.ok) { var error = await response.json(); throw new Error(error.error?.message || 'Erro na API'); }
+                if (!response.ok) { var err = await response.json(); throw new Error(err.error?.message || 'Erro na API'); }
 
                 var result = await response.json();
                 var content = result.content[0].text;
-                var jsonMatch = content.match(/\{[\s\S]*\}/);
-                if (!jsonMatch) throw new Error('Resposta inválida da IA');
-                var analysis = JSON.parse(jsonMatch[0]);
 
-                renderComercialInsights(analysis.insights || []);
-                renderComercialAlerts(analysis.alertas || []);
-                renderComercialRecommendations(analysis.recommendations || []);
-                if (results) results.style.display = 'block';
+                if (mode === 'pergunta') {
+                    // Modo pergunta: mostrar resposta em texto
+                    var answerText = document.getElementById('comercialAnswerText');
+                    if (answerText) answerText.textContent = content;
+                    if (answerResult) answerResult.style.display = 'block';
+                } else {
+                    // Modo resumo: parse JSON
+                    var jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (!jsonMatch) throw new Error('Resposta invalida da IA');
+                    var analysis = JSON.parse(jsonMatch[0]);
+
+                    renderComercialInsights(analysis.insights || []);
+                    renderComercialAlerts(analysis.alertas || []);
+                    renderComercialRecommendations(analysis.recommendations || []);
+                    if (results) results.style.display = 'block';
+                }
 
             } catch (error) {
-                console.error('Erro na análise IA comercial:', error);
-                alert('Erro ao gerar análise: ' + error.message);
+                console.error('Erro na analise IA comercial:', error);
+                alert('Erro: ' + error.message);
             } finally {
-                if (btn) btn.disabled = false;
+                if (btnResumo) btnResumo.disabled = false;
+                if (btnPergunta) btnPergunta.disabled = false;
                 if (loading) loading.style.display = 'none';
             }
+        }
+
+        function buildQuestionPrompt(rawData, question) {
+            return 'Voce e um analista comercial especializado. Responda a pergunta abaixo com base APENAS nos dados fornecidos.\n\nSeja direto, objetivo e use numeros/valores quando possivel. Responda em portugues.\n\n## DADOS COMERCIAIS ATUAIS (TEMPO REAL):\n\n' + rawData + '\n\n## PERGUNTA:\n\n' + question + '\n\nResponda de forma clara e concisa.';
         }
 
         function buildComercialPrompt(rawData) {
