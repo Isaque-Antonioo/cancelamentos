@@ -105,6 +105,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // FETCH E PARSE
 // ===================================
 async function fetchData() {
+    // Se Firebase RT está ativo, não buscar CSV (dados já chegam em tempo real)
+    if (suporteRealtimeActive && suporteListenerActive) {
+        console.log('[Suporte] Fetch ignorado - Firebase RT ativo');
+        return;
+    }
+
     try {
         const csvUrl = `${SUPORTE_CONFIG.sheetUrl}?gid=${SUPORTE_CONFIG.gid}&single=true&output=csv`;
         const response = await fetch(csvUrl);
@@ -2568,13 +2574,150 @@ function showNotification(message, type) {
 }
 
 // ===================================
-// MODIFICAR FETCH PARA AUTO-SAVE
+// FIREBASE REAL-TIME LISTENER (suporte)
 // ===================================
-// Sobreescrever o evento firebaseReady para auto-save
+let suporteListenerActive = false;
+let lastSuporteChecksum = '';
+let suporteRealtimeActive = false;
+
+/**
+ * Converte dados do Firebase (headers + arrays) para objetos {header: valor}
+ * e aplica as normalizações que parseCSV faz (campos _razaoSocial, _nStatus, etc.)
+ */
+function convertSuporteFirebaseData(data) {
+    if (!data || !data.rows || !data.headers) return [];
+
+    const headers = data.headers;
+    const rows = data.rows;
+    const result = [];
+
+    const rowArrays = (data.dataVersion === 2 || (rows.length > 0 && Array.isArray(rows[0])))
+        ? rows
+        : null;
+
+    for (let i = 0; i < rows.length; i++) {
+        let row;
+
+        if (rowArrays) {
+            // dataVersion 2: reconstruir objeto a partir de array
+            row = {};
+            for (let j = 0; j < headers.length; j++) {
+                row[headers[j]] = (rowArrays[i][j] !== undefined && rowArrays[i][j] !== null) ? rowArrays[i][j] : '';
+            }
+        } else {
+            // Formato antigo: já é objeto
+            row = rows[i];
+        }
+
+        // Aplicar as mesmas normalizações do parseCSV
+        row._razaoSocial = getCol(row, 'Razão Social', 'Razao Social', 'Cliente', 'Empresa') || '';
+        row._modulo = getCol(row, 'Módulo', 'Modulo', 'Module') || '';
+        row._processo = getCol(row, 'Processo', 'Process') || '';
+        row._canal = getCol(row, 'Canal de Atendimento', 'Canal de atendimento', 'Canal', 'Channel') || '';
+        row._ligacao = getCol(row, 'Ligação', 'Ligacao', 'Ligações', 'Call') || '';
+        row._status = getCol(row, 'Status', 'Situação', 'Situacao') || '';
+        row._diaMes = getCol(row, 'Dia/Mês', 'Dia/Mes', 'Dia', 'Data', 'Date') || '';
+        row._colaborador = getCol(row, 'Colaborador', 'Atendente', 'Responsável', 'Responsavel') || '';
+
+        row._mesNum = extractMonth(row._diaMes);
+        row._anoNum = extractYear(row._diaMes);
+        if (row._mesNum) {
+            const y = row._anoNum || new Date().getFullYear();
+            row._mesAno = `${y}-${String(row._mesNum).padStart(2, '0')}`;
+        } else {
+            row._mesAno = null;
+        }
+
+        // Filtrar cabeçalhos repetidos e linhas vazias
+        if (isHeaderRow(row)) continue;
+        const hasAnyData = row._razaoSocial || row._modulo || row._processo || row._canal || row._ligacao || row._status || row._diaMes || row._colaborador;
+        if (!hasAnyData) continue;
+
+        // Cache normalizações
+        row._nModulo = normalizeGeneric(row._modulo);
+        row._nProcesso = normalizeGeneric(row._processo);
+        row._nCanal = normalizeGeneric(row._canal);
+        row._nStatus = normalizeStatus(row._status);
+        row._nColaborador = normalizeColaborador(row._colaborador);
+        row._nLigacao = isLigacaoSim(row._ligacao);
+        row._day = extractDay(row._diaMes);
+        row._searchText = [row._razaoSocial, row._modulo, row._processo, row._canal, row._status, row._colaborador, row._diaMes].join(' ').toLowerCase();
+
+        result.push(row);
+    }
+
+    return result;
+}
+
+/**
+ * Inicia o listener Firebase para suporte em tempo real.
+ */
+function startSuporteFirebaseListener() {
+    if (!isSuporteFirebaseReady()) return;
+    if (suporteListenerActive) return;
+
+    console.log('[Suporte RT] Conectando listener em suporte_live');
+
+    database.ref('suporte_live').on('value', function(snapshot) {
+        if (!snapshot.exists()) {
+            console.log('[Suporte RT] Sem dados em suporte_live');
+            return;
+        }
+
+        const data = snapshot.val();
+        if (!data || !data.rows) return;
+
+        // Verificar fonte válida
+        if (data.source !== 'apps_script' && data.source !== 'apps_script_bulk') return;
+
+        // Checksum para evitar reprocessar dados iguais
+        const newChecksum = data.checksum || String(data.updatedAt || '');
+        if (newChecksum === lastSuporteChecksum) return;
+
+        lastSuporteChecksum = newChecksum;
+        suporteRealtimeActive = true;
+
+        console.log('[Suporte RT] Dados atualizados! ' + data.totalRows + ' registros');
+
+        // Converter e normalizar dados
+        const parsedData = convertSuporteFirebaseData(data);
+
+        if (parsedData.length === 0) {
+            console.warn('[Suporte RT] Nenhum registro válido após conversão.');
+            return;
+        }
+
+        // Atualizar dados globais
+        allData = parsedData;
+
+        // Reconstruir filtro de meses e aplicar filtros
+        buildMonthFilter(allData);
+        applyFilter();
+
+        // Desabilitar polling CSV (Firebase RT é mais rápido)
+        if (refreshTimer) {
+            clearInterval(refreshTimer);
+            refreshTimer = null;
+            console.log('[Suporte RT] Polling CSV desabilitado (Firebase RT ativo)');
+        }
+
+        // Timestamp
+        const updateTime = data.updatedISO ? new Date(data.updatedISO) : new Date();
+        const timeStr = updateTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        showNotification('Dados atualizados em tempo real (' + timeStr + ')', 'success');
+    });
+
+    suporteListenerActive = true;
+}
+
+// Iniciar listener quando Firebase estiver pronto
 window.addEventListener('firebaseReady', () => {
-    console.log('[Suporte] Firebase pronto - auto-save habilitado');
-    // Se já temos dados carregados, salvar automaticamente
-    if (allData.length > 0) {
+    console.log('[Suporte] Firebase pronto');
+    startSuporteFirebaseListener();
+
+    // Se já temos dados carregados e RT não chegou ainda, salvar
+    if (allData.length > 0 && !suporteRealtimeActive) {
         autoSaveToFirebase();
     }
 });

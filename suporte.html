@@ -99,31 +99,6 @@
                     <select id="monthFilter" class="month-selector" onchange="handleMonthFilter(this.value)">
                         <option value="todos">Todos os meses</option>
                     </select>
-                    <button class="btn-icon-small btn-sync-sheets" onclick="syncSuporteFromSheets()" title="Sincronizar com Google Sheets">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/>
-                        </svg>
-                    </button>
-                    <button class="btn-icon-small btn-save" onclick="saveToFirebase()" title="Salvar no Firebase">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                            <polyline points="17 21 17 13 7 13 7 21"/>
-                            <polyline points="7 3 7 8 15 8"/>
-                        </svg>
-                    </button>
-                    <button class="btn-icon-small btn-delete" onclick="deleteFromFirebase()" title="Excluir snapshot">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                        </svg>
-                    </button>
-                    <button class="btn-icon-small btn-refresh" onclick="refreshData()" title="Atualizar dados">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="23 4 23 10 17 10"/>
-                            <polyline points="1 20 1 14 7 14"/>
-                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-                        </svg>
-                    </button>
                     <span class="user-display-name" id="userDisplayName"></span>
                     <button class="btn-icon-small btn-logout" onclick="hubstromLogout()" title="Sair">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
