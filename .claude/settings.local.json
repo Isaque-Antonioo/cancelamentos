@@ -33,7 +33,11 @@
       "Bash(npx --yes yt-dlp:*)",
       "Bash(ls:*)",
       "Bash(grep:*)",
-      "WebFetch(domain:doc-0s-as-sheets.googleusercontent.com)"
+      "WebFetch(domain:doc-0s-as-sheets.googleusercontent.com)",
+      "Bash(git -C \"C:/Users/Admin/Desktop/cancelamentos\" log --oneline -- relacionamento.html)",
+      "Bash(git -C \"C:\\\\Users\\\\Admin\\\\Desktop\\\\cancelamentos\" log --oneline -- relacionamento.html)",
+      "Bash(cmd /c \"cd C:\\\\Users\\\\Admin\\\\Desktop\\\\cancelamentos && git log --oneline -- relacionamento.html\")",
+      "Bash(powershell -File:*)"
     ]
   }
 }
