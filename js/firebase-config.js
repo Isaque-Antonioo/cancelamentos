@@ -667,7 +667,7 @@ async function ensureAdminExists() {
             password_hash: SEED_ADMIN_PASSWORD_HASH,
             displayName: 'Administrador',
             role: 'admin',
-            allowedPages: ['index.html', 'comercial.html', 'suporte.html', 'admin.html'],
+            allowedPages: ['index.html', 'comercial.html', 'suporte.html', 'relacionamento.html', 'admin.html'],
             active: true,
             createdAt: new Date().toISOString(),
             createdBy: 'system_seed',

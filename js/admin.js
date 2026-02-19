@@ -77,7 +77,8 @@
             const pageLabels = {
                 'index.html': 'Cancelamentos',
                 'comercial.html': 'Comercial',
-                'suporte.html': 'Suporte'
+                'suporte.html': 'Suporte',
+                'relacionamento.html': 'Relacionamento'
             };
 
             let pagesHtml = '';
@@ -463,6 +464,7 @@
                 'index.html': 'Cancelamentos',
                 'comercial.html': 'Comercial',
                 'suporte.html': 'Suporte',
+                'relacionamento.html': 'Relacionamento',
                 'admin.html': 'Admin',
                 'login.html': 'Login'
             };
