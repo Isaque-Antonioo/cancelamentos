@@ -258,12 +258,10 @@
         .badge-health.em-dia::before { background: #35CCA3; }
         .badge-health.perigo    { background: rgba(251,146,60,0.12);  color: #FB923C; }
         .badge-health.perigo::before { background: #FB923C; }
-        .badge-health.risco     { background: rgba(239,68,68,0.12);   color: #F87171; animation: riskPulse 2s ease-in-out infinite; }
+        .badge-health.risco     { background: rgba(239,68,68,0.12);   color: #F87171; }
         .badge-health.risco::before  { background: #F87171; }
         .badge-health.outros    { background: rgba(107,114,128,0.12); color: #9CA3AF; }
         .badge-health.outros::before { background: #9CA3AF; }
-
-        @keyframes riskPulse { 0%,100%{ opacity:1; } 50%{ opacity:0.6; } }
 
         .esp-tag {
             display: flex; align-items: center; gap: 5px;
@@ -672,15 +670,18 @@ const HS_CONFIG = {
     'risco iminente':{ label: 'Risco Iminente', cls: 'risco',   color: '#F87171' },
 };
 
+const _nhCache = new Map();
 function normalizeHealth(h) {
     if (!h) return { label: 'Sem dado', cls: 'outros', color: '#6B7280' };
-    const key = h.toLowerCase().trim()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (_nhCache.has(h)) return _nhCache.get(h);
+    const key = h.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    let result = { label: h, cls: 'outros', color: '#6B7280' };
     for (const k in HS_CONFIG) {
         const kn = k.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        if (key.includes(kn)) return HS_CONFIG[k];
+        if (key.includes(kn)) { result = HS_CONFIG[k]; break; }
     }
-    return { label: h, cls: 'outros', color: '#6B7280' };
+    _nhCache.set(h, result);
+    return result;
 }
 
 function healthBadge(h) {
@@ -835,19 +836,24 @@ function renderHSChart(stats) {
     }
 
     const ctx = document.getElementById('hsChart').getContext('2d');
-    if (hsChartInstance) hsChartInstance.destroy();
-
-    hsChartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }] },
-        options: {
-            cutout: '68%',
-            plugins: { legend: { display: false }, tooltip: { callbacks: {
-                label: function(c) { return ' ' + c.label + ': ' + c.raw + ' (' + Math.round(c.raw/total*100) + '%)'; }
-            }}},
-            animation: { duration: 500 }
-        }
-    });
+    if (hsChartInstance) {
+        hsChartInstance.data.labels = labels;
+        hsChartInstance.data.datasets[0].data = data;
+        hsChartInstance.data.datasets[0].backgroundColor = colors;
+        hsChartInstance.update('none');
+    } else {
+        hsChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }] },
+            options: {
+                cutout: '68%',
+                plugins: { legend: { display: false }, tooltip: { callbacks: {
+                    label: function(c) { return ' ' + c.label + ': ' + c.raw + ' (' + Math.round(c.raw/total*100) + '%)'; }
+                }}},
+                animation: { duration: 400 }
+            }
+        });
+    }
 
     // Legend
     const legend = document.getElementById('hsLegend');
@@ -890,89 +896,65 @@ function renderPlanos(stats) {
 // ============================================================
 // RENDER CLIENTES EM RISCO
 // ============================================================
+const RISCO_PAGE_SIZE = 150;
+
 function renderRisco(stats) {
-    const todosClientes = stats.clientesRisco || [];
-    const clientes = todosClientes;
+    const todos = stats.clientesRisco || [];
     const tbody = document.getElementById('riscoTbody');
     const countEl = document.getElementById('riscoCount');
 
-    countEl.textContent = todosClientes.length;
+    countEl.textContent = todos.length;
 
-    if (!clientes.length) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:#35CCA3;font-size:0.9em;">
-            Nenhum cliente em risco
-        </td></tr>`;
+    if (!todos.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:#35CCA3;font-size:0.9em;">Nenhum cliente em risco</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = clientes.map(function(c) {
+    const visible = todos.slice(0, RISCO_PAGE_SIZE);
+    let html = visible.map(function(c) {
         const foto = getFoto(c.especialista);
         const fotoEl = foto ? `<img src="${foto}" class="esp-tag-avatar" onerror="this.style.display='none'">` : '';
         const erroEl = c.erros > 0
             ? `<span class="badge-erros">${c.erros}</span>`
             : `<span class="badge-erros zero">0</span>`;
-        const acesso = c.ultimoAcesso || '<span style="color:#6B7280;">—</span>';
         return `<tr>
             <td style="font-family:monospace;font-size:0.9em;color:#E7E7E7;">${c.cnpj}</td>
             <td><div class="esp-tag">${fotoEl}<span class="esp-tag-name">${c.especialista || '—'}</span></div></td>
             <td style="color:#9CA3AF;">${c.plano || '—'}</td>
             <td>${healthBadge(c.health)}</td>
-            <td style="color:#9CA3AF;font-size:0.9em;">${acesso}</td>
+            <td style="color:#9CA3AF;font-size:0.9em;">${c.ultimoAcesso || '—'}</td>
             <td>${erroEl}</td>
         </tr>`;
     }).join('');
+
+    if (todos.length > RISCO_PAGE_SIZE) {
+        html += `<tr><td colspan="6" style="text-align:center;padding:10px;color:#6B7280;font-size:0.82em;">
+            + ${todos.length - RISCO_PAGE_SIZE} registros adicionais
+        </td></tr>`;
+    }
+
+    tbody.innerHTML = html;
 }
 
 // ============================================================
-// RENDER SEM ACESSO RECENTE
+// RENDER SEM ACESSO RECENTE (usa lista pré-computada em computeStatsFromRows)
 // ============================================================
-function renderSemAcesso(rows) {
+const ACESSO_PAGE_SIZE = 150;
+
+function renderSemAcesso(stats) {
     const container = document.getElementById('semAcessoContainer');
     const countEl   = document.getElementById('semAcessoCount');
-    const hoje = new Date();
+    const lista = stats.semAcessoList || [];
 
-    if (!rows.length) { container.innerHTML = '<p style="color:#6B7280;font-size:0.85em;padding:8px;">Sem dados</p>'; return; }
-    const headers = Object.keys(rows[0]);
+    countEl.textContent = lista.length;
 
-    // Usar findHeader flexível (detecta typos como "HealtScore")
-    const hAcesso = findHeader(headers, ['ultimo acesso', 'ultimo_acesso', 'acesso']);
-    const hEsp    = findHeader(headers, ['especialista', 'responsavel']);
-    const hCNPJ   = findHeader(headers, ['cnpj']);
-    const hHealth = findHeader(headers, ['healthscore', 'healtscore', 'healt', 'health', 'saude']);
-
-    const semAcesso = [];
-    rows.forEach(function(row) {
-        const ultimoAcesso = hAcesso ? String(row[hAcesso] || '').trim() : '';
-        let dias = null;
-        if (!ultimoAcesso) {
-            dias = 9999;
-        } else {
-            const parts = ultimoAcesso.split('/');
-            if (parts.length === 3) {
-                const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-                if (!isNaN(d.getTime())) dias = Math.floor((hoje - d) / 86400000);
-            }
-        }
-        if (dias !== null && dias > 30) {
-            semAcesso.push({
-                cnpj:         hCNPJ   ? row[hCNPJ]   : '',
-                especialista: hEsp    ? row[hEsp]    : '',
-                ultimoAcesso: ultimoAcesso,
-                health:       hHealth ? row[hHealth] : '',
-                dias:         dias
-            });
-        }
-    });
-
-    semAcesso.sort(function(a, b) { return b.dias - a.dias; });
-    countEl.textContent = semAcesso.length;
-
-    if (!semAcesso.length) {
+    if (!lista.length) {
         container.innerHTML = '<p style="color:#35CCA3;font-size:0.85em;padding:8px;">Todos os clientes acessaram recentemente!</p>';
         return;
     }
 
-    container.innerHTML = semAcesso.map(function(c) {
+    const visible = lista.slice(0, ACESSO_PAGE_SIZE);
+    let html = visible.map(function(c) {
         const diasText = c.dias >= 9999 ? 'Nunca acessou' : c.dias + ' dias';
         const cls = c.dias >= 9999 ? 'nunca' : c.dias >= 60 ? 'critico' : 'atencao';
         const foto = getFoto(c.especialista);
@@ -985,6 +967,14 @@ function renderSemAcesso(rows) {
             <span class="acesso-dias ${cls}">${diasText}</span>
         </div>`;
     }).join('');
+
+    if (lista.length > ACESSO_PAGE_SIZE) {
+        html += `<div style="text-align:center;padding:10px;color:#6B7280;font-size:0.82em;">
+            + ${lista.length - ACESSO_PAGE_SIZE} registros adicionais
+        </div>`;
+    }
+
+    container.innerHTML = html;
 }
 
 // ============================================================
@@ -1037,6 +1027,7 @@ function computeStatsFromRows(rows) {
         especialistas: {},
         comErros: 0,
         semAcessoRecente: 0,
+        semAcessoList: [],
         clientesRisco: []
     };
 
@@ -1068,17 +1059,19 @@ function computeStatsFromRows(rows) {
         if (erros > 0) stats.comErros++;
 
         // Sem acesso recente (> 30 dias ou nunca acessou)
+        let dias = null;
         if (!acesso) {
-            stats.semAcessoRecente++;
+            dias = 9999;
         } else {
             const parts = acesso.split('/');
             if (parts.length === 3) {
                 const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-                if (!isNaN(d.getTime())) {
-                    const dias = Math.floor((hoje - d) / 86400000);
-                    if (dias > 30) stats.semAcessoRecente++;
-                }
+                if (!isNaN(d.getTime())) dias = Math.floor((hoje - d) / 86400000);
             }
+        }
+        if (dias !== null && dias > 30) {
+            stats.semAcessoRecente++;
+            stats.semAcessoList.push({ cnpj, especialista: esp, health, ultimoAcesso: acesso, dias });
         }
 
         // Clientes em risco
@@ -1092,10 +1085,15 @@ function computeStatsFromRows(rows) {
     stats.especialistasArray = Object.values(stats.especialistas).sort(function(a, b) { return b.total - a.total; });
     delete stats.especialistas;
 
-    // Risco: Risco Iminente primeiro
+    // Risco: Risco Iminente primeiro (normalizeHealth já cacheada)
     stats.clientesRisco.sort(function(a, b) {
-        return (normalizeHealth(a.health).cls === 'risco' ? 0 : 1) - (normalizeHealth(b.health).cls === 'risco' ? 0 : 1);
+        const ac = normalizeHealth(a.health).cls === 'risco' ? 0 : 1;
+        const bc = normalizeHealth(b.health).cls === 'risco' ? 0 : 1;
+        return ac - bc;
     });
+
+    // Sem acesso: mais dias primeiro
+    stats.semAcessoList.sort(function(a, b) { return b.dias - a.dias; });
 
     return stats;
 }
@@ -1104,6 +1102,30 @@ function computeStatsFromRows(rows) {
 // FIREBASE LISTENER
 // ============================================================
 let lastChecksum = '';
+let renderTimer = null;
+
+function processAndRender(data) {
+    buildFotoMap(data.colaboradores);
+    const rows = convertRows(data);
+    const stats = computeStatsFromRows(rows);
+
+    renderKPIs(stats);
+    renderEspecialistas(stats);
+    renderHSChart(stats);
+    renderPlanos(stats);
+
+    // Adiar tabelas pesadas para o próximo frame — KPIs e especialistas já visíveis
+    requestAnimationFrame(function() {
+        renderRisco(stats);
+        renderSemAcesso(stats);
+    });
+
+    document.getElementById('relLoading').style.display = 'none';
+    document.getElementById('relContent').style.display = 'flex';
+
+    const time = data.updatedISO ? new Date(data.updatedISO).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+    setRtStatus(true, 'Tempo real · ' + rows.length + ' clientes' + (time ? ' · ' + time : ''));
+}
 
 function startRelacionamentoListener() {
     if (typeof database === 'undefined' || !database) return;
@@ -1122,31 +1144,9 @@ function startRelacionamentoListener() {
         if (newChecksum === lastChecksum) return;
         lastChecksum = newChecksum;
 
-        // Atualizar mapa de fotos primeiro (necessário para computeStatsFromRows)
-        buildFotoMap(data.colaboradores);
-
-        // Converter rows para objetos
-        const rows = convertRows(data);
-
-        // Calcular stats diretamente dos dados brutos (ignora pré-cálculo do Apps Script)
-        const stats = computeStatsFromRows(rows);
-
-        // Renderizar tudo
-        renderKPIs(stats);
-        renderEspecialistas(stats);
-        renderHSChart(stats);
-        renderPlanos(stats);
-        renderRisco(stats);
-        renderSemAcesso(rows);
-
-        // Mostrar conteúdo
-        document.getElementById('relLoading').style.display = 'none';
-        const content = document.getElementById('relContent');
-        content.style.display = 'flex';
-
-        // Status RT
-        const time = data.updatedISO ? new Date(data.updatedISO).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
-        setRtStatus(true, 'Tempo real · ' + rows.length + ' clientes' + (time ? ' · ' + time : ''));
+        // Debounce: evita múltiplos renders em sequência rápida
+        if (renderTimer) clearTimeout(renderTimer);
+        renderTimer = setTimeout(function() { processAndRender(data); }, 80);
     });
 }
 
