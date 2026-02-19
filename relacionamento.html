@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hubstrom - Relacionamento</title>
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M161 85c2.7-1.2 5.6.8 5.6 3.7v50.3c0 1.6-.9 3-2.4 3.7L35.2 199.9c-.9.4-1.9-.3-1.9-1.2v-54.4c0-1.6.9-3 2.4-3.7L161 85z' fill='%2335CCA3'/%3E%3Cpath d='M164.8.1c.9-.4 1.9.3 1.9 1.2v54.4c0 1.6-.9 3-2.4 3.7L39 114.9c-2.7 1.2-5.6-.8-5.6-3.7V61c0-1.6.9-3 2.4-3.7L164.8.1z' fill='%2335CCA3'/%3E%3C/svg%3E">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="js/auth.js"></script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; background: #0D1117; color: #E7E7E7; overflow-x: hidden; }
+
+        /* =========== LAYOUT =========== */
+        .rel-body {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(6px, 0.8vh, 12px);
+            padding: clamp(6px, 0.8vh, 12px) clamp(8px, 1vw, 16px);
+        }
+
+        /* =========== KPI ROW =========== */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: clamp(6px, 0.7vw, 10px);
+            flex-shrink: 0;
+        }
+
+        .kpi-tile {
+            background: #161B22;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: clamp(8px, 1vh, 14px) clamp(10px, 1vw, 16px);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .kpi-tile-icon {
+            width: clamp(32px, 3.5vw, 44px);
+            height: clamp(32px, 3.5vw, 44px);
+            border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .kpi-tile-icon.green  { background: rgba(53,204,163,0.12); color: #35CCA3; }
+        .kpi-tile-icon.red    { background: rgba(239,68,68,0.12);  color: #F87171; }
+        .kpi-tile-icon.orange { background: rgba(251,146,60,0.12); color: #FB923C; }
+        .kpi-tile-icon.blue   { background: rgba(99,102,241,0.12); color: #818CF8; }
+        .kpi-tile-icon.yellow { background: rgba(234,179,8,0.12);  color: #EAB308; }
+        .kpi-tile-icon.purple { background: rgba(168,85,247,0.12); color: #C084FC; }
+
+        .kpi-tile-data { display: flex; flex-direction: column; }
+        .kpi-tile-value {
+            font-size: clamp(1.2em, 2vw, 1.8em);
+            font-weight: 700;
+            line-height: 1.1;
+            color: #F0F0F0;
+        }
+        .kpi-tile-label {
+            font-size: clamp(0.62em, 0.8vw, 0.78em);
+            color: #6B7280;
+            font-weight: 500;
+        }
+
+        /* =========== MAIN GRID =========== */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 38% 1fr;
+            gap: clamp(6px, 0.7vw, 10px);
+            height: clamp(380px, 68vh, 700px);
+            overflow: hidden;
+        }
+
+        /* =========== CARDS =========== */
+        .rel-card {
+            background: #161B22;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+        .rel-card-title {
+            display: flex; align-items: center; gap: 8px;
+            padding: clamp(8px, 1vh, 12px) clamp(10px, 1.2vw, 16px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: clamp(0.72em, 0.9vw, 0.88em);
+            font-weight: 600;
+            color: #9CA3AF;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+        .rel-card-title svg { color: #35CCA3; flex-shrink: 0; }
+        .rel-card-body {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: clamp(8px, 1vh, 12px) clamp(10px, 1.2vw, 16px);
+        }
+        .rel-card-body::-webkit-scrollbar { width: 4px; }
+        .rel-card-body::-webkit-scrollbar-track { background: transparent; }
+        .rel-card-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+        /* =========== LEFT COLUMN =========== */
+        .left-col {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(6px, 0.7vw, 10px);
+            overflow: hidden;
+            height: 100%;
+        }
+
+        /* Especialistas */
+        .especialista-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: clamp(6px, 0.8vh, 10px) 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .especialista-item:last-child { border-bottom: none; }
+        .esp-avatar {
+            width: clamp(34px, 3vw, 44px);
+            height: clamp(34px, 3vw, 44px);
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 2px solid rgba(53,204,163,0.3);
+            background: #1E2530;
+        }
+        .esp-avatar-placeholder {
+            width: clamp(34px, 3vw, 44px);
+            height: clamp(34px, 3vw, 44px);
+            border-radius: 50%;
+            background: rgba(53,204,163,0.1);
+            border: 2px solid rgba(53,204,163,0.3);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.9em; font-weight: 600; color: #35CCA3;
+        }
+        .esp-info { flex: 1; min-width: 0; }
+        .esp-name {
+            font-size: clamp(0.8em, 0.9vw, 0.92em);
+            font-weight: 600;
+            color: #E7E7E7;
+        }
+        .esp-sub {
+            font-size: clamp(0.68em, 0.75vw, 0.78em);
+            color: #6B7280;
+            margin-top: 2px;
+        }
+        .esp-total {
+            font-size: clamp(1em, 1.2vw, 1.3em);
+            font-weight: 700;
+            color: #35CCA3;
+            flex-shrink: 0;
+        }
+        .esp-health-bar {
+            display: flex;
+            height: 5px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+            gap: 1px;
+        }
+        .esp-health-seg { border-radius: 2px; }
+
+        /* Planos chart area */
+        .planos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: clamp(6px, 0.8vw, 10px);
+        }
+        .plano-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: clamp(8px, 1vh, 14px);
+            gap: 4px;
+            text-align: center;
+        }
+        .plano-name {
+            font-size: clamp(0.72em, 0.8vw, 0.85em);
+            color: #9CA3AF;
+            font-weight: 500;
+        }
+        .plano-count {
+            font-size: clamp(1.6em, 2.5vw, 2.2em);
+            font-weight: 800;
+            line-height: 1;
+        }
+        .plano-pct {
+            font-size: clamp(0.68em, 0.75vw, 0.78em);
+            color: #6B7280;
+        }
+        .plano-bar {
+            width: 100%; height: 4px; border-radius: 2px;
+            margin-top: 6px;
+        }
+
+        /* =========== RIGHT COLUMN =========== */
+        .right-col {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(6px, 0.7vw, 10px);
+            overflow: hidden;
+            height: 100%;
+        }
+
+        /* Tabela de risco */
+        .risco-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: clamp(0.7em, 0.8vw, 0.83em);
+        }
+        .risco-table th {
+            text-align: left;
+            padding: 6px 8px;
+            color: #6B7280;
+            font-weight: 600;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .risco-table td {
+            padding: clamp(5px, 0.7vh, 8px) 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            vertical-align: middle;
+        }
+        .risco-table tr:last-child td { border-bottom: none; }
+        .risco-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+        /* Health badges */
+        .badge-health {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 8px; border-radius: 20px;
+            font-size: 0.85em; font-weight: 600;
+            white-space: nowrap;
+        }
+        .badge-health::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%;
+        }
+        .badge-health.em-dia    { background: rgba(53,204,163,0.12); color: #35CCA3; }
+        .badge-health.em-dia::before { background: #35CCA3; }
+        .badge-health.perigo    { background: rgba(251,146,60,0.12);  color: #FB923C; }
+        .badge-health.perigo::before { background: #FB923C; }
+        .badge-health.risco     { background: rgba(239,68,68,0.12);   color: #F87171; animation: riskPulse 2s ease-in-out infinite; }
+        .badge-health.risco::before  { background: #F87171; }
+        .badge-health.outros    { background: rgba(107,114,128,0.12); color: #9CA3AF; }
+        .badge-health.outros::before { background: #9CA3AF; }
+
+        @keyframes riskPulse { 0%,100%{ opacity:1; } 50%{ opacity:0.6; } }
+
+        .esp-tag {
+            display: flex; align-items: center; gap: 5px;
+        }
+        .esp-tag-avatar {
+            width: 20px; height: 20px; border-radius: 50%; object-fit: cover;
+            background: #1E2530; border: 1px solid rgba(53,204,163,0.2);
+        }
+        .esp-tag-name { color: #B9C0CA; }
+
+        .badge-erros {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 20px; height: 20px; border-radius: 10px;
+            background: rgba(239,68,68,0.15); color: #F87171;
+            font-size: 0.82em; font-weight: 700; padding: 0 5px;
+        }
+        .badge-erros.zero { background: transparent; color: #4B5563; }
+
+        /* Sem acesso */
+        .acesso-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: clamp(5px, 0.7vh, 8px) 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .acesso-item:last-child { border-bottom: none; }
+        .acesso-cnpj { flex: 1; font-size: clamp(0.72em, 0.82vw, 0.85em); color: #B9C0CA; }
+        .acesso-esp  { font-size: clamp(0.68em, 0.78vw, 0.8em); color: #6B7280; }
+        .acesso-dias {
+            font-size: clamp(0.72em, 0.82vw, 0.85em);
+            font-weight: 600;
+            padding: 2px 7px; border-radius: 6px;
+        }
+        .acesso-dias.critico  { background: rgba(239,68,68,0.12); color: #F87171; }
+        .acesso-dias.atencao  { background: rgba(251,146,60,0.12); color: #FB923C; }
+        .acesso-dias.nunca    { background: rgba(107,114,128,0.12); color: #6B7280; }
+
+        /* HS chart */
+        .hs-chart-wrap {
+            display: flex; align-items: center; gap: clamp(10px, 1.5vw, 20px);
+            height: 100%;
+        }
+        .hs-chart-canvas { flex-shrink: 0; }
+        .hs-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .hs-legend-item { display: flex; align-items: center; gap: 8px; }
+        .hs-legend-dot {
+            width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+        }
+        .hs-legend-label { font-size: clamp(0.72em, 0.82vw, 0.85em); color: #9CA3AF; flex: 1; }
+        .hs-legend-count { font-size: clamp(0.78em, 0.9vw, 0.9em); font-weight: 700; color: #E7E7E7; }
+        .hs-legend-pct { font-size: 0.78em; color: #6B7280; margin-left: 2px; }
+
+        /* RT status */
+        .rt-badge {
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(53,204,163,0.08); border: 1px solid rgba(53,204,163,0.15);
+            border-radius: 20px; padding: 4px 10px;
+            font-size: clamp(0.68em, 0.78vw, 0.8em); color: #35CCA3;
+        }
+        .rt-badge.offline { background: rgba(107,114,128,0.08); border-color: rgba(107,114,128,0.2); color: #6B7280; }
+        .rt-dot {
+            width: 7px; height: 7px; border-radius: 50%; background: #35CCA3;
+            animation: rtPulse 2s ease-in-out infinite;
+        }
+        .rt-badge.offline .rt-dot { background: #6B7280; animation: none; }
+        @keyframes rtPulse { 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+
+        /* Loading */
+        .rel-loading {
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; gap: 14px;
+            height: 100%; color: #6B7280; font-size: 0.9em;
+        }
+        .rel-spinner {
+            width: 36px; height: 36px; border: 3px solid rgba(53,204,163,0.15);
+            border-top-color: #35CCA3; border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Header extras */
+        .header-rt { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Dashboards</h3>
+            <button class="sidebar-close" onclick="toggleSidebar()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="index.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 20V10M12 20V4M6 20v-6"/>
+                    </svg>
+                    <span>Cancelamentos</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="comercial.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23"/>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    <span>Comercial</span>
+                </a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="relacionamento.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <span>Relacionamento</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="suporte.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span>Suporte</span>
+                </a>
+            </li>
+            <li class="sidebar-item sidebar-admin-only">
+                <a href="admin.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span>Admin</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-top">
+            <button class="hamburger-btn" onclick="toggleSidebar()" title="Menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <h1 class="header-title">Dashboard Relacionamento</h1>
+            <div class="header-rt">
+                <div class="rt-badge offline" id="rtBadge">
+                    <span class="rt-dot"></span>
+                    <span id="rtBadgeText">Conectando...</span>
+                </div>
+                <span class="header-datetime" id="headerDatetime"></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Body -->
+    <div class="rel-body" id="relBody">
+        <div class="rel-loading" id="relLoading">
+            <div class="rel-spinner"></div>
+            <span>Carregando dados em tempo real...</span>
+        </div>
+
+        <!-- Conteúdo (oculto até dados chegarem) -->
+        <div id="relContent" style="display:none; flex-direction:column; gap: inherit; height:100%;">
+
+            <!-- Distribuição de Planos — faixa full-width -->
+            <div class="rel-card" style="flex-shrink:0;">
+                <div class="rel-card-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    Distribuição de Planos
+                </div>
+                <div class="rel-card-body" style="padding: 10px 14px;">
+                    <div class="planos-grid" id="planosGrid">
+                        <div class="rel-loading"><div class="rel-spinner"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI Row -->
+            <div class="kpi-row">
+                <div class="kpi-tile">
+                    <div class="kpi-tile-icon blue">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                    <div class="kpi-tile-data">
+                        <span class="kpi-tile-value" id="kpiTotal">-</span>
+                        <span class="kpi-tile-label">Total clientes</span>
+                    </div>
+                </div>
+                <div class="kpi-tile">
+                    <div class="kpi-tile-icon green">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </div>
+                    <div class="kpi-tile-data">
+                        <span class="kpi-tile-value" id="kpiEmDia">-</span>
+                        <span class="kpi-tile-label">Em dia</span>
+                    </div>
+                </div>
+                <div class="kpi-tile">
+                    <div class="kpi-tile-icon orange">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <div class="kpi-tile-data">
+                        <span class="kpi-tile-value" id="kpiPerigo">-</span>
+                        <span class="kpi-tile-label">Perigo</span>
+                    </div>
+                </div>
+                <div class="kpi-tile">
+                    <div class="kpi-tile-icon red">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                    </div>
+                    <div class="kpi-tile-data">
+                        <span class="kpi-tile-value" id="kpiRisco">-</span>
+                        <span class="kpi-tile-label">Risco Iminente</span>
+                    </div>
+                </div>
+                <div class="kpi-tile">
+                    <div class="kpi-tile-icon yellow">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <div class="kpi-tile-data">
+                        <span class="kpi-tile-value" id="kpiErros">-</span>
+                        <span class="kpi-tile-label">Com erros</span>
+                    </div>
+                </div>
+                <div class="kpi-tile">
+                    <div class="kpi-tile-icon purple">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <div class="kpi-tile-data">
+                        <span class="kpi-tile-value" id="kpiSemAcesso">-</span>
+                        <span class="kpi-tile-label">Sem acesso +30d</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main grid -->
+            <div class="main-grid">
+
+                <!-- LEFT -->
+                <div class="left-col">
+                    <!-- Especialistas -->
+                    <div class="rel-card" style="flex: 1.4; min-height:0;">
+                        <div class="rel-card-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            Especialistas
+                        </div>
+                        <div class="rel-card-body" id="espContainer">
+                            <div class="rel-loading"><div class="rel-spinner"></div></div>
+                        </div>
+                    </div>
+
+                    <!-- HealthScore Donut -->
+                    <div class="rel-card" style="flex: 1; min-height:0;">
+                        <div class="rel-card-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                            </svg>
+                            HealthScore Geral
+                        </div>
+                        <div class="rel-card-body" style="display:flex; align-items:center; justify-content:center; padding: 10px 14px;">
+                            <div class="hs-chart-wrap">
+                                <canvas class="hs-chart-canvas" id="hsChart" width="130" height="130"></canvas>
+                                <div class="hs-legend" id="hsLegend"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT -->
+                <div class="right-col">
+                    <!-- Clientes em risco -->
+                    <div class="rel-card" style="flex: 1.4; min-height:0;">
+                        <div class="rel-card-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            Clientes em Risco
+                            <span id="riscoCount" style="margin-left:auto; background: rgba(239,68,68,0.12); color: #F87171; font-size:0.85em; padding: 2px 8px; border-radius: 12px;"></span>
+                        </div>
+                        <div class="rel-card-body" id="riscoContainer">
+                            <table class="risco-table">
+                                <thead>
+                                    <tr>
+                                        <th>CNPJ / Cliente</th>
+                                        <th>Especialista</th>
+                                        <th>Plano</th>
+                                        <th>HealthScore</th>
+                                        <th>Último Acesso</th>
+                                        <th>Erros</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="riscoTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Sem acesso recente -->
+                    <div class="rel-card" style="flex: 1; min-height:0;">
+                        <div class="rel-card-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            Sem Acesso Recente
+                            <span id="semAcessoCount" style="margin-left:auto; background: rgba(168,85,247,0.1); color: #C084FC; font-size:0.85em; padding: 2px 8px; border-radius: 12px;"></span>
+                        </div>
+                        <div class="rel-card-body" id="semAcessoContainer">
+                            <div class="rel-loading"><div class="rel-spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div><!-- /container -->
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+
+<script>
+// ============================================================
+// SIDEBAR
+// ============================================================
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('active');
+    overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+    document.body.style.overflowY = sidebar.classList.contains('active') ? 'hidden' : '';
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar.classList.contains('active')) toggleSidebar();
+    }
+});
+setTimeout(function() { document.getElementById('sidebar').classList.add('ready'); }, 100);
+
+// ============================================================
+// DATETIME
+// ============================================================
+function updateDatetime() {
+    const el = document.getElementById('headerDatetime');
+    if (!el) return;
+    const now = new Date();
+    el.textContent = now.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
+                   + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+updateDatetime();
+setInterval(updateDatetime, 30000);
+
+// ============================================================
+// NORMALIZAÇÃO DE HEALTHSCORE
+// ============================================================
+const HS_CONFIG = {
+    'em dia':        { label: 'Em dia',         cls: 'em-dia',  color: '#35CCA3' },
+    'perigo':        { label: 'Perigo',         cls: 'perigo',  color: '#FB923C' },
+    'risco iminente':{ label: 'Risco Iminente', cls: 'risco',   color: '#F87171' },
+};
+
+function normalizeHealth(h) {
+    if (!h) return { label: 'Sem dado', cls: 'outros', color: '#6B7280' };
+    const key = h.toLowerCase().trim()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    for (const k in HS_CONFIG) {
+        const kn = k.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (key.includes(kn)) return HS_CONFIG[k];
+    }
+    return { label: h, cls: 'outros', color: '#6B7280' };
+}
+
+function healthBadge(h) {
+    const cfg = normalizeHealth(h);
+    return `<span class="badge-health ${cfg.cls}">${cfg.label}</span>`;
+}
+
+// ============================================================
+// CONVERTER FIREBASE ROWS → OBJETOS
+// ============================================================
+function convertRows(data) {
+    if (!data || !data.rows || !data.headers) return [];
+    const headers = data.headers;
+    return data.rows.map(function(row) {
+        const obj = {};
+        headers.forEach(function(h, i) { obj[h] = row[i] || ''; });
+        return obj;
+    });
+}
+
+// ============================================================
+// FOTO MAP
+// ============================================================
+let fotoMap = {};
+
+function buildFotoMap(colaboradores) {
+    fotoMap = {};
+    if (!colaboradores) return;
+    colaboradores.forEach(function(c) {
+        if (c.nome) fotoMap[c.nome.trim().toLowerCase()] = c.imagem || '';
+    });
+}
+
+function getFoto(nome) {
+    return fotoMap[(nome || '').trim().toLowerCase()] || '';
+}
+
+function avatarHtml(nome, size) {
+    const foto = getFoto(nome);
+    const sz = size || 20;
+    if (foto) return `<img src="${foto}" class="esp-tag-avatar" style="width:${sz}px;height:${sz}px;" onerror="this.style.display='none'">`;
+    return '';
+}
+
+// ============================================================
+// RENDER KPIs
+// ============================================================
+function renderKPIs(stats) {
+    if (!stats) return;
+    const hs = stats.healthScore || {};
+    let emDia = 0, perigo = 0, risco = 0;
+    for (const k in hs) {
+        const cfg = normalizeHealth(k);
+        if (cfg.cls === 'em-dia') emDia += hs[k];
+        else if (cfg.cls === 'perigo') perigo += hs[k];
+        else if (cfg.cls === 'risco') risco += hs[k];
+    }
+    document.getElementById('kpiTotal').textContent    = stats.total || 0;
+    document.getElementById('kpiEmDia').textContent    = emDia;
+    document.getElementById('kpiPerigo').textContent   = perigo;
+    document.getElementById('kpiRisco').textContent    = risco;
+    document.getElementById('kpiErros').textContent    = stats.comErros || 0;
+    document.getElementById('kpiSemAcesso').textContent = stats.semAcessoRecente || 0;
+}
+
+// ============================================================
+// RENDER ESPECIALISTAS
+// ============================================================
+function renderEspecialistas(stats) {
+    const container = document.getElementById('espContainer');
+    const esp = stats.especialistasArray || [];
+    if (!esp.length) { container.innerHTML = '<p style="color:#6B7280;font-size:0.85em;">Sem dados</p>'; return; }
+
+    const hs = stats.healthScore || {};
+    const total = stats.total || 1;
+
+    let html = '';
+    esp.forEach(function(e) {
+        const foto = e.foto || getFoto(e.nome);
+        const avatarEl = foto
+            ? `<img src="${foto}" class="esp-avatar" alt="${e.nome}" onerror="this.outerHTML='<div class=esp-avatar-placeholder>${e.nome.charAt(0)}</div>'">`
+            : `<div class="esp-avatar-placeholder">${(e.nome || '?').charAt(0)}</div>`;
+
+        // Calcular health breakdown para barra
+        const ehs = e.healthScore || {};
+        let emDia = 0, peri = 0, risc = 0, outros = 0;
+        for (const k in ehs) {
+            const cfg = normalizeHealth(k);
+            if (cfg.cls === 'em-dia') emDia += ehs[k];
+            else if (cfg.cls === 'perigo') peri += ehs[k];
+            else if (cfg.cls === 'risco') risc += ehs[k];
+            else outros += ehs[k];
+        }
+        const tot = e.total || 1;
+        const subParts = [];
+        if (peri > 0)  subParts.push(`<span style="color:#FB923C;">${peri} perigo</span>`);
+        if (risc > 0)  subParts.push(`<span style="color:#F87171;">${risc} risco</span>`);
+        if (e.comErros > 0) subParts.push(`<span style="color:#EAB308;">${e.comErros} c/ erro</span>`);
+
+        const bars = [
+            { pct: emDia/tot*100, color:'#35CCA3' },
+            { pct: peri/tot*100,  color:'#FB923C' },
+            { pct: risc/tot*100,  color:'#F87171' },
+            { pct: outros/tot*100,color:'#6B7280'  }
+        ].filter(b => b.pct > 0);
+
+        const barsHtml = bars.map(b =>
+            `<div class="esp-health-seg" style="flex:${b.pct};background:${b.color};"></div>`
+        ).join('');
+
+        html += `
+        <div class="especialista-item">
+            ${avatarEl}
+            <div class="esp-info">
+                <div class="esp-name">${e.nome}</div>
+                <div class="esp-sub">${subParts.length ? subParts.join(' · ') : '<span style="color:#35CCA3">Todos em dia</span>'}</div>
+                <div class="esp-health-bar">${barsHtml}</div>
+            </div>
+            <div class="esp-total">${e.total}</div>
+        </div>`;
+    });
+
+    container.innerHTML = html;
+}
+
+// ============================================================
+// RENDER HEALTHSCORE CHART
+// ============================================================
+let hsChartInstance = null;
+
+function renderHSChart(stats) {
+    const hs = stats.healthScore || {};
+    const total = stats.total || 1;
+
+    // Agrupar por categoria normalizada
+    const groups = { 'em-dia': 0, 'perigo': 0, 'risco': 0, 'outros': 0 };
+    const groupLabels = { 'em-dia': 'Em dia', 'perigo': 'Perigo', 'risco': 'Risco Iminente', 'outros': 'Outros' };
+    const groupColors = { 'em-dia': '#35CCA3', 'perigo': '#FB923C', 'risco': '#F87171', 'outros': '#6B7280' };
+
+    for (const k in hs) {
+        const cfg = normalizeHealth(k);
+        groups[cfg.cls] = (groups[cfg.cls] || 0) + hs[k];
+    }
+
+    const labels = [], data = [], colors = [];
+    for (const k in groups) {
+        if (groups[k] > 0) {
+            labels.push(groupLabels[k]);
+            data.push(groups[k]);
+            colors.push(groupColors[k]);
+        }
+    }
+
+    const ctx = document.getElementById('hsChart').getContext('2d');
+    if (hsChartInstance) hsChartInstance.destroy();
+
+    hsChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }] },
+        options: {
+            cutout: '68%',
+            plugins: { legend: { display: false }, tooltip: { callbacks: {
+                label: function(c) { return ' ' + c.label + ': ' + c.raw + ' (' + Math.round(c.raw/total*100) + '%)'; }
+            }}},
+            animation: { duration: 500 }
+        }
+    });
+
+    // Legend
+    const legend = document.getElementById('hsLegend');
+    legend.innerHTML = labels.map(function(l, i) {
+        const pct = Math.round(data[i]/total*100);
+        return `<div class="hs-legend-item">
+            <div class="hs-legend-dot" style="background:${colors[i]};"></div>
+            <span class="hs-legend-label">${l}</span>
+            <span class="hs-legend-count">${data[i]}<span class="hs-legend-pct">${pct}%</span></span>
+        </div>`;
+    }).join('');
+}
+
+// ============================================================
+// RENDER PLANOS
+// ============================================================
+const PLANO_COLORS = { 'professional': '#35CCA3', 'avulso': '#818CF8' };
+
+function renderPlanos(stats) {
+    const planos = stats.planos || {};
+    const total = stats.total || 1;
+    const grid = document.getElementById('planosGrid');
+
+    const entries = Object.entries(planos).sort(function(a, b) { return b[1] - a[1]; });
+    if (!entries.length) { grid.innerHTML = '<p style="color:#6B7280;font-size:0.85em;">Sem dados</p>'; return; }
+
+    grid.innerHTML = entries.map(function(entry) {
+        const [nome, count] = entry;
+        const pct = Math.round(count / total * 100);
+        const color = PLANO_COLORS[nome.toLowerCase()] || '#9CA3AF';
+        return `<div class="plano-card">
+            <span class="plano-name">${nome}</span>
+            <span class="plano-count" style="color:${color};">${count}</span>
+            <span class="plano-pct">${pct}% dos clientes</span>
+            <div class="plano-bar" style="background: linear-gradient(90deg, ${color} ${pct}%, rgba(255,255,255,0.05) ${pct}%);"></div>
+        </div>`;
+    }).join('');
+}
+
+// ============================================================
+// RENDER CLIENTES EM RISCO
+// ============================================================
+function renderRisco(stats) {
+    const todosClientes = stats.clientesRisco || [];
+    const clientes = todosClientes;
+    const tbody = document.getElementById('riscoTbody');
+    const countEl = document.getElementById('riscoCount');
+
+    countEl.textContent = todosClientes.length;
+
+    if (!clientes.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:#35CCA3;font-size:0.9em;">
+            Nenhum cliente em risco
+        </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = clientes.map(function(c) {
+        const foto = getFoto(c.especialista);
+        const fotoEl = foto ? `<img src="${foto}" class="esp-tag-avatar" onerror="this.style.display='none'">` : '';
+        const erroEl = c.erros > 0
+            ? `<span class="badge-erros">${c.erros}</span>`
+            : `<span class="badge-erros zero">0</span>`;
+        const acesso = c.ultimoAcesso || '<span style="color:#6B7280;">—</span>';
+        return `<tr>
+            <td style="font-family:monospace;font-size:0.9em;color:#E7E7E7;">${c.cnpj}</td>
+            <td><div class="esp-tag">${fotoEl}<span class="esp-tag-name">${c.especialista || '—'}</span></div></td>
+            <td style="color:#9CA3AF;">${c.plano || '—'}</td>
+            <td>${healthBadge(c.health)}</td>
+            <td style="color:#9CA3AF;font-size:0.9em;">${acesso}</td>
+            <td>${erroEl}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ============================================================
+// RENDER SEM ACESSO RECENTE
+// ============================================================
+function renderSemAcesso(rows) {
+    const container = document.getElementById('semAcessoContainer');
+    const countEl   = document.getElementById('semAcessoCount');
+    const hoje = new Date();
+
+    if (!rows.length) { container.innerHTML = '<p style="color:#6B7280;font-size:0.85em;padding:8px;">Sem dados</p>'; return; }
+    const headers = Object.keys(rows[0]);
+
+    // Usar findHeader flexível (detecta typos como "HealtScore")
+    const hAcesso = findHeader(headers, ['ultimo acesso', 'ultimo_acesso', 'acesso']);
+    const hEsp    = findHeader(headers, ['especialista', 'responsavel']);
+    const hCNPJ   = findHeader(headers, ['cnpj']);
+    const hHealth = findHeader(headers, ['healthscore', 'healtscore', 'healt', 'health', 'saude']);
+
+    const semAcesso = [];
+    rows.forEach(function(row) {
+        const ultimoAcesso = hAcesso ? String(row[hAcesso] || '').trim() : '';
+        let dias = null;
+        if (!ultimoAcesso) {
+            dias = 9999;
+        } else {
+            const parts = ultimoAcesso.split('/');
+            if (parts.length === 3) {
+                const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                if (!isNaN(d.getTime())) dias = Math.floor((hoje - d) / 86400000);
+            }
+        }
+        if (dias !== null && dias > 30) {
+            semAcesso.push({
+                cnpj:         hCNPJ   ? row[hCNPJ]   : '',
+                especialista: hEsp    ? row[hEsp]    : '',
+                ultimoAcesso: ultimoAcesso,
+                health:       hHealth ? row[hHealth] : '',
+                dias:         dias
+            });
+        }
+    });
+
+    semAcesso.sort(function(a, b) { return b.dias - a.dias; });
+    countEl.textContent = semAcesso.length;
+
+    if (!semAcesso.length) {
+        container.innerHTML = '<p style="color:#35CCA3;font-size:0.85em;padding:8px;">Todos os clientes acessaram recentemente!</p>';
+        return;
+    }
+
+    container.innerHTML = semAcesso.map(function(c) {
+        const diasText = c.dias >= 9999 ? 'Nunca acessou' : c.dias + ' dias';
+        const cls = c.dias >= 9999 ? 'nunca' : c.dias >= 60 ? 'critico' : 'atencao';
+        const foto = getFoto(c.especialista);
+        const fotoEl = foto ? `<img src="${foto}" class="esp-tag-avatar" onerror="this.style.display='none'" style="width:18px;height:18px;">` : '';
+        return `<div class="acesso-item">
+            <div style="flex:1;min-width:0;">
+                <div class="acesso-cnpj">${c.cnpj || '—'}</div>
+                <div class="acesso-esp" style="display:flex;align-items:center;gap:4px;">${fotoEl}${c.especialista || '—'} · ${healthBadge(c.health)}</div>
+            </div>
+            <span class="acesso-dias ${cls}">${diasText}</span>
+        </div>`;
+    }).join('');
+}
+
+// ============================================================
+// RT STATUS
+// ============================================================
+function setRtStatus(online, text) {
+    const badge = document.getElementById('rtBadge');
+    const label = document.getElementById('rtBadgeText');
+    badge.className = 'rt-badge' + (online ? '' : ' offline');
+    label.textContent = text;
+}
+
+// ============================================================
+// ENCONTRAR COLUNA pelo nome (flexível, ignora typos parciais)
+// ============================================================
+function findHeader(headers, candidates) {
+    const norm = function(s) {
+        return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    };
+    for (let i = 0; i < headers.length; i++) {
+        const h = norm(headers[i]);
+        for (let j = 0; j < candidates.length; j++) {
+            const c = norm(candidates[j]);
+            if (h.includes(c) || c.includes(h)) return headers[i];
+        }
+    }
+    return null;
+}
+
+// ============================================================
+// COMPUTAR STATS A PARTIR DOS DADOS BRUTOS (client-side)
+// Garante cálculo correto independente de typos no Apps Script
+// ============================================================
+function computeStatsFromRows(rows) {
+    if (!rows.length) return { total: 0, healthScore: {}, planos: {}, especialistasArray: [], comErros: 0, semAcessoRecente: 0, clientesRisco: [] };
+
+    const headers = Object.keys(rows[0]);
+    const hEsp    = findHeader(headers, ['especialista', 'responsavel']);
+    const hPlano  = findHeader(headers, ['plano']);
+    const hHealth = findHeader(headers, ['healthscore', 'healtscore', 'healt', 'health', 'saude']);
+    const hAcesso = findHeader(headers, ['ultimo acesso', 'ultimo_acesso', 'acesso']);
+    const hErros  = findHeader(headers, ['qtd verificando', 'verificando', 'erro']);
+    const hCNPJ   = findHeader(headers, ['cnpj']);
+
+    const hoje = new Date();
+    const stats = {
+        total: rows.length,
+        healthScore: {},
+        planos: {},
+        especialistas: {},
+        comErros: 0,
+        semAcessoRecente: 0,
+        clientesRisco: []
+    };
+
+    rows.forEach(function(row) {
+        const esp    = hEsp    ? String(row[hEsp]    || '').trim() : '';
+        const plano  = hPlano  ? String(row[hPlano]  || '').trim() : '';
+        const health = hHealth ? String(row[hHealth] || '').trim() : '';
+        const acesso = hAcesso ? String(row[hAcesso] || '').trim() : '';
+        const erros  = hErros  ? parseInt(row[hErros]) || 0 : 0;
+        const cnpj   = hCNPJ   ? String(row[hCNPJ]   || '').trim() : '';
+
+        // HealthScore
+        if (health) stats.healthScore[health] = (stats.healthScore[health] || 0) + 1;
+
+        // Planos
+        if (plano) stats.planos[plano] = (stats.planos[plano] || 0) + 1;
+
+        // Especialistas
+        if (esp) {
+            if (!stats.especialistas[esp]) {
+                stats.especialistas[esp] = { nome: esp, total: 0, healthScore: {}, comErros: 0, foto: getFoto(esp) };
+            }
+            stats.especialistas[esp].total++;
+            if (health) stats.especialistas[esp].healthScore[health] = (stats.especialistas[esp].healthScore[health] || 0) + 1;
+            if (erros > 0) stats.especialistas[esp].comErros++;
+        }
+
+        // Com erros
+        if (erros > 0) stats.comErros++;
+
+        // Sem acesso recente (> 30 dias ou nunca acessou)
+        if (!acesso) {
+            stats.semAcessoRecente++;
+        } else {
+            const parts = acesso.split('/');
+            if (parts.length === 3) {
+                const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                if (!isNaN(d.getTime())) {
+                    const dias = Math.floor((hoje - d) / 86400000);
+                    if (dias > 30) stats.semAcessoRecente++;
+                }
+            }
+        }
+
+        // Clientes em risco
+        const hn = normalizeHealth(health);
+        if (hn.cls === 'perigo' || hn.cls === 'risco') {
+            stats.clientesRisco.push({ cnpj, especialista: esp, plano, health, ultimoAcesso: acesso, erros });
+        }
+    });
+
+    // Especialistas → array ordenado
+    stats.especialistasArray = Object.values(stats.especialistas).sort(function(a, b) { return b.total - a.total; });
+    delete stats.especialistas;
+
+    // Risco: Risco Iminente primeiro
+    stats.clientesRisco.sort(function(a, b) {
+        return (normalizeHealth(a.health).cls === 'risco' ? 0 : 1) - (normalizeHealth(b.health).cls === 'risco' ? 0 : 1);
+    });
+
+    return stats;
+}
+
+// ============================================================
+// FIREBASE LISTENER
+// ============================================================
+let lastChecksum = '';
+
+function startRelacionamentoListener() {
+    if (typeof database === 'undefined' || !database) return;
+
+    database.ref('relacionamento_live').on('value', function(snapshot) {
+        if (!snapshot.exists()) {
+            setRtStatus(false, 'Aguardando dados...');
+            return;
+        }
+
+        const data = snapshot.val();
+        if (!data || !data.rows || !data.headers) return;
+        if (data.source !== 'apps_script' && data.source !== 'apps_script_bulk') return;
+
+        const newChecksum = data.checksum || String(data.updatedAt || '');
+        if (newChecksum === lastChecksum) return;
+        lastChecksum = newChecksum;
+
+        // Atualizar mapa de fotos primeiro (necessário para computeStatsFromRows)
+        buildFotoMap(data.colaboradores);
+
+        // Converter rows para objetos
+        const rows = convertRows(data);
+
+        // Calcular stats diretamente dos dados brutos (ignora pré-cálculo do Apps Script)
+        const stats = computeStatsFromRows(rows);
+
+        // Renderizar tudo
+        renderKPIs(stats);
+        renderEspecialistas(stats);
+        renderHSChart(stats);
+        renderPlanos(stats);
+        renderRisco(stats);
+        renderSemAcesso(rows);
+
+        // Mostrar conteúdo
+        document.getElementById('relLoading').style.display = 'none';
+        const content = document.getElementById('relContent');
+        content.style.display = 'flex';
+
+        // Status RT
+        const time = data.updatedISO ? new Date(data.updatedISO).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+        setRtStatus(true, 'Tempo real · ' + rows.length + ' clientes' + (time ? ' · ' + time : ''));
+    });
+}
+
+// Iniciar quando Firebase estiver pronto
+window.addEventListener('firebaseReady', function() {
+    startRelacionamentoListener();
+});
+
+if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
+    startRelacionamentoListener();
+}
+</script>
+</body>
+</html>

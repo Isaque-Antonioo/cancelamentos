@@ -32,7 +32,8 @@
       "Bash(python3 -m pip install:*)",
       "Bash(npx --yes yt-dlp:*)",
       "Bash(ls:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "WebFetch(domain:doc-0s-as-sheets.googleusercontent.com)"
     ]
   }
 }
