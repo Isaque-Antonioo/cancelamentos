@@ -235,7 +235,14 @@
             text-transform: uppercase;
             letter-spacing: 0.4px;
             border-bottom: 1px solid rgba(255,255,255,0.06);
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
         }
+        .risco-table th:hover { color: #9CA3AF; }
+        .risco-table th.sort-active { color: #35CCA3; }
+        .risco-table th .sort-arrow { margin-left: 4px; opacity: 0.5; font-style: normal; }
+        .risco-table th.sort-active .sort-arrow { opacity: 1; }
         .risco-table td {
             padding: clamp(5px, 0.7vh, 8px) 8px;
             border-bottom: 1px solid rgba(255,255,255,0.03);
@@ -340,6 +347,30 @@
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* =========== CLIENT TABS =========== */
+        .client-tab {
+            display: flex; align-items: center; gap: 6px;
+            padding: clamp(8px,1vh,12px) clamp(12px,1.4vw,18px);
+            background: none; border: none; border-bottom: 2px solid transparent;
+            color: #6B7280; font-family: 'Poppins', sans-serif;
+            font-size: clamp(0.72em, 0.88vw, 0.88em); font-weight: 600;
+            cursor: pointer; transition: color 0.15s, border-color 0.15s;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .client-tab:hover { color: #B9C0CA; }
+        .client-tab.active { color: #E7E7E7; border-bottom-color: #35CCA3; }
+        .client-tab svg { flex-shrink: 0; }
+        .tab-badge {
+            font-size: 0.85em; font-weight: 700;
+            padding: 1px 7px; border-radius: 10px;
+            letter-spacing: 0; text-transform: none;
+        }
+        .badge-red    { background: rgba(239,68,68,0.12);  color: #F87171; }
+        .badge-purple { background: rgba(168,85,247,0.1);  color: #C084FC; }
+        .badge-green  { background: rgba(53,204,163,0.12); color: #35CCA3; }
+        .client-panel { border-top: 1px solid rgba(255,255,255,0.05); }
 
         /* Header extras */
         .header-rt { margin-left: auto; display: flex; align-items: center; gap: 10px; }
@@ -574,46 +605,69 @@
 
                 <!-- RIGHT -->
                 <div class="right-col">
-                    <!-- Clientes em risco -->
-                    <div class="rel-card" style="flex: 1.4; min-height:0;">
-                        <div class="rel-card-title">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="12" y1="8" x2="12" y2="12"/>
-                                <line x1="12" y1="16" x2="12.01" y2="16"/>
-                            </svg>
-                            Clientes em Risco
-                            <span id="riscoCount" style="margin-left:auto; background: rgba(239,68,68,0.12); color: #F87171; font-size:0.85em; padding: 2px 8px; border-radius: 12px;"></span>
+                    <div class="rel-card" style="flex:1; min-height:0;">
+                        <!-- Tabs -->
+                        <div class="rel-card-title" style="gap:0; padding-bottom:0; border-bottom: none; flex-wrap: wrap;">
+                            <button class="client-tab active" id="tabRisco" onclick="setClientFilter('risco')">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                                Em Risco
+                                <span id="riscoCount" class="tab-badge badge-red"></span>
+                            </button>
+                            <button class="client-tab" id="tabAcesso" onclick="setClientFilter('acesso')">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                Sem Acesso
+                                <span id="semAcessoCount" class="tab-badge badge-purple"></span>
+                            </button>
+                            <button class="client-tab" id="tabEmDia" onclick="setClientFilter('emdia')">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                Em Dia
+                                <span id="emDiaCount" class="tab-badge badge-green"></span>
+                            </button>
                         </div>
-                        <div class="rel-card-body" id="riscoContainer">
+
+                        <!-- Painel Risco -->
+                        <div class="rel-card-body client-panel" id="painelRisco">
                             <table class="risco-table">
                                 <thead>
                                     <tr>
-                                        <th>CNPJ / Cliente</th>
-                                        <th>Especialista</th>
-                                        <th>Plano</th>
-                                        <th>HealthScore</th>
-                                        <th>Último Acesso</th>
-                                        <th>Erros</th>
+                                        <th onclick="sortRiscoBy('cnpj')">CNPJ / Cliente<i class="sort-arrow" id="sarr-cnpj">↕</i></th>
+                                        <th onclick="sortRiscoBy('especialista')">Especialista<i class="sort-arrow" id="sarr-especialista">↕</i></th>
+                                        <th onclick="sortRiscoBy('plano')">Plano<i class="sort-arrow" id="sarr-plano">↕</i></th>
+                                        <th onclick="sortRiscoBy('health')">HealthScore<i class="sort-arrow" id="sarr-health">↕</i></th>
+                                        <th onclick="sortRiscoBy('ultimoAcesso')">Último Acesso<i class="sort-arrow" id="sarr-ultimoAcesso">↕</i></th>
+                                        <th onclick="sortRiscoBy('erros')">Erros<i class="sort-arrow" id="sarr-erros">↕</i></th>
                                     </tr>
                                 </thead>
                                 <tbody id="riscoTbody"></tbody>
                             </table>
                         </div>
-                    </div>
 
-                    <!-- Sem acesso recente -->
-                    <div class="rel-card" style="flex: 1; min-height:0;">
-                        <div class="rel-card-title">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <polyline points="12 6 12 12 16 14"/>
-                            </svg>
-                            Sem Acesso Recente
-                            <span id="semAcessoCount" style="margin-left:auto; background: rgba(168,85,247,0.1); color: #C084FC; font-size:0.85em; padding: 2px 8px; border-radius: 12px;"></span>
+                        <!-- Painel Sem Acesso -->
+                        <div class="rel-card-body client-panel" id="painelAcesso" style="display:none;">
+                            <div class="rel-loading" id="semAcessoLoading"><div class="rel-spinner"></div></div>
+                            <div id="semAcessoContainer"></div>
                         </div>
-                        <div class="rel-card-body" id="semAcessoContainer">
-                            <div class="rel-loading"><div class="rel-spinner"></div></div>
+
+                        <!-- Painel Em Dia -->
+                        <div class="rel-card-body client-panel" id="painelEmDia" style="display:none;">
+                            <table class="risco-table">
+                                <thead>
+                                    <tr>
+                                        <th onclick="sortEmDiaBy('cnpj')">CNPJ / Cliente<i class="sort-arrow" id="edarr-cnpj">↕</i></th>
+                                        <th onclick="sortEmDiaBy('especialista')">Especialista<i class="sort-arrow" id="edarr-especialista">↕</i></th>
+                                        <th onclick="sortEmDiaBy('plano')">Plano<i class="sort-arrow" id="edarr-plano">↕</i></th>
+                                        <th onclick="sortEmDiaBy('ultimoAcesso')">Último Acesso<i class="sort-arrow" id="edarr-ultimoAcesso">↕</i></th>
+                                        <th onclick="sortEmDiaBy('erros')">Erros<i class="sort-arrow" id="edarr-erros">↕</i></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="emDiaTbody"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -894,23 +948,156 @@ function renderPlanos(stats) {
 }
 
 // ============================================================
+// SORT — CLIENTES EM RISCO
+// ============================================================
+let _riscoData = [];
+let _riscoSortCol = 'health';
+let _riscoSortDir = 1; // 1 = asc, -1 = desc
+
+const HEALTH_ORDER = { 'risco': 0, 'perigo': 1, 'outros': 2, 'em-dia': 3 };
+
+function sortRiscoBy(col) {
+    if (_riscoSortCol === col) {
+        _riscoSortDir *= -1;
+    } else {
+        _riscoSortCol = col;
+        _riscoSortDir = col === 'erros' ? -1 : 1; // erros começa maior→menor
+    }
+    applyRiscoSort();
+    updateSortHeaders('risco');
+}
+
+function applyRiscoSort() {
+    const col = _riscoSortCol;
+    const dir = _riscoSortDir;
+    const sorted = _riscoData.slice().sort(function(a, b) {
+        if (col === 'erros') {
+            return (b.erros - a.erros) * (dir === -1 ? 1 : -1);
+        }
+        if (col === 'health') {
+            const ao = HEALTH_ORDER[normalizeHealth(a.health).cls] ?? 9;
+            const bo = HEALTH_ORDER[normalizeHealth(b.health).cls] ?? 9;
+            return (ao - bo) * dir;
+        }
+        if (col === 'ultimoAcesso') {
+            const parseDate = function(s) {
+                if (!s) return 0;
+                const p = s.split('/');
+                return p.length === 3 ? new Date(+p[2], +p[1]-1, +p[0]).getTime() : 0;
+            };
+            return (parseDate(a.ultimoAcesso) - parseDate(b.ultimoAcesso)) * dir;
+        }
+        const av = String(a[col] || '').toLowerCase();
+        const bv = String(b[col] || '').toLowerCase();
+        return av < bv ? -dir : av > bv ? dir : 0;
+    });
+    drawRiscoRows(sorted);
+}
+
+function updateSortHeaders(tipo) {
+    if (tipo === 'risco') {
+        document.querySelectorAll('.risco-table th').forEach(function(th) {
+            th.classList.remove('sort-active');
+        });
+        const cols = ['cnpj','especialista','plano','health','ultimoAcesso','erros'];
+        const idx = cols.indexOf(_riscoSortCol);
+        if (idx >= 0) {
+            const ths = document.querySelectorAll('.risco-table th');
+            if (ths[idx]) ths[idx].classList.add('sort-active');
+        }
+        cols.forEach(function(c) {
+            const el = document.getElementById('sarr-' + c);
+            if (!el) return;
+            if (c === _riscoSortCol) {
+                el.textContent = _riscoSortDir === 1 ? '↑' : '↓';
+            } else {
+                el.textContent = '↕';
+            }
+        });
+    }
+}
+
+// ============================================================
+// SORT + RENDER — EM DIA
+// ============================================================
+let _emDiaData = [];
+let _emDiaSortCol = 'cnpj';
+let _emDiaSortDir = 1;
+const EMDIA_PAGE_SIZE = 150;
+
+function sortEmDiaBy(col) {
+    if (_emDiaSortCol === col) { _emDiaSortDir *= -1; }
+    else { _emDiaSortCol = col; _emDiaSortDir = col === 'erros' ? -1 : 1; }
+    applyEmDiaSort();
+    updateSortEmDiaHeaders();
+}
+
+function applyEmDiaSort() {
+    const col = _emDiaSortCol, dir = _emDiaSortDir;
+    const sorted = _emDiaData.slice().sort(function(a, b) {
+        if (col === 'erros') return (b.erros - a.erros) * (dir === -1 ? 1 : -1);
+        if (col === 'ultimoAcesso') {
+            const pd = function(s) { if (!s) return 0; const p = s.split('/'); return p.length===3 ? new Date(+p[2],+p[1]-1,+p[0]).getTime() : 0; };
+            return (pd(a.ultimoAcesso) - pd(b.ultimoAcesso)) * dir;
+        }
+        const av = String(a[col]||'').toLowerCase(), bv = String(b[col]||'').toLowerCase();
+        return av < bv ? -dir : av > bv ? dir : 0;
+    });
+    drawEmDiaRows(sorted);
+}
+
+function updateSortEmDiaHeaders() {
+    const cols = ['cnpj','especialista','plano','ultimoAcesso','erros'];
+    document.querySelectorAll('#painelEmDia .risco-table th').forEach(function(th) { th.classList.remove('sort-active'); });
+    const idx = cols.indexOf(_emDiaSortCol);
+    if (idx >= 0) { const ths = document.querySelectorAll('#painelEmDia .risco-table th'); if(ths[idx]) ths[idx].classList.add('sort-active'); }
+    cols.forEach(function(c) {
+        const el = document.getElementById('edarr-' + c);
+        if (!el) return;
+        el.textContent = c === _emDiaSortCol ? (_emDiaSortDir === 1 ? '↑' : '↓') : '↕';
+    });
+}
+
+function drawEmDiaRows(lista) {
+    const tbody = document.getElementById('emDiaTbody');
+    if (!lista.length) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#6B7280;font-size:0.9em;">Sem dados</td></tr>`; return; }
+    const visible = lista.slice(0, EMDIA_PAGE_SIZE);
+    let html = visible.map(function(c) {
+        const foto = getFoto(c.especialista);
+        const fotoEl = foto ? `<img src="${foto}" class="esp-tag-avatar" onerror="this.style.display='none'">` : '';
+        const erroEl = c.erros > 0 ? `<span class="badge-erros">${c.erros}</span>` : `<span class="badge-erros zero">0</span>`;
+        return `<tr>
+            <td style="font-family:monospace;font-size:0.9em;color:#E7E7E7;">${c.cnpj}</td>
+            <td><div class="esp-tag">${fotoEl}<span class="esp-tag-name">${c.especialista||'—'}</span></div></td>
+            <td style="color:#9CA3AF;">${c.plano||'—'}</td>
+            <td style="color:#9CA3AF;font-size:0.9em;">${c.ultimoAcesso||'—'}</td>
+            <td>${erroEl}</td>
+        </tr>`;
+    }).join('');
+    if (lista.length > EMDIA_PAGE_SIZE) html += `<tr><td colspan="5" style="text-align:center;padding:10px;color:#6B7280;font-size:0.82em;">+ ${lista.length - EMDIA_PAGE_SIZE} registros adicionais</td></tr>`;
+    tbody.innerHTML = html;
+}
+
+function renderEmDia(stats) {
+    _emDiaData = stats.clientesEmDia || [];
+    document.getElementById('emDiaCount').textContent = _emDiaData.length;
+    _emDiaSortCol = 'cnpj'; _emDiaSortDir = 1;
+    applyEmDiaSort();
+    updateSortEmDiaHeaders();
+}
+
+// ============================================================
 // RENDER CLIENTES EM RISCO
 // ============================================================
 const RISCO_PAGE_SIZE = 150;
 
-function renderRisco(stats) {
-    const todos = stats.clientesRisco || [];
+function drawRiscoRows(lista) {
     const tbody = document.getElementById('riscoTbody');
-    const countEl = document.getElementById('riscoCount');
-
-    countEl.textContent = todos.length;
-
-    if (!todos.length) {
+    if (!lista.length) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:#35CCA3;font-size:0.9em;">Nenhum cliente em risco</td></tr>`;
         return;
     }
-
-    const visible = todos.slice(0, RISCO_PAGE_SIZE);
+    const visible = lista.slice(0, RISCO_PAGE_SIZE);
     let html = visible.map(function(c) {
         const foto = getFoto(c.especialista);
         const fotoEl = foto ? `<img src="${foto}" class="esp-tag-avatar" onerror="this.style.display='none'">` : '';
@@ -926,14 +1113,19 @@ function renderRisco(stats) {
             <td>${erroEl}</td>
         </tr>`;
     }).join('');
-
-    if (todos.length > RISCO_PAGE_SIZE) {
-        html += `<tr><td colspan="6" style="text-align:center;padding:10px;color:#6B7280;font-size:0.82em;">
-            + ${todos.length - RISCO_PAGE_SIZE} registros adicionais
-        </td></tr>`;
+    if (lista.length > RISCO_PAGE_SIZE) {
+        html += `<tr><td colspan="6" style="text-align:center;padding:10px;color:#6B7280;font-size:0.82em;">+ ${lista.length - RISCO_PAGE_SIZE} registros adicionais</td></tr>`;
     }
-
     tbody.innerHTML = html;
+}
+
+function renderRisco(stats) {
+    _riscoData = stats.clientesRisco || [];
+    document.getElementById('riscoCount').textContent = _riscoData.length;
+    _riscoSortCol = 'health';
+    _riscoSortDir = 1;
+    applyRiscoSort();
+    updateSortHeaders('risco');
 }
 
 // ============================================================
@@ -944,8 +1136,10 @@ const ACESSO_PAGE_SIZE = 150;
 function renderSemAcesso(stats) {
     const container = document.getElementById('semAcessoContainer');
     const countEl   = document.getElementById('semAcessoCount');
+    const loading   = document.getElementById('semAcessoLoading');
     const lista = stats.semAcessoList || [];
 
+    if (loading) loading.style.display = 'none';
     countEl.textContent = lista.length;
 
     if (!lista.length) {
@@ -975,6 +1169,18 @@ function renderSemAcesso(stats) {
     }
 
     container.innerHTML = html;
+}
+
+// ============================================================
+// FILTRO DE CLIENTES (tabs)
+// ============================================================
+function setClientFilter(tipo) {
+    document.getElementById('tabRisco').classList.toggle('active',  tipo === 'risco');
+    document.getElementById('tabAcesso').classList.toggle('active', tipo === 'acesso');
+    document.getElementById('tabEmDia').classList.toggle('active',  tipo === 'emdia');
+    document.getElementById('painelRisco').style.display  = tipo === 'risco'  ? '' : 'none';
+    document.getElementById('painelAcesso').style.display = tipo === 'acesso' ? '' : 'none';
+    document.getElementById('painelEmDia').style.display  = tipo === 'emdia'  ? '' : 'none';
 }
 
 // ============================================================
@@ -1009,7 +1215,7 @@ function findHeader(headers, candidates) {
 // Garante cálculo correto independente de typos no Apps Script
 // ============================================================
 function computeStatsFromRows(rows) {
-    if (!rows.length) return { total: 0, healthScore: {}, planos: {}, especialistasArray: [], comErros: 0, semAcessoRecente: 0, clientesRisco: [] };
+    if (!rows.length) return { total: 0, healthScore: {}, planos: {}, especialistasArray: [], comErros: 0, semAcessoRecente: 0, clientesRisco: [], clientesEmDia: [] };
 
     const headers = Object.keys(rows[0]);
     const hEsp    = findHeader(headers, ['especialista', 'responsavel']);
@@ -1028,7 +1234,8 @@ function computeStatsFromRows(rows) {
         comErros: 0,
         semAcessoRecente: 0,
         semAcessoList: [],
-        clientesRisco: []
+        clientesRisco: [],
+        clientesEmDia: []
     };
 
     rows.forEach(function(row) {
@@ -1074,10 +1281,12 @@ function computeStatsFromRows(rows) {
             stats.semAcessoList.push({ cnpj, especialista: esp, health, ultimoAcesso: acesso, dias });
         }
 
-        // Clientes em risco
+        // Clientes em risco / em dia
         const hn = normalizeHealth(health);
         if (hn.cls === 'perigo' || hn.cls === 'risco') {
             stats.clientesRisco.push({ cnpj, especialista: esp, plano, health, ultimoAcesso: acesso, erros });
+        } else if (hn.cls === 'em-dia') {
+            stats.clientesEmDia.push({ cnpj, especialista: esp, plano, health, ultimoAcesso: acesso, erros });
         }
     });
 
@@ -1118,6 +1327,7 @@ function processAndRender(data) {
     requestAnimationFrame(function() {
         renderRisco(stats);
         renderSemAcesso(stats);
+        renderEmDia(stats);
     });
 
     document.getElementById('relLoading').style.display = 'none';
