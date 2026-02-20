@@ -348,6 +348,54 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* =========== FILTRO GLOBAL DROPDOWN =========== */
+        .gf-dropdown-wrap {
+            position: relative;
+        }
+        .gf-dropdown-btn {
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 5px 10px;
+            color: #9CA3AF;
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(0.7em,0.8vw,0.82em);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .gf-dropdown-btn:hover { background: rgba(255,255,255,0.07); color: #E7E7E7; }
+        .gf-dropdown-btn.open  { border-color: rgba(53,204,163,0.3); color: #35CCA3; }
+        .gf-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            background: #1C2333;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            overflow: hidden;
+            min-width: 160px;
+            z-index: 100;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        .gf-drop-opt {
+            display: flex; align-items: center; gap: 8px;
+            width: 100%; padding: 9px 14px;
+            background: none; border: none;
+            color: #9CA3AF;
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(0.72em,0.82vw,0.84em);
+            font-weight: 500;
+            cursor: pointer; text-align: left;
+            transition: background 0.12s;
+        }
+        .gf-drop-opt:hover  { background: rgba(255,255,255,0.04); color: #E7E7E7; }
+        .gf-drop-opt.active { background: rgba(53,204,163,0.07); color: #E7E7E7; font-weight: 600; }
+        .gf-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .gf-opt-count { margin-left: auto; font-size: 0.9em; color: #4B5563; }
+
         /* =========== CLIENT TABS =========== */
         .client-tab {
             display: flex; align-items: center; gap: 6px;
@@ -451,6 +499,30 @@
             </button>
             <h1 class="header-title">Dashboard Relacionamento</h1>
             <div class="header-rt">
+                <!-- Dropdown filtro global -->
+                <div class="gf-dropdown-wrap" id="globalFilterBar" style="display:none;">
+                    <button class="gf-dropdown-btn" id="gfDropBtn" onclick="toggleGfDropdown(event)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/>
+                        </svg>
+                        <span id="gfDropLabel">Todos</span>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="gf-dropdown-menu" id="gfDropMenu" style="display:none;">
+                        <button class="gf-drop-opt active" id="gfAmbos"    onclick="applyGlobalFilter('ambos')">
+                            <span class="gf-dot" style="background:#35CCA3;"></span>Todos
+                            <span id="gfTotalLabel" class="gf-opt-count"></span>
+                        </button>
+                        <button class="gf-drop-opt" id="gfAtivos"   onclick="applyGlobalFilter('ativo')">
+                            <span class="gf-dot" style="background:#818CF8;"></span>Ativos
+                            <span id="gfAtivoCount" class="gf-opt-count"></span>
+                        </button>
+                        <button class="gf-drop-opt" id="gfInativos" onclick="applyGlobalFilter('inativo')">
+                            <span class="gf-dot" style="background:#F87171;"></span>Inativos
+                            <span id="gfInativoCount" class="gf-opt-count"></span>
+                        </button>
+                    </div>
+                </div>
                 <div class="rt-badge offline" id="rtBadge">
                     <span class="rt-dot"></span>
                     <span id="rtBadgeText">Conectando...</span>
@@ -1061,8 +1133,7 @@ function updateSortEmDiaHeaders() {
 function drawEmDiaRows(lista) {
     const tbody = document.getElementById('emDiaTbody');
     if (!lista.length) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#6B7280;font-size:0.9em;">Sem dados</td></tr>`; return; }
-    const visible = lista.slice(0, EMDIA_PAGE_SIZE);
-    let html = visible.map(function(c) {
+    tbody.innerHTML = lista.map(function(c) {
         const foto = getFoto(c.especialista);
         const fotoEl = foto ? `<img src="${foto}" class="esp-tag-avatar" onerror="this.style.display='none'">` : '';
         const erroEl = c.erros > 0 ? `<span class="badge-erros">${c.erros}</span>` : `<span class="badge-erros zero">0</span>`;
@@ -1074,8 +1145,6 @@ function drawEmDiaRows(lista) {
             <td>${erroEl}</td>
         </tr>`;
     }).join('');
-    if (lista.length > EMDIA_PAGE_SIZE) html += `<tr><td colspan="5" style="text-align:center;padding:10px;color:#6B7280;font-size:0.82em;">+ ${lista.length - EMDIA_PAGE_SIZE} registros adicionais</td></tr>`;
-    tbody.innerHTML = html;
 }
 
 function renderEmDia(stats) {
@@ -1097,8 +1166,7 @@ function drawRiscoRows(lista) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:#35CCA3;font-size:0.9em;">Nenhum cliente em risco</td></tr>`;
         return;
     }
-    const visible = lista.slice(0, RISCO_PAGE_SIZE);
-    let html = visible.map(function(c) {
+    tbody.innerHTML = lista.map(function(c) {
         const foto = getFoto(c.especialista);
         const fotoEl = foto ? `<img src="${foto}" class="esp-tag-avatar" onerror="this.style.display='none'">` : '';
         const erroEl = c.erros > 0
@@ -1113,10 +1181,7 @@ function drawRiscoRows(lista) {
             <td>${erroEl}</td>
         </tr>`;
     }).join('');
-    if (lista.length > RISCO_PAGE_SIZE) {
-        html += `<tr><td colspan="6" style="text-align:center;padding:10px;color:#6B7280;font-size:0.82em;">+ ${lista.length - RISCO_PAGE_SIZE} registros adicionais</td></tr>`;
-    }
-    tbody.innerHTML = html;
+
 }
 
 function renderRisco(stats) {
@@ -1147,8 +1212,7 @@ function renderSemAcesso(stats) {
         return;
     }
 
-    const visible = lista.slice(0, ACESSO_PAGE_SIZE);
-    let html = visible.map(function(c) {
+    container.innerHTML = lista.map(function(c) {
         const diasText = c.dias >= 9999 ? 'Nunca acessou' : c.dias + ' dias';
         const cls = c.dias >= 9999 ? 'nunca' : c.dias >= 60 ? 'critico' : 'atencao';
         const foto = getFoto(c.especialista);
@@ -1161,14 +1225,6 @@ function renderSemAcesso(stats) {
             <span class="acesso-dias ${cls}">${diasText}</span>
         </div>`;
     }).join('');
-
-    if (lista.length > ACESSO_PAGE_SIZE) {
-        html += `<div style="text-align:center;padding:10px;color:#6B7280;font-size:0.82em;">
-            + ${lista.length - ACESSO_PAGE_SIZE} registros adicionais
-        </div>`;
-    }
-
-    container.innerHTML = html;
 }
 
 // ============================================================
@@ -1308,6 +1364,92 @@ function computeStatsFromRows(rows) {
 }
 
 // ============================================================
+// FILTRO GLOBAL (ativo / inativo / ambos)
+// ============================================================
+let _allRows = [];
+let _globalFilter = 'ambos';
+let _hStatus = null;
+
+function detectStatusHeader(rows) {
+    if (!rows.length) return null;
+    return findHeader(Object.keys(rows[0]), ['status', 'situacao', 'situação', 'ativo', 'inativo', 'situacao_cliente']);
+}
+
+function normalizeStatus(val) {
+    if (!val) return 'desconhecido';
+    const v = String(val).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    if (v === 'nao' || v === 'n' || v === 'inativo' || v.includes('inativo')) return 'inativo';
+    if (v === 'sim' || v === 's' || v === 'ativo'   || v.includes('ativo'))   return 'ativo';
+    return 'desconhecido';
+}
+
+function filterRows(rows, filter) {
+    if (filter === 'ambos' || !_hStatus) return rows;
+    return rows.filter(function(row) {
+        return normalizeStatus(_hStatus ? row[_hStatus] : '') === filter;
+    });
+}
+
+function toggleGfDropdown(e) {
+    e.stopPropagation();
+    const menu = document.getElementById('gfDropMenu');
+    const btn  = document.getElementById('gfDropBtn');
+    const open = menu.style.display === 'none';
+    menu.style.display = open ? '' : 'none';
+    btn.classList.toggle('open', open);
+}
+
+document.addEventListener('click', function() {
+    const menu = document.getElementById('gfDropMenu');
+    const btn  = document.getElementById('gfDropBtn');
+    if (menu) menu.style.display = 'none';
+    if (btn)  btn.classList.remove('open');
+});
+
+function updateGfCounts() {
+    const total   = _allRows.length;
+    const ativos  = _hStatus ? _allRows.filter(function(r) { return normalizeStatus(r[_hStatus]) === 'ativo'; }).length   : total;
+    const inativos= _hStatus ? _allRows.filter(function(r) { return normalizeStatus(r[_hStatus]) === 'inativo'; }).length : 0;
+    const elTotal  = document.getElementById('gfTotalLabel');
+    const elAtivo  = document.getElementById('gfAtivoCount');
+    const elInativo= document.getElementById('gfInativoCount');
+    if (elTotal)   elTotal.textContent   = total;
+    if (elAtivo)   elAtivo.textContent   = ativos;
+    if (elInativo) elInativo.textContent = inativos;
+}
+
+function applyGlobalFilter(filter) {
+    _globalFilter = filter;
+
+    // Fechar dropdown
+    document.getElementById('gfDropMenu').style.display = 'none';
+    document.getElementById('gfDropBtn').classList.remove('open');
+
+    // Label do botão
+    const labels = { ambos: 'Todos', ativo: 'Ativos', inativo: 'Inativos' };
+    document.getElementById('gfDropLabel').textContent = labels[filter] || 'Todos';
+
+    // Highlight opção ativa
+    ['gfAmbos','gfAtivos','gfInativos'].forEach(function(id) {
+        document.getElementById(id).classList.remove('active');
+    });
+    const activeId = { ambos: 'gfAmbos', ativo: 'gfAtivos', inativo: 'gfInativos' }[filter];
+    if (activeId) document.getElementById(activeId).classList.add('active');
+
+    const filtered = filterRows(_allRows, filter);
+    const stats = computeStatsFromRows(filtered);
+    renderKPIs(stats);
+    renderEspecialistas(stats);
+    renderHSChart(stats);
+    renderPlanos(stats);
+    requestAnimationFrame(function() {
+        renderRisco(stats);
+        renderSemAcesso(stats);
+        renderEmDia(stats);
+    });
+}
+
+// ============================================================
 // FIREBASE LISTENER
 // ============================================================
 let lastChecksum = '';
@@ -1315,8 +1457,16 @@ let renderTimer = null;
 
 function processAndRender(data) {
     buildFotoMap(data.colaboradores);
-    const rows = convertRows(data);
-    const stats = computeStatsFromRows(rows);
+    _allRows = convertRows(data);
+    _hStatus = detectStatusHeader(_allRows);
+
+    // Mostrar dropdown filtro global só se houver coluna de status
+    const filterBar = document.getElementById('globalFilterBar');
+    if (filterBar) filterBar.style.display = _hStatus ? '' : 'none';
+
+    updateGfCounts();
+    const filtered = filterRows(_allRows, _globalFilter);
+    const stats = computeStatsFromRows(filtered);
 
     renderKPIs(stats);
     renderEspecialistas(stats);
@@ -1334,7 +1484,7 @@ function processAndRender(data) {
     document.getElementById('relContent').style.display = 'flex';
 
     const time = data.updatedISO ? new Date(data.updatedISO).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
-    setRtStatus(true, 'Tempo real · ' + rows.length + ' clientes' + (time ? ' · ' + time : ''));
+    setRtStatus(true, 'Tempo real · ' + _allRows.length + ' clientes' + (time ? ' · ' + time : ''));
 }
 
 function startRelacionamentoListener() {
