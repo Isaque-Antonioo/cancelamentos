@@ -1,28 +1,3 @@
-/**
- * =====================================================
- * HUBSTROM - Google Apps Script para Firebase Real-Time
- * =====================================================
- *
- * COMO INSTALAR:
- * 1. Abra a planilha do Comercial no Google Sheets
- * 2. Vá em Extensões → Apps Script
- * 3. Cole este código inteiro no editor
- * 4. Clique em "Salvar" (ícone de disquete)
- * 5. Clique em "Executar" na função setupTrigger() UMA VEZ
- *    - Vai pedir permissão para acessar a planilha e fazer requisições externas
- *    - Aceite todas as permissões
- * 6. Pronto! Agora toda edição na planilha vai atualizar o dashboard em tempo real
- *
- * COMO FUNCIONA:
- * - Toda vez que alguém editar a planilha, o trigger onEdit dispara
- * - O script lê os dados das 3 abas (Dados, Closer, Última Venda)
- * - Envia para o Firebase Realtime Database no path comercial_live/
- * - O dashboard escuta esse path e atualiza instantaneamente
- *
- * CONFIGURAÇÃO:
- * - Altere FIREBASE_URL se o seu projeto Firebase for diferente
- * - Altere os nomes das abas se forem diferentes na sua planilha
- */
 
 // ===================== CONFIGURAÇÃO =====================
 var FIREBASE_URL = 'https://relatorio-geral-default-rtdb.firebaseio.com';

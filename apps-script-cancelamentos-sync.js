@@ -1,30 +1,3 @@
-/**
- * =====================================================
- * HUBSTROM - Apps Script Cancelamentos → Firebase
- * =====================================================
- *
- * COMO INSTALAR:
- * 1. Abra a planilha de Cancelamentos no Google Sheets
- * 2. Vá em Extensões → Apps Script
- * 3. Crie um novo arquivo (+ → Script) chamado "FirebaseSync"
- * 4. Cole este código inteiro
- * 5. Salve (Ctrl+S)
- * 6. Selecione "setupTrigger" no dropdown e clique em Executar
- * 7. Aceite as permissões
- *
- * COMO FUNCIONA:
- * - Toda edição na planilha dispara o envio para Firebase
- * - Detecta automaticamente qual aba foi editada
- * - Mapeia o nome da aba para o mês (ex: "Janeiro" → "2025-01")
- * - Envia os dados para cancelamentos_live/{mes}
- * - O dashboard escuta esse path e atualiza em tempo real
- *
- * FORMATO DOS DADOS:
- * - headers: array com nomes originais das colunas (sem sanitização)
- * - rows: array de arrays (cada row é um array de valores na mesma ordem dos headers)
- * - Isso evita problemas com caracteres especiais nas chaves do Firebase
- * - O dashboard reconstrói os objetos {header: valor} no client-side
- */
 
 // ===================== CONFIGURAÇÃO =====================
 var FIREBASE_URL = 'https://relatorio-geral-default-rtdb.firebaseio.com';
