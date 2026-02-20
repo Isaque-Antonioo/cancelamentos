@@ -105,40 +105,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // FETCH E PARSE
 // ===================================
 async function fetchData() {
-    // Se Firebase RT está ativo, não buscar CSV (dados já chegam em tempo real)
-    if (suporteRealtimeActive && suporteListenerActive) {
-        console.log('[Suporte] Fetch ignorado - Firebase RT ativo');
-        return;
-    }
-
-    try {
-        const csvUrl = `${SUPORTE_CONFIG.sheetUrl}?gid=${SUPORTE_CONFIG.gid}&single=true&output=csv`;
-        const response = await fetch(csvUrl);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-        const csvText = await response.text();
-        allData = parseCSV(csvText);
-
-        // Validação: log para debug
-        const csvLineCount = csvText.split('\n').filter(l => l.trim()).length - 1; // -1 pelo cabeçalho
-        console.log(`[Suporte Validação] Linhas CSV (sem cabeçalho): ${csvLineCount}`);
-        console.log(`[Suporte Validação] Registros carregados: ${allData.length}`);
-        console.log(`[Suporte Validação] Registros descartados: ${csvLineCount - allData.length}`);
-
-        if (allData.length === 0) {
-            updateSubtitle('Nenhum dado encontrado na planilha');
-            return;
-        }
-
-        buildMonthFilter(allData);
-        applyFilter();
-
-        // Auto-save no Firebase após cada fetch bem-sucedido
-        autoSaveToFirebase();
-
-    } catch (error) {
-        console.error('Erro ao buscar dados:', error);
-        updateSubtitle('Erro ao carregar dados. Verifique a conexão.');
+    // Dados vêm exclusivamente do Apps Script via Firebase RT.
+    // O fallback CSV foi desabilitado para evitar leitura de abas erradas.
+    if (!suporteRealtimeActive) {
+        updateSubtitle('Aguardando dados do Apps Script (planilha "Dados Atendimento")...');
     }
 }
 
@@ -2650,6 +2620,31 @@ function convertSuporteFirebaseData(data) {
 }
 
 /**
+ * Valida se os headers do Firebase são da aba "Dados Atendimento".
+ * Requer pelo menos 5 das 9 colunas esperadas (comparação sem acento, case-insensitive).
+ */
+function isValidSuporteHeaders(headers) {
+    if (!Array.isArray(headers) || headers.length === 0) return false;
+
+    const expected = ['razao social', 'modulo', 'processo', 'canal de atendimento', 'ligacao', 'status', 'dia/mes', 'colaborador', 'planos'];
+
+    function stripAcc(s) {
+        return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+
+    const normalizedHeaders = headers.map(h => stripAcc(h));
+
+    let matches = 0;
+    for (const exp of expected) {
+        if (normalizedHeaders.some(h => h === exp || h.indexOf(exp) >= 0 || exp.indexOf(h) >= 0)) {
+            matches++;
+        }
+    }
+
+    return matches >= 5;
+}
+
+/**
  * Inicia o listener Firebase para suporte em tempo real.
  */
 function startSuporteFirebaseListener() {
@@ -2669,6 +2664,14 @@ function startSuporteFirebaseListener() {
 
         // Verificar fonte válida
         if (data.source !== 'apps_script' && data.source !== 'apps_script_bulk') return;
+
+        // Verificar se os headers são da aba correta ("Dados Atendimento")
+        // Requer pelo menos 5 das 9 colunas esperadas
+        if (!isValidSuporteHeaders(data.headers)) {
+            console.warn('[Suporte RT] Headers inválidos — dados da aba errada, ignorando:', data.headers);
+            updateSubtitle('Dados desatualizados. Instale o novo Apps Script e execute "syncAllSheets".');
+            return;
+        }
 
         // Checksum para evitar reprocessar dados iguais
         const newChecksum = data.checksum || String(data.updatedAt || '');

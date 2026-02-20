@@ -27,6 +27,22 @@
 // ===================== CONFIGURAÇÃO =====================
 var FIREBASE_URL = 'https://relatorio-geral-default-rtdb.firebaseio.com';
 
+// Aba fixa de onde os dados são lidos
+var SOURCE_SHEET_NAME = 'Dados Atendimento';
+
+// Colunas desejadas (na ordem de exibição) — busca por correspondência parcial, sem acento
+var DESIRED_COLUMNS = [
+  'Razão Social',
+  'Módulo',
+  'Processo',
+  'Canal de Atendimento',
+  'Ligação',
+  'Status',
+  'Dia/Mês',
+  'Colaborador',
+  'Planos'
+];
+
 // Palavras que indicam linha de cabeçalho repetida (não é dado real)
 var HEADER_WORDS = [
   'razão social', 'razao social', 'módulo', 'modulo',
@@ -74,33 +90,34 @@ function onSheetEdit(e) {
 }
 
 /**
- * Sincroniza a aba ativa com o Firebase.
- * Envia todos os registros válidos para suporte_live.json
+ * Sincroniza a aba "Dados Atendimento" com o Firebase.
  */
 function syncCurrentSheet() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var activeSheet = ss.getActiveSheet();
-    var sheetName = activeSheet.getName();
+    var sheet = ss.getSheetByName(SOURCE_SHEET_NAME);
 
-    Logger.log('Sincronizando aba: ' + sheetName);
+    if (!sheet) {
+      Logger.log('Aba "' + SOURCE_SHEET_NAME + '" nao encontrada.');
+      return;
+    }
 
-    // Ler todos os dados da aba
-    var data = readSheetData(activeSheet);
+    Logger.log('Sincronizando aba: ' + SOURCE_SHEET_NAME);
+
+    var data = readSheetData(sheet);
 
     if (data.rows.length === 0) {
-      Logger.log('Nenhum dado válido encontrado na aba ' + sheetName);
+      Logger.log('Nenhum dado valido encontrado em "' + SOURCE_SHEET_NAME + '"');
       return;
     }
 
     var checksum = generateChecksum(data);
 
-    // Montar payload
     var payload = {
       headers: data.headers,
       rows: data.rows,
       totalRows: data.rows.length,
-      sheetName: sheetName,
+      sheetName: SOURCE_SHEET_NAME,
       updatedAt: Date.now(),
       updatedISO: new Date().toISOString(),
       checksum: checksum,
@@ -108,7 +125,6 @@ function syncCurrentSheet() {
       source: 'apps_script'
     };
 
-    // Enviar para Firebase live
     sendToFirebase('/suporte_live.json', payload);
 
     Logger.log('Dados enviados! ' + data.rows.length + ' registros de suporte');
@@ -121,49 +137,31 @@ function syncCurrentSheet() {
 // ===================== SYNC MANUAL =====================
 
 /**
- * Sincroniza manualmente. Útil para primeira configuração.
+ * Sincroniza manualmente a aba "Dados Atendimento".
  */
 function syncAllSheets() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheets = ss.getSheets();
-  var totalRows = 0;
+  var sheet = ss.getSheetByName(SOURCE_SHEET_NAME);
 
-  // Combinar dados de todas as abas
-  var allHeaders = null;
-  var allRows = [];
-
-  for (var i = 0; i < sheets.length; i++) {
-    var sheet = sheets[i];
-    var data = readSheetData(sheet);
-
-    if (data.rows.length === 0) continue;
-
-    // Usar headers da primeira aba com dados
-    if (!allHeaders) {
-      allHeaders = data.headers;
-    }
-
-    // Se os headers coincidem, adicionar os rows
-    if (arraysEqual(data.headers, allHeaders)) {
-      allRows = allRows.concat(data.rows);
-    }
-
-    Logger.log('Aba "' + sheet.getName() + '": ' + data.rows.length + ' registros');
-  }
-
-  if (allRows.length === 0) {
-    SpreadsheetApp.getUi().alert('Nenhum dado encontrado nas abas.');
+  if (!sheet) {
+    SpreadsheetApp.getUi().alert('Aba "' + SOURCE_SHEET_NAME + '" nao encontrada na planilha.');
     return;
   }
 
-  var combinedData = { headers: allHeaders, rows: allRows };
-  var checksum = generateChecksum(combinedData);
+  var data = readSheetData(sheet);
+
+  if (data.rows.length === 0) {
+    SpreadsheetApp.getUi().alert('Nenhum dado encontrado em "' + SOURCE_SHEET_NAME + '".');
+    return;
+  }
+
+  var checksum = generateChecksum(data);
 
   var payload = {
-    headers: allHeaders,
-    rows: allRows,
-    totalRows: allRows.length,
-    sheetName: 'all',
+    headers: data.headers,
+    rows: data.rows,
+    totalRows: data.rows.length,
+    sheetName: SOURCE_SHEET_NAME,
     updatedAt: Date.now(),
     updatedISO: new Date().toISOString(),
     checksum: checksum,
@@ -173,7 +171,7 @@ function syncAllSheets() {
 
   sendToFirebase('/suporte_live.json', payload);
 
-  SpreadsheetApp.getUi().alert(allRows.length + ' registros sincronizados com o dashboard!');
+  SpreadsheetApp.getUi().alert(data.rows.length + ' registros sincronizados com o dashboard!');
 }
 
 // ===================== DATA READER =====================
@@ -182,14 +180,15 @@ function syncAllSheets() {
  * Lê dados de uma aba da planilha de suporte.
  *
  * ESTRUTURA DA PLANILHA:
- * - Linha 1: Headers (Razão Social, Módulo, Processo, Canal, Ligação, Status, Dia/Mês, Colaborador)
+ * - Linha 1: Headers (Razão Social, Módulo, Processo, Canal, Ligação, Status, Dia/Mês, Colaborador, Planos)
  * - Linha 2+: Dados dos chamados
  * - Linhas vazias ou com cabeçalhos repetidos são ignoradas
  * - Uma linha é válida se tem pelo menos 2 campos com conteúdo
+ * - Apenas as colunas em DESIRED_COLUMNS são incluídas na saída (por correspondência parcial sem acento)
  *
  * FORMATO DE SAÍDA:
- * - headers: array com nomes originais das colunas
- * - rows: array de arrays (valores na mesma ordem dos headers)
+ * - headers: array com nomes originais das colunas (apenas as desejadas, na ordem de DESIRED_COLUMNS)
+ * - rows: array de arrays (valores na mesma ordem dos headers filtrados)
  */
 function readSheetData(sheet) {
   var lastRow = sheet.getLastRow();
@@ -199,33 +198,50 @@ function readSheetData(sheet) {
     return { headers: [], rows: [] };
   }
 
-  // Ler headers (linha 1) - manter nomes ORIGINAIS
+  // Ler todos os headers da linha 1
   var allHeaders = sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
-  var headers = [];
 
-  for (var h = 0; h < allHeaders.length; h++) {
-    var headerVal = allHeaders[h].toString().trim();
-    if (headerVal !== '') {
-      headers.push(headerVal);
+  // Mapear DESIRED_COLUMNS → índice da coluna na planilha (correspondência parcial sem acento)
+  var colIndexes = [];   // índice real na planilha para cada coluna desejada encontrada
+  var colHeaders = [];   // nome original da coluna (como está na planilha)
+
+  for (var d = 0; d < DESIRED_COLUMNS.length; d++) {
+    var desired = stripAccents(DESIRED_COLUMNS[d]).toLowerCase();
+    var found = -1;
+    for (var h = 0; h < allHeaders.length; h++) {
+      var headerNorm = stripAccents(allHeaders[h].toString().trim()).toLowerCase();
+      if (headerNorm === desired || headerNorm.indexOf(desired) >= 0 || desired.indexOf(headerNorm) >= 0) {
+        found = h;
+        break;
+      }
+    }
+    if (found >= 0) {
+      colIndexes.push(found);
+      colHeaders.push(allHeaders[found].toString().trim());
+    } else {
+      // Coluna desejada não encontrada — inclui com nome canônico e valor vazio
+      colIndexes.push(-1);
+      colHeaders.push(DESIRED_COLUMNS[d]);
     }
   }
 
-  if (headers.length === 0) {
+  if (colHeaders.length === 0) {
     return { headers: [], rows: [] };
   }
 
-  // Ler dados (linha 2 em diante)
-  var dataRange = sheet.getRange(2, 1, lastRow - 1, headers.length).getDisplayValues();
+  // Ler todos os dados (linha 2 em diante)
+  var dataRange = sheet.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues();
   var rows = [];
 
   for (var i = 0; i < dataRange.length; i++) {
     var row = dataRange[i];
 
-    // Contar campos preenchidos
+    // Extrair apenas as colunas desejadas
     var filledCount = 0;
     var values = [];
-    for (var j = 0; j < headers.length; j++) {
-      var val = row[j] ? row[j].toString().trim() : '';
+    for (var c = 0; c < colIndexes.length; c++) {
+      var idx = colIndexes[c];
+      var val = (idx >= 0 && row[idx]) ? row[idx].toString().trim() : '';
       values.push(val);
       if (val !== '') filledCount++;
     }
@@ -241,7 +257,14 @@ function readSheetData(sheet) {
 
   Logger.log('Lidos ' + rows.length + ' registros válidos de ' + sheet.getName());
 
-  return { headers: headers, rows: rows };
+  return { headers: colHeaders, rows: rows };
+}
+
+/**
+ * Remove acentos de uma string para comparação normalizada.
+ */
+function stripAccents(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 /**
