@@ -420,6 +420,36 @@
         .badge-green  { background: rgba(53,204,163,0.12); color: #35CCA3; }
         .client-panel { border-top: 1px solid rgba(255,255,255,0.05); }
 
+        /* =========== BUSCA CNPJ =========== */
+        .cnpj-search-wrap {
+            margin-left: auto;
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 5px 10px;
+            transition: border-color 0.15s;
+        }
+        .cnpj-search-wrap:focus-within {
+            border-color: rgba(53,204,163,0.35);
+            background: rgba(53,204,163,0.04);
+        }
+        .cnpj-search-wrap svg { color: #4B5563; flex-shrink: 0; }
+        .cnpj-search-input {
+            background: none; border: none; outline: none;
+            color: #E7E7E7;
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(0.7em, 0.8vw, 0.82em);
+            width: clamp(100px, 12vw, 180px);
+        }
+        .cnpj-search-input::placeholder { color: #4B5563; }
+        .cnpj-search-clear {
+            background: none; border: none; cursor: pointer;
+            color: #6B7280; font-size: 0.8em; padding: 0;
+            line-height: 1; transition: color 0.15s;
+        }
+        .cnpj-search-clear:hover { color: #E7E7E7; }
+
         /* Header extras */
         .header-rt { margin-left: auto; display: flex; align-items: center; gap: 10px; }
     </style>
@@ -678,8 +708,8 @@
                 <!-- RIGHT -->
                 <div class="right-col">
                     <div class="rel-card" style="flex:1; min-height:0;">
-                        <!-- Tabs -->
-                        <div class="rel-card-title" style="gap:0; padding-bottom:0; border-bottom: none; flex-wrap: wrap;">
+                        <!-- Tabs + Busca -->
+                        <div class="rel-card-title" style="gap:0; padding-bottom:0; border-bottom: none;">
                             <button class="client-tab active" id="tabRisco" onclick="setClientFilter('risco')">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -701,6 +731,15 @@
                                 Em Dia
                                 <span id="emDiaCount" class="tab-badge badge-green"></span>
                             </button>
+
+                            <!-- Busca por CNPJ -->
+                            <div class="cnpj-search-wrap">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                                <input type="text" id="cnpjSearch" class="cnpj-search-input" placeholder="Buscar CNPJ..." oninput="filterByCnpj(this.value)">
+                                <button class="cnpj-search-clear" id="cnpjClear" onclick="clearCnpjSearch()" style="display:none;">✕</button>
+                            </div>
                         </div>
 
                         <!-- Painel Risco -->
@@ -1023,6 +1062,7 @@ function renderPlanos(stats) {
 // SORT — CLIENTES EM RISCO
 // ============================================================
 let _riscoData = [];
+let _lastStats  = null;
 let _riscoSortCol = 'health';
 let _riscoSortDir = 1; // 1 = asc, -1 = desc
 
@@ -1042,7 +1082,8 @@ function sortRiscoBy(col) {
 function applyRiscoSort() {
     const col = _riscoSortCol;
     const dir = _riscoSortDir;
-    const sorted = _riscoData.slice().sort(function(a, b) {
+    const base = _cnpjQuery ? _riscoData.filter(function(c){ return matchCnpj(c.cnpj); }) : _riscoData;
+    const sorted = base.slice().sort(function(a, b) {
         if (col === 'erros') {
             return (b.erros - a.erros) * (dir === -1 ? 1 : -1);
         }
@@ -1106,7 +1147,8 @@ function sortEmDiaBy(col) {
 
 function applyEmDiaSort() {
     const col = _emDiaSortCol, dir = _emDiaSortDir;
-    const sorted = _emDiaData.slice().sort(function(a, b) {
+    const base = _cnpjQuery ? _emDiaData.filter(function(c){ return matchCnpj(c.cnpj); }) : _emDiaData;
+    const sorted = base.slice().sort(function(a, b) {
         if (col === 'erros') return (b.erros - a.erros) * (dir === -1 ? 1 : -1);
         if (col === 'ultimoAcesso') {
             const pd = function(s) { if (!s) return 0; const p = s.split('/'); return p.length===3 ? new Date(+p[2],+p[1]-1,+p[0]).getTime() : 0; };
@@ -1198,20 +1240,12 @@ function renderRisco(stats) {
 // ============================================================
 const ACESSO_PAGE_SIZE = 150;
 
-function renderSemAcesso(stats) {
+function renderSemAcessoRows(lista) {
     const container = document.getElementById('semAcessoContainer');
-    const countEl   = document.getElementById('semAcessoCount');
-    const loading   = document.getElementById('semAcessoLoading');
-    const lista = stats.semAcessoList || [];
-
-    if (loading) loading.style.display = 'none';
-    countEl.textContent = lista.length;
-
     if (!lista.length) {
-        container.innerHTML = '<p style="color:#35CCA3;font-size:0.85em;padding:8px;">Todos os clientes acessaram recentemente!</p>';
+        container.innerHTML = '<p style="color:#35CCA3;font-size:0.85em;padding:8px;">Nenhum resultado.</p>';
         return;
     }
-
     container.innerHTML = lista.map(function(c) {
         const diasText = c.dias >= 9999 ? 'Nunca acessou' : c.dias + ' dias';
         const cls = c.dias >= 9999 ? 'nunca' : c.dias >= 60 ? 'critico' : 'atencao';
@@ -1225,6 +1259,55 @@ function renderSemAcesso(stats) {
             <span class="acesso-dias ${cls}">${diasText}</span>
         </div>`;
     }).join('');
+}
+
+function renderSemAcesso(stats) {
+    const loading = document.getElementById('semAcessoLoading');
+    if (loading) loading.style.display = 'none';
+    document.getElementById('semAcessoCount').textContent = (stats.semAcessoList || []).length;
+    const lista = (stats.semAcessoList || []).filter(function(c) { return matchCnpj(c.cnpj); });
+    renderSemAcessoRows(lista.length === (stats.semAcessoList || []).length ? lista : lista);
+    // store for later filter
+    _lastStats = stats;
+}
+
+// ============================================================
+// BUSCA POR CNPJ
+// ============================================================
+let _cnpjQuery = '';
+
+function filterByCnpj(val) {
+    _cnpjQuery = val.trim().toLowerCase().replace(/\D/g, '');
+    document.getElementById('cnpjClear').style.display = val ? '' : 'none';
+    applyCurrentTabFilter();
+}
+
+function clearCnpjSearch() {
+    _cnpjQuery = '';
+    document.getElementById('cnpjSearch').value = '';
+    document.getElementById('cnpjClear').style.display = 'none';
+    applyCurrentTabFilter();
+}
+
+function matchCnpj(cnpj) {
+    if (!_cnpjQuery) return true;
+    return String(cnpj || '').toLowerCase().replace(/\D/g, '').includes(_cnpjQuery);
+}
+
+function applyCurrentTabFilter() {
+    const tab = document.querySelector('.client-tab.active');
+    const tipo = tab ? tab.id.replace('tab','').toLowerCase() : 'risco';
+    if (tipo === 'risco') {
+        const filtered = _riscoData.filter(function(c) { return matchCnpj(c.cnpj); });
+        drawRiscoRows(filtered);
+    } else if (tipo === 'acesso') {
+        const lista = (_lastStats && _lastStats.semAcessoList) ? _lastStats.semAcessoList : [];
+        const filtered = lista.filter(function(c) { return matchCnpj(c.cnpj); });
+        renderSemAcessoRows(filtered);
+    } else if (tipo === 'emdia') {
+        const filtered = _emDiaData.filter(function(c) { return matchCnpj(c.cnpj); });
+        drawEmDiaRows(filtered);
+    }
 }
 
 // ============================================================

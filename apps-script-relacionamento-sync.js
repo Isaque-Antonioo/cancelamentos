@@ -1,3 +1,24 @@
+/**
+ * =====================================================
+ * HUBSTROM - Apps Script Relacionamento → Firebase
+ * =====================================================
+ *
+ * COMO INSTALAR:
+ * 1. Abra a planilha "DB Relacionamento" no Google Sheets
+ * 2. Vá em Extensões → Apps Script
+ * 3. Selecione todo o código existente (Ctrl+A) e delete
+ * 4. Cole este código inteiro
+ * 5. Salve (Ctrl+S)
+ * 6. Selecione "setupTrigger" no dropdown e clique em Executar
+ * 7. Aceite as permissões
+ *
+ * COMO FUNCIONA:
+ * - Toda edição na planilha dispara o envio para Firebase
+ * - Lê os dados das abas "Dados tratados" e "Colaborador"
+ * - Computa estatísticas agregadas (HealthScore, planos, especialistas)
+ * - Envia para relacionamento_live.json no Firebase
+ * - O dashboard escuta esse path e atualiza em tempo real
+ */
 
 // ===================== CONFIGURAÇÃO =====================
 var FIREBASE_URL = 'https://relatorio-geral-default-rtdb.firebaseio.com';

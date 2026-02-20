@@ -1,3 +1,28 @@
+/**
+ * =====================================================
+ * HUBSTROM - Apps Script Suporte → Firebase
+ * =====================================================
+ *
+ * COMO INSTALAR:
+ * 1. Abra a planilha de Suporte no Google Sheets
+ * 2. Vá em Extensões → Apps Script
+ * 3. Selecione todo o código existente (Ctrl+A) e delete
+ * 4. Cole este código inteiro
+ * 5. Salve (Ctrl+S)
+ * 6. Selecione "setupTrigger" no dropdown e clique em Executar
+ * 7. Aceite as permissões
+ *
+ * COMO FUNCIONA:
+ * - Toda edição na planilha dispara o envio para Firebase
+ * - Lê todos os registros válidos (ignora linhas vazias e cabeçalhos repetidos)
+ * - Envia os dados para suporte_live.json
+ * - O dashboard escuta esse path e atualiza em tempo real
+ *
+ * FORMATO DOS DADOS:
+ * - headers: array com nomes originais das colunas
+ * - rows: array de arrays (cada row é um array de valores)
+ * - Isso evita problemas com caracteres especiais nas chaves do Firebase
+ */
 
 // ===================== CONFIGURAÇÃO =====================
 var FIREBASE_URL = 'https://relatorio-geral-default-rtdb.firebaseio.com';
