@@ -899,6 +899,24 @@
 
 <script>
 // ============================================================
+// SIDEBAR
+// ============================================================
+function toggleSidebar() {
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('active');
+    overlay.classList.toggle('active');
+    document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        var sidebar = document.getElementById('sidebar');
+        if (sidebar.classList.contains('active')) toggleSidebar();
+    }
+});
+
+// ============================================================
 // ESTADO GLOBAL
 // ============================================================
 var liveKpis = {};
