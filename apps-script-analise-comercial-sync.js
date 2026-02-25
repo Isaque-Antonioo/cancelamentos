@@ -40,6 +40,30 @@ var SHEET_NAME = 'Negociações';
 // Usada como fallback se o cabeçalho "Obs" não for encontrado.
 var COL_OBS_INDEX = 10;
 
+var LOG_PATH = '/sync_log.json';
+
+function logEntry(level, funcName, msg, detail) {
+  try {
+    var entry = {
+      t:      Date.now(),
+      iso:    new Date().toISOString(),
+      level:  level,
+      source: 'analise_comercial',
+      fn:     funcName,
+      msg:    msg,
+      detail: detail || ''
+    };
+    UrlFetchApp.fetch(FIREBASE_URL + LOG_PATH, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(entry),
+      muteHttpExceptions: true
+    });
+  } catch (e) {
+    Logger.log('[Log] Falha: ' + e.message);
+  }
+}
+
 // ===================== TRIGGER SETUP =====================
 
 function setupTrigger() {
@@ -69,6 +93,10 @@ function setupTrigger() {
 function onNegEdit() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    SpreadsheetApp.flush();
+    Utilities.sleep(800);
+
     var negociacoes = readNegociacoes(ss);
 
     var payload = {
@@ -82,9 +110,12 @@ function onNegEdit() {
     sendToFirebase(payload);
     saveMonthlySnapshot(payload);
 
-    Logger.log('Negociações sincronizadas: ' + negociacoes.length + ' registros');
+    logEntry('info', 'onNegEdit',
+      'Sync OK — ' + negociacoes.length + ' negociacoes', '');
+    Logger.log('Negociacoes sincronizadas: ' + negociacoes.length);
   } catch (error) {
-    Logger.log('Erro ao sincronizar negociações: ' + error.message);
+    logEntry('error', 'onNegEdit', error.message, error.stack || '');
+    Logger.log('Erro ao sincronizar: ' + error.message);
   }
 }
 
@@ -170,12 +201,19 @@ function sendToFirebase(data) {
     payload: JSON.stringify(data),
     muteHttpExceptions: true
   };
-  var response = UrlFetchApp.fetch(url, options);
-  var code = response.getResponseCode();
-  if (code !== 200) {
-    Logger.log('Erro Firebase HTTP ' + code + ': ' + response.getContentText());
-    throw new Error('Firebase retornou HTTP ' + code);
+  for (var attempt = 1; attempt <= 3; attempt++) {
+    var response = UrlFetchApp.fetch(url, options);
+    var code = response.getResponseCode();
+    if (code === 200) return;
+    var errMsg = 'HTTP ' + code + ': ' + response.getContentText().substring(0, 200);
+    Logger.log('[Firebase] Tentativa ' + attempt + ' falhou: ' + errMsg);
+    logEntry('warn', 'sendToFirebase',
+      'Tentativa ' + attempt + ' falhou: HTTP ' + code, errMsg);
+    if (attempt < 3) Utilities.sleep(1000);
   }
+  var finalErr = 'Firebase indisponivel apos 3 tentativas';
+  logEntry('error', 'sendToFirebase', finalErr, url);
+  throw new Error(finalErr);
 }
 
 // ===================== SNAPSHOT MENSAL =====================

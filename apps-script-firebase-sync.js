@@ -30,11 +30,40 @@
 // ===================== CONFIGURAÇÃO =====================
 var FIREBASE_URL = 'https://relatorio-geral-default-rtdb.firebaseio.com';
 var FIREBASE_PATH = '/comercial_live.json';
+var LOG_PATH      = '/sync_log.json'; // Path para o log centralizado de erros
 
 // Nomes das abas na planilha (ajuste conforme necessário)
 var SHEET_DADOS        = 'Dados';        // Aba com KPIs (primeira aba, gid=0)
 var SHEET_CLOSER       = 'Closer';       // Aba com ranking dos closers
 var SHEET_ULTIMA_VENDA = 'última venda'; // Aba com última venda
+
+// ===================== LOG CENTRALIZADO =====================
+
+/**
+ * Registra uma entrada no log centralizado do Firebase (/sync_log).
+ * level: 'error' | 'warn' | 'info'
+ */
+function logEntry(level, funcName, msg, detail) {
+  try {
+    var entry = {
+      t:      Date.now(),
+      iso:    new Date().toISOString(),
+      level:  level,
+      source: 'comercial',
+      fn:     funcName,
+      msg:    msg,
+      detail: detail || ''
+    };
+    UrlFetchApp.fetch(FIREBASE_URL + LOG_PATH, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(entry),
+      muteHttpExceptions: true
+    });
+  } catch (e) {
+    Logger.log('[Log] Falha ao gravar log: ' + e.message);
+  }
+}
 
 // ===================== TRIGGER SETUP =====================
 
@@ -85,17 +114,14 @@ function onSheetEdit() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    // Aguarda fórmulas recalcularem (COUNTIF/SUMIF entre abas podem ter lag)
     SpreadsheetApp.flush();
     Utilities.sleep(800);
 
-    // Ler dados das abas
     var kpis        = readKPIs(ss);
     var closers     = readClosers(ss);
     var ultimaVenda = readUltimaVenda(ss);
 
-    // Log para diagnóstico (ver em Executar → Registros no Apps Script)
-    Logger.log('[Sync] KPIs enviados: ' + JSON.stringify(kpis));
+    Logger.log('[Sync] KPIs: ' + JSON.stringify(kpis));
     Logger.log('[Sync] Closers: ' + closers.length + ' | ' + new Date().toISOString());
 
     var payload = {
@@ -110,8 +136,13 @@ function onSheetEdit() {
     sendToFirebase(payload);
     saveMonthlySnapshot(payload);
 
-    Logger.log('[Sync] Concluído com sucesso: ' + new Date().toISOString());
+    logEntry('info', 'onSheetEdit',
+      'Sync OK — ' + closers.length + ' closers',
+      'KPIs: ' + Object.keys(kpis).length + ' campos');
+    Logger.log('[Sync] Concluido: ' + new Date().toISOString());
+
   } catch (error) {
+    logEntry('error', 'onSheetEdit', error.message, error.stack || '');
     Logger.log('[Sync] ERRO: ' + error.message);
   }
 }
@@ -207,18 +238,22 @@ function sendToFirebase(data) {
     muteHttpExceptions: true
   };
 
-  // Tenta até 3 vezes em caso de falha de rede
   for (var attempt = 1; attempt <= 3; attempt++) {
     var response = UrlFetchApp.fetch(url, options);
     var code = response.getResponseCode();
     if (code === 200) {
-      Logger.log('[Firebase] Enviado com sucesso (tentativa ' + attempt + ')');
+      Logger.log('[Firebase] Enviado (tentativa ' + attempt + ')');
       return;
     }
-    Logger.log('[Firebase] Tentativa ' + attempt + ' falhou: HTTP ' + code);
+    var errMsg = 'HTTP ' + code + ': ' + response.getContentText().substring(0, 200);
+    Logger.log('[Firebase] Tentativa ' + attempt + ' falhou: ' + errMsg);
+    logEntry('warn', 'sendToFirebase',
+      'Tentativa ' + attempt + ' falhou: HTTP ' + code, errMsg);
     if (attempt < 3) Utilities.sleep(1000);
   }
-  throw new Error('Firebase indisponivel apos 3 tentativas');
+  var finalErr = 'Firebase indisponivel apos 3 tentativas';
+  logEntry('error', 'sendToFirebase', finalErr, url);
+  throw new Error(finalErr);
 }
 
 // ===================== MONTHLY SNAPSHOT =====================

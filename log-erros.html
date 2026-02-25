@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hubstrom - Log de Erros</title>
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M161 85c2.7-1.2 5.6.8 5.6 3.7v50.3c0 1.6-.9 3-2.4 3.7L35.2 199.9c-.9.4-1.9-.3-1.9-1.2v-54.4c0-1.6.9-3 2.4-3.7L161 85z' fill='%2335CCA3'/%3E%3Cpath d='M164.8.1c.9-.4 1.9.3 1.9 1.2v54.4c0 1.6-.9 3-2.4 3.7L39 114.9c-2.7 1.2-5.6-.8-5.6-3.7V61c0-1.6.9-3 2.4-3.7L164.8.1z' fill='%2335CCA3'/%3E%3C/svg%3E">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/auth.js"></script>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        .log-main {
+            padding: 1.2vh 1.5vw 3vh;
+            overflow-y: auto;
+            height: calc(100vh - clamp(50px, 6vh, 100px));
+            font-family: 'Poppins', sans-serif;
+        }
+
+        /* ===== KPI CARDS ===== */
+        .log-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: clamp(8px, 1vw, 16px);
+            margin-bottom: 1.5vh;
+        }
+
+        .log-kpi-card {
+            background: linear-gradient(145deg, #151922, #0F172A);
+            border-radius: 14px;
+            padding: clamp(12px, 1.5vh, 20px) clamp(14px, 1.2vw, 22px);
+            border-left: 3px solid transparent;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .log-kpi-card.error  { border-left-color: #f87171; }
+        .log-kpi-card.warn   { border-left-color: #E8BB34; }
+        .log-kpi-card.ok     { border-left-color: #35CCA3; }
+        .log-kpi-card.neutral{ border-left-color: #60a5fa; }
+
+        .log-kpi-val {
+            font-size: clamp(1.4em, 2.2vw, 2.2em);
+            font-weight: 800;
+            line-height: 1;
+        }
+        .log-kpi-card.error  .log-kpi-val { color: #f87171; }
+        .log-kpi-card.warn   .log-kpi-val { color: #E8BB34; }
+        .log-kpi-card.ok     .log-kpi-val { color: #35CCA3; }
+        .log-kpi-card.neutral .log-kpi-val{ color: #60a5fa; }
+
+        .log-kpi-label {
+            font-size: clamp(0.65em, 0.75vw, 0.82em);
+            color: #6b7280;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ===== CONTROLS ===== */
+        .log-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 1.2vh;
+        }
+
+        .log-filter-btn {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 6px 14px;
+            color: #9ca3af;
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(0.68em, 0.75vw, 0.84em);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .log-filter-btn:hover { background: rgba(255,255,255,0.08); color: #e7e7e7; }
+        .log-filter-btn.active { background: rgba(53,204,163,0.12); border-color: rgba(53,204,163,0.3); color: #35CCA3; }
+        .log-filter-btn.active.err { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.3); color: #f87171; }
+        .log-filter-btn.active.wrn { background: rgba(232,187,52,0.1); border-color: rgba(232,187,52,0.3); color: #E8BB34; }
+
+        .log-source-select {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 6px 12px;
+            color: #9ca3af;
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(0.68em, 0.75vw, 0.84em);
+            cursor: pointer;
+        }
+        .log-source-select:focus { outline: none; border-color: rgba(53,204,163,0.3); }
+
+        .log-clear-btn {
+            margin-left: auto;
+            background: rgba(248,113,113,0.08);
+            border: 1px solid rgba(248,113,113,0.2);
+            border-radius: 8px;
+            padding: 6px 14px;
+            color: #f87171;
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(0.68em, 0.75vw, 0.84em);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .log-clear-btn:hover { background: rgba(248,113,113,0.16); }
+
+        /* ===== STATUS BAR ===== */
+        .log-status-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 8px 14px;
+            margin-bottom: 1.2vh;
+            font-size: clamp(0.68em, 0.75vw, 0.82em);
+            color: #6b7280;
+        }
+
+        .log-status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #374151;
+            flex-shrink: 0;
+        }
+        .log-status-dot.live    { background: #35CCA3; box-shadow: 0 0 6px #35CCA3; animation: pulse-dot 2s infinite; }
+        .log-status-dot.error-s { background: #f87171; }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .log-count-info { margin-left: auto; color: #4b5563; }
+
+        /* ===== LOG LIST ===== */
+        .log-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .log-entry {
+            background: linear-gradient(145deg, #151922, #0F172A);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-left: 3px solid transparent;
+            border-radius: 10px;
+            padding: 10px 14px;
+            display: grid;
+            grid-template-columns: auto auto auto 1fr auto;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .log-entry:hover { background: linear-gradient(145deg, #1a2030, #141c2a); }
+        .log-entry.level-error { border-left-color: #f87171; }
+        .log-entry.level-warn  { border-left-color: #E8BB34; }
+        .log-entry.level-info  { border-left-color: #35CCA3; }
+
+        .log-badge {
+            font-size: 0.62em;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            white-space: nowrap;
+        }
+        .log-badge.error { background: rgba(248,113,113,0.15); color: #f87171; }
+        .log-badge.warn  { background: rgba(232,187,52,0.15);  color: #E8BB34; }
+        .log-badge.info  { background: rgba(53,204,163,0.12);  color: #35CCA3; }
+
+        .log-time {
+            font-size: clamp(0.65em, 0.72vw, 0.8em);
+            color: #4b5563;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .log-source-tag {
+            font-size: 0.68em;
+            background: rgba(96,165,250,0.1);
+            color: #60a5fa;
+            padding: 2px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .log-source-tag.analise { background: rgba(167,139,250,0.1); color: #a78bfa; }
+        .log-source-tag.suporte { background: rgba(251,146,60,0.1); color: #fb923c; }
+
+        .log-msg-col { min-width: 0; }
+
+        .log-msg {
+            font-size: clamp(0.72em, 0.8vw, 0.88em);
+            color: #d1d5db;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .log-entry.level-error .log-msg { color: #fca5a5; }
+        .log-entry.level-warn  .log-msg { color: #fde68a; }
+
+        .log-fn-tag {
+            font-size: 0.65em;
+            color: #6b7280;
+            white-space: nowrap;
+        }
+
+        /* Detalhe expandido */
+        .log-detail-row {
+            display: none;
+            grid-column: 1 / -1;
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: clamp(0.65em, 0.72vw, 0.78em);
+            color: #6b7280;
+            font-family: monospace;
+            word-break: break-all;
+            line-height: 1.5;
+            margin-top: 4px;
+        }
+        .log-entry.expanded .log-detail-row { display: block; }
+        .log-entry.expanded { grid-template-rows: auto auto; }
+
+        .log-expand-btn {
+            background: none;
+            border: none;
+            color: #374151;
+            cursor: pointer;
+            padding: 2px;
+            transition: color 0.15s;
+            flex-shrink: 0;
+        }
+        .log-expand-btn:hover { color: #9ca3af; }
+
+        /* Empty state */
+        .log-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #374151;
+        }
+        .log-empty svg { margin-bottom: 12px; opacity: 0.3; }
+        .log-empty p { font-size: 0.88em; }
+
+        @media (max-width: 768px) {
+            .log-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .log-entry {
+                grid-template-columns: auto 1fr auto;
+                grid-template-rows: auto auto;
+            }
+            .log-time, .log-fn-tag { font-size: 0.62em; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== SIDEBAR ===== -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Dashboards</h3>
+            <button class="sidebar-close" onclick="toggleSidebar()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="index.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                    <span>Cancelamentos</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="comercial.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    <span>Comercial</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="analise-comercial.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                    <span>Análise Comercial</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="relacionamento.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <span>Relacionamento</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="suporte.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span>Suporte</span>
+                </a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="log-erros.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <span>Log de Erros</span>
+                </a>
+            </li>
+            <li class="sidebar-item sidebar-admin-only">
+                <a href="admin.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1-2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1-2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span>Admin</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="header-top">
+            <button class="sidebar-toggle" onclick="toggleSidebar()">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <div class="header-logo">
+                <svg width="28" height="28" viewBox="0 0 200 200"><path d="M161 85c2.7-1.2 5.6.8 5.6 3.7v50.3c0 1.6-.9 3-2.4 3.7L35.2 199.9c-.9.4-1.9-.3-1.9-1.2v-54.4c0-1.6.9-3 2.4-3.7L161 85z" fill="#35CCA3"/><path d="M164.8.1c.9-.4 1.9.3 1.9 1.2v54.4c0 1.6-.9 3-2.4 3.7L39 114.9c-2.7 1.2-5.6-.8-5.6-3.7V61c0-1.6.9-3 2.4-3.7L164.8.1z" fill="#35CCA3"/></svg>
+                <span class="header-title">Log de Erros</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== MAIN ===== -->
+    <main class="log-main">
+
+        <!-- KPI Cards -->
+        <div class="log-kpi-grid">
+            <div class="log-kpi-card error">
+                <div class="log-kpi-val" id="kpiErros">—</div>
+                <div class="log-kpi-label">Erros hoje</div>
+            </div>
+            <div class="log-kpi-card warn">
+                <div class="log-kpi-val" id="kpiAvisos">—</div>
+                <div class="log-kpi-label">Avisos hoje</div>
+            </div>
+            <div class="log-kpi-card ok">
+                <div class="log-kpi-val" id="kpiOk">—</div>
+                <div class="log-kpi-label">Syncs OK hoje</div>
+            </div>
+            <div class="log-kpi-card neutral">
+                <div class="log-kpi-val" id="kpiUltimo" style="font-size:clamp(1em,1.6vw,1.6em)">—</div>
+                <div class="log-kpi-label">Último sync</div>
+            </div>
+        </div>
+
+        <!-- Status bar -->
+        <div class="log-status-bar">
+            <div class="log-status-dot" id="statusDot"></div>
+            <span id="statusText">Conectando ao Firebase...</span>
+            <span class="log-count-info" id="countInfo"></span>
+        </div>
+
+        <!-- Controls -->
+        <div class="log-controls">
+            <button class="log-filter-btn active" id="btnAll"   onclick="setFilter('all')">Todos</button>
+            <button class="log-filter-btn" id="btnErr"          onclick="setFilter('error')">
+                <span id="badgeErr" style="display:none;background:#f87171;color:#0F172A;border-radius:10px;padding:1px 6px;font-size:0.85em;margin-right:4px"></span>Erros
+            </button>
+            <button class="log-filter-btn" id="btnWarn"         onclick="setFilter('warn')">
+                <span id="badgeWarn" style="display:none;background:#E8BB34;color:#0F172A;border-radius:10px;padding:1px 6px;font-size:0.85em;margin-right:4px"></span>Avisos
+            </button>
+            <button class="log-filter-btn" id="btnInfo"         onclick="setFilter('info')">Syncs OK</button>
+
+            <select class="log-source-select" id="sourceFilter" onchange="applyFilters()">
+                <option value="all">Todas as fontes</option>
+                <option value="comercial">Comercial</option>
+                <option value="analise_comercial">Análise Comercial</option>
+            </select>
+
+            <button class="log-clear-btn" onclick="confirmClear()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                    <path d="M10 11v6"/><path d="M14 11v6"/>
+                </svg>
+                Limpar logs
+            </button>
+        </div>
+
+        <!-- Log list -->
+        <div class="log-list" id="logList">
+            <div class="log-empty" id="logEmpty">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#35CCA3" stroke-width="1.5">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <p>Nenhum log encontrado.<br>Os erros de sincronização aparecerão aqui em tempo real.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+
+    <script>
+        // ============================================================
+        // ESTADO
+        // ============================================================
+        var allEntries   = [];   // todas as entradas carregadas
+        var currentFilter = 'all';
+        var currentSource = 'all';
+        var initialLoad   = true;
+
+        // ============================================================
+        // SIDEBAR
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() { document.getElementById('sidebar').classList.add('ready'); }, 50);
+        });
+
+        function toggleSidebar() {
+            var sidebar  = document.getElementById('sidebar');
+            var overlay  = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+            document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+        }
+
+        // ============================================================
+        // FIREBASE LISTENER
+        // ============================================================
+        function startLogListener() {
+            if (!isFirebaseReady()) return;
+
+            setStatus('live', 'Escutando em tempo real');
+
+            // Carrega as últimas 300 entradas e escuta novas em tempo real
+            database.ref('sync_log')
+                .orderByChild('t')
+                .limitToLast(300)
+                .on('child_added', function(snap) {
+                    var entry = snap.val();
+                    if (!entry || !entry.t) return;
+                    entry._key = snap.key;
+
+                    // Insere no topo (ordem decrescente de tempo)
+                    allEntries.unshift(entry);
+
+                    // Limita a 300 itens em memória
+                    if (allEntries.length > 300) allEntries.pop();
+
+                    // Se não é carregamento inicial, adiciona direto no topo
+                    if (!initialLoad) {
+                        prependEntry(entry);
+                    }
+
+                    updateKPIs();
+                    updateCountInfo();
+                }, function(err) {
+                    setStatus('error-s', 'Erro ao conectar: ' + err.message);
+                });
+
+            // Após 1s assume que o carregamento inicial terminou
+            setTimeout(function() {
+                initialLoad = false;
+                applyFilters();
+            }, 1000);
+        }
+
+        // Iniciar quando Firebase estiver pronto
+        if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
+            startLogListener();
+        } else {
+            window.addEventListener('firebaseReady', startLogListener);
+        }
+
+        // ============================================================
+        // RENDER
+        // ============================================================
+        function applyFilters() {
+            var list = document.getElementById('logList');
+            var empty = document.getElementById('logEmpty');
+
+            var filtered = allEntries.filter(function(e) {
+                var levelOk  = currentFilter === 'all' || e.level === currentFilter;
+                var sourceOk = currentSource === 'all' || e.source === currentSource;
+                return levelOk && sourceOk;
+            });
+
+            // Remove entradas antigas (mantém o empty state)
+            var nodes = list.querySelectorAll('.log-entry');
+            nodes.forEach(function(n) { n.remove(); });
+
+            if (filtered.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+
+            filtered.forEach(function(entry) {
+                list.appendChild(buildEntryEl(entry));
+            });
+
+            updateCountInfo();
+        }
+
+        function prependEntry(entry) {
+            // Verifica se passa no filtro atual
+            var levelOk  = currentFilter === 'all' || entry.level === currentFilter;
+            var sourceOk = currentSource === 'all' || entry.source === currentSource;
+            if (!levelOk || !sourceOk) return;
+
+            var list  = document.getElementById('logList');
+            var empty = document.getElementById('logEmpty');
+            empty.style.display = 'none';
+
+            var el = buildEntryEl(entry);
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(-8px)';
+            list.insertBefore(el, list.firstChild);
+
+            // Animação de entrada
+            requestAnimationFrame(function() {
+                el.style.transition = 'opacity 0.3s, transform 0.3s';
+                el.style.opacity    = '1';
+                el.style.transform  = 'translateY(0)';
+            });
+
+            updateCountInfo();
+        }
+
+        function buildEntryEl(entry) {
+            var el = document.createElement('div');
+            el.className = 'log-entry level-' + (entry.level || 'info');
+            el.dataset.key = entry._key || '';
+
+            var time    = formatTime(entry.t, entry.iso);
+            var badge   = badgeHtml(entry.level);
+            var srcTag  = sourceTagHtml(entry.source);
+            var msg     = escHtml(entry.msg || '');
+            var fn      = escHtml(entry.fn  || '');
+            var detail  = escHtml(entry.detail || '');
+
+            el.innerHTML =
+                badge +
+                '<span class="log-time">' + time + '</span>' +
+                srcTag +
+                '<div class="log-msg-col">' +
+                    '<div class="log-msg" title="' + msg + '">' + msg + '</div>' +
+                    (fn ? '<div class="log-fn-tag">' + fn + '()</div>' : '') +
+                '</div>' +
+                (detail ?
+                    '<button class="log-expand-btn" title="Ver detalhes" onclick="toggleDetail(this)">' +
+                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+                    '</button>' +
+                    '<div class="log-detail-row">' + detail + '</div>'
+                : '<span></span>');
+
+            return el;
+        }
+
+        function toggleDetail(btn) {
+            var entry = btn.closest('.log-entry');
+            entry.classList.toggle('expanded');
+        }
+
+        // ============================================================
+        // KPIs
+        // ============================================================
+        function updateKPIs() {
+            var todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            var todayTs = todayStart.getTime();
+
+            var erros = 0, avisos = 0, ok = 0, lastSync = null;
+
+            allEntries.forEach(function(e) {
+                if (e.t >= todayTs) {
+                    if (e.level === 'error') erros++;
+                    else if (e.level === 'warn') avisos++;
+                    else ok++;
+                }
+                if (!lastSync || e.t > lastSync) lastSync = e.t;
+            });
+
+            document.getElementById('kpiErros').textContent  = erros;
+            document.getElementById('kpiAvisos').textContent = avisos;
+            document.getElementById('kpiOk').textContent     = ok;
+            document.getElementById('kpiUltimo').textContent = lastSync
+                ? new Date(lastSync).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
+                : '—';
+
+            // Badges nos botões de filtro
+            var bErr = document.getElementById('badgeErr');
+            var bWrn = document.getElementById('badgeWarn');
+            if (erros > 0) { bErr.textContent = erros; bErr.style.display = 'inline'; }
+            else           { bErr.style.display = 'none'; }
+            if (avisos > 0){ bWrn.textContent = avisos; bWrn.style.display = 'inline'; }
+            else           { bWrn.style.display = 'none'; }
+        }
+
+        function updateCountInfo() {
+            var filtered = allEntries.filter(function(e) {
+                var levelOk  = currentFilter === 'all' || e.level === currentFilter;
+                var sourceOk = currentSource === 'all' || e.source === currentSource;
+                return levelOk && sourceOk;
+            });
+            document.getElementById('countInfo').textContent =
+                filtered.length + ' de ' + allEntries.length + ' entradas';
+        }
+
+        // ============================================================
+        // FILTROS
+        // ============================================================
+        function setFilter(level) {
+            currentFilter = level;
+            document.getElementById('btnAll').classList.toggle('active',  level === 'all');
+            document.getElementById('btnErr').classList.toggle('active',  level === 'error');
+            document.getElementById('btnErr').classList.toggle('err',     level === 'error');
+            document.getElementById('btnWarn').classList.toggle('active', level === 'warn');
+            document.getElementById('btnWarn').classList.toggle('wrn',    level === 'warn');
+            document.getElementById('btnInfo').classList.toggle('active', level === 'info');
+            applyFilters();
+        }
+
+        document.getElementById('sourceFilter').addEventListener('change', function() {
+            currentSource = this.value;
+            applyFilters();
+        });
+
+        // ============================================================
+        // LIMPAR LOGS
+        // ============================================================
+        function confirmClear() {
+            if (!confirm('Tem certeza que deseja apagar todos os logs?\nEssa ação não pode ser desfeita.')) return;
+            if (!isFirebaseReady()) return;
+            database.ref('sync_log').remove().then(function() {
+                allEntries = [];
+                applyFilters();
+                updateKPIs();
+                setStatus('live', 'Logs apagados — escutando em tempo real');
+            }).catch(function(err) {
+                alert('Erro ao apagar logs: ' + err.message);
+            });
+        }
+
+        // ============================================================
+        // HELPERS
+        // ============================================================
+        function setStatus(cls, text) {
+            var dot  = document.getElementById('statusDot');
+            var span = document.getElementById('statusText');
+            dot.className  = 'log-status-dot ' + cls;
+            span.textContent = text;
+        }
+
+        function formatTime(ts, iso) {
+            try {
+                var d = ts ? new Date(ts) : new Date(iso);
+                var date = d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+                var time = d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                return date + ' ' + time;
+            } catch(e) { return iso || ''; }
+        }
+
+        function badgeHtml(level) {
+            var labels = { error: 'ERRO', warn: 'AVISO', info: 'OK' };
+            var cls    = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'info';
+            return '<span class="log-badge ' + cls + '">' + (labels[level] || level) + '</span>';
+        }
+
+        function sourceTagHtml(source) {
+            var labels = { comercial: 'Comercial', analise_comercial: 'Análise Com.', suporte: 'Suporte' };
+            var cls    = source === 'analise_comercial' ? 'analise' : source === 'suporte' ? 'suporte' : '';
+            return '<span class="log-source-tag ' + cls + '">' + (labels[source] || source || 'sistema') + '</span>';
+        }
+
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>
