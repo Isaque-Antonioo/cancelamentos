@@ -1380,6 +1380,7 @@ function computeStatsFromRows(rows) {
     const hAcesso = findHeader(headers, ['ultimo acesso', 'ultimo_acesso', 'acesso']);
     const hErros  = findHeader(headers, ['qtd verificando', 'verificando', 'erro']);
     const hCNPJ   = findHeader(headers, ['cnpj']);
+    const hStatus = findHeader(headers, ['status', 'situacao', 'situação', 'ativo', 'inativo', 'situacao_cliente']);
 
     const hoje = new Date();
     const stats = {
@@ -1401,6 +1402,7 @@ function computeStatsFromRows(rows) {
         const acesso = hAcesso ? String(row[hAcesso] || '').trim() : '';
         const erros  = hErros  ? parseInt(row[hErros]) || 0 : 0;
         const cnpj   = hCNPJ   ? String(row[hCNPJ]   || '').trim() : '';
+        const status = hStatus  ? normalizeStatus(String(row[hStatus] || '')) : 'ativo';
 
         // HealthScore
         if (health) stats.healthScore[health] = (stats.healthScore[health] || 0) + 1;
@@ -1432,7 +1434,7 @@ function computeStatsFromRows(rows) {
                 if (!isNaN(d.getTime())) dias = Math.floor((hoje - d) / 86400000);
             }
         }
-        if (dias !== null && dias > 30) {
+        if (dias !== null && dias > 30 && status !== 'inativo') {
             stats.semAcessoRecente++;
             stats.semAcessoList.push({ cnpj, especialista: esp, health, ultimoAcesso: acesso, dias });
         }
