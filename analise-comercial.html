@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hubstrom - Análise Comercial</title>
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M161 85c2.7-1.2 5.6.8 5.6 3.7v50.3c0 1.6-.9 3-2.4 3.7L35.2 199.9c-.9.4-1.9-.3-1.9-1.2v-54.4c0-1.6.9-3 2.4-3.7L161 85z' fill='%2335CCA3'/%3E%3Cpath d='M164.8.1c.9-.4 1.9.3 1.9 1.2v54.4c0 1.6-.9 3-2.4 3.7L39 114.9c-2.7 1.2-5.6-.8-5.6-3.7V61c0-1.6.9-3 2.4-3.7L164.8.1z' fill='%2335CCA3'/%3E%3C/svg%3E">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+    <script src="js/auth.js"></script>
+
+    <style>
+        /* ======================== LAYOUT ======================== */
+        * { box-sizing: border-box; }
+
+        .ac-main {
+            padding: 1.2vh 1.5vw 3vh;
+            overflow-y: auto;
+            height: calc(100vh - clamp(50px, 6vh, 100px));
+            font-family: 'Poppins', sans-serif;
+        }
+
+        /* ======================== CONFIG SHEET ======================== */
+        .ac-config-panel {
+            background: linear-gradient(135deg, rgba(53, 204, 163, 0.06), rgba(53, 204, 163, 0.02));
+            border: 1px solid rgba(53, 204, 163, 0.2);
+            border-radius: 14px;
+            padding: 14px 18px;
+            margin-bottom: 1.5vh;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .ac-config-label {
+            font-size: clamp(0.72em, 0.8vw, 0.9em);
+            color: #68C9AE;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .ac-config-url {
+            flex: 2;
+            min-width: 180px;
+            background: rgba(0,0,0,0.35);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 7px 12px;
+            color: #D1D5DB;
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(0.7em, 0.8vw, 0.88em);
+        }
+
+        .ac-config-url:focus { outline: none; border-color: rgba(53,204,163,0.5); }
+        .ac-config-url::placeholder { color: #4b5563; }
+
+        .ac-config-gid {
+            flex: 0 0 130px;
+            background: rgba(0,0,0,0.35);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 7px 12px;
+            color: #D1D5DB;
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(0.7em, 0.8vw, 0.88em);
+        }
+
+        .ac-config-gid:focus { outline: none; border-color: rgba(53,204,163,0.5); }
+        .ac-config-gid::placeholder { color: #4b5563; }
+
+        .ac-config-btn {
+            background: linear-gradient(135deg, #35CCA3, #28a882);
+            border: none;
+            border-radius: 8px;
+            padding: 7px 16px;
+            color: #0F172A;
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(0.7em, 0.8vw, 0.88em);
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: opacity 0.2s;
+        }
+
+        .ac-config-btn:hover { opacity: 0.9; }
+        .ac-config-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .ac-config-status {
+            font-size: clamp(0.65em, 0.75vw, 0.82em);
+            color: #64748b;
+        }
+
+        .ac-config-status.ok { color: #35CCA3; }
+        .ac-config-status.err { color: #f87171; }
+
+        /* ======================== KPI ROW ======================== */
+        .ac-kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1vh 1vw;
+            margin-bottom: 1.5vh;
+        }
+
+        .ac-kpi-card {
+            background: linear-gradient(145deg, #151922, #0F172A);
+            border: 1px solid rgba(53, 204, 163, 0.08);
+            border-radius: clamp(10px, 1.2vw, 16px);
+            padding: clamp(12px, 1.5vh, 20px) clamp(14px, 1.2vw, 22px);
+        }
+
+        .ac-kpi-label {
+            font-size: clamp(0.62em, 0.7vw, 0.82em);
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .ac-kpi-value {
+            font-size: clamp(1.1em, 1.8vw, 2.4em);
+            font-weight: 800;
+            color: #e7e7e7;
+            line-height: 1.1;
+        }
+
+        .ac-kpi-sub {
+            font-size: clamp(0.65em, 0.72vw, 0.86em);
+            color: #8c95a3;
+            margin-top: 4px;
+        }
+
+        .ac-kpi-card.danger .ac-kpi-value { color: #f87171; }
+        .ac-kpi-card.warning .ac-kpi-value { color: #E8BB34; }
+        .ac-kpi-card.success .ac-kpi-value { color: #35CCA3; }
+        .ac-kpi-card.info .ac-kpi-value { color: #60a5fa; }
+
+        /* ======================== TABS ======================== */
+        .ac-tabs {
+            display: flex;
+            gap: 2px;
+            border-bottom: 2px solid rgba(255,255,255,0.06);
+            margin-bottom: 1.5vh;
+        }
+
+        .ac-tab-btn {
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            color: #64748b;
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(0.78em, 0.88vw, 1em);
+            font-weight: 600;
+            padding: 10px 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ac-tab-btn:hover { color: #D1D5DB; }
+
+        .ac-tab-btn.active {
+            color: #35CCA3;
+            border-bottom-color: #35CCA3;
+        }
+
+        .ac-tab-badge {
+            background: rgba(53,204,163,0.15);
+            color: #35CCA3;
+            border-radius: 20px;
+            padding: 1px 7px;
+            font-size: 0.8em;
+        }
+
+        .ac-tab-badge.warn { background: rgba(232,187,52,0.15); color: #E8BB34; }
+        .ac-tab-badge.danger { background: rgba(248,113,113,0.15); color: #f87171; }
+
+        /* ======================== TAB CONTENT ======================== */
+        .ac-tab-content { display: none; }
+        .ac-tab-content.active { display: block; }
+
+        /* ======================== CARDS ======================== */
+        .ac-card {
+            background: linear-gradient(145deg, #151922, #0F172A);
+            border: 1px solid rgba(53, 204, 163, 0.08);
+            border-radius: clamp(10px, 1.2vw, 16px);
+            padding: clamp(14px, 1.8vh, 24px) clamp(14px, 1.2vw, 22px);
+            margin-bottom: 1.2vh;
+        }
+
+        .ac-card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #e7e7e7;
+            font-size: clamp(0.8em, 0.92vw, 1.05em);
+            font-weight: 600;
+            margin-bottom: clamp(10px, 1.4vh, 18px);
+        }
+
+        .ac-card-title svg { color: #35CCA3; flex-shrink: 0; }
+
+        .ac-card-title .ac-count {
+            margin-left: auto;
+            font-size: 0.82em;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        /* ======================== GRID LAYOUTS ======================== */
+        .ac-two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1vh 1vw;
+            margin-bottom: 1.2vh;
+        }
+
+        .ac-three-col {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1vh 1vw;
+            margin-bottom: 1.2vh;
+        }
+
+        .ac-chart-right {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 1vh 1vw;
+            margin-bottom: 1.2vh;
+        }
+
+        /* ======================== CHARTS ======================== */
+        .ac-chart-wrap {
+            position: relative;
+            height: clamp(160px, 20vh, 260px);
+        }
+
+        .ac-chart-wrap.small {
+            height: clamp(130px, 16vh, 200px);
+        }
+
+        /* ======================== TABLES ======================== */
+        .ac-table-wrap { overflow-x: auto; }
+
+        .ac-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: clamp(0.7em, 0.78vw, 0.9em);
+        }
+
+        .ac-table th {
+            text-align: left;
+            color: #64748b;
+            font-weight: 600;
+            font-size: 0.82em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            white-space: nowrap;
+        }
+
+        .ac-table td {
+            padding: 9px 12px;
+            color: #D1D5DB;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            vertical-align: middle;
+        }
+
+        .ac-table tbody tr:hover td { background: rgba(53, 204, 163, 0.025); }
+
+        .ac-table .empresa {
+            color: #e7e7e7;
+            font-weight: 500;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* ======================== BADGES ======================== */
+        .ac-badge {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 20px;
+            font-size: 0.82em;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .ac-badge-pendente { background: rgba(232,187,52,0.15); color: #E8BB34; }
+        .ac-badge-desistente { background: rgba(248,113,113,0.15); color: #f87171; }
+        .ac-badge-contratado { background: rgba(53,204,163,0.15); color: #35CCA3; }
+        .ac-badge-nq { background: rgba(100,116,139,0.2); color: #94a3b8; }
+        .ac-badge-gerado { background: rgba(96,165,250,0.15); color: #60a5fa; }
+
+        /* ======================== EMPTY STATE ======================== */
+        .ac-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 36px 20px;
+            color: #4b5563;
+            gap: 10px;
+            text-align: center;
+        }
+
+        .ac-empty svg { color: #35CCA3; opacity: 0.3; }
+        .ac-empty p { font-size: clamp(0.78em, 0.88vw, 1em); }
+        .ac-empty small { font-size: clamp(0.68em, 0.75vw, 0.85em); color: #374151; }
+
+        /* ======================== FUNIL ======================== */
+        .ac-funnel { display: flex; flex-direction: column; gap: 10px; }
+
+        .ac-funnel-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ac-funnel-step-label {
+            width: 100px;
+            font-size: clamp(0.7em, 0.78vw, 0.88em);
+            color: #8c95a3;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .ac-funnel-bar-track {
+            flex: 1;
+            background: rgba(255,255,255,0.04);
+            border-radius: 6px;
+            height: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ac-funnel-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            font-size: 0.8em;
+            font-weight: 700;
+            color: #0F172A;
+            transition: width 1s ease;
+            min-width: 0;
+        }
+
+        .ac-funnel-step-count {
+            width: 60px;
+            text-align: right;
+            font-size: clamp(0.7em, 0.78vw, 0.88em);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* ======================== CLOSER MATRIX ======================== */
+        .ac-matrix {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: clamp(0.68em, 0.76vw, 0.88em);
+        }
+
+        .ac-matrix th {
+            text-align: center;
+            color: #64748b;
+            font-weight: 600;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            padding: 7px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+
+        .ac-matrix th:first-child { text-align: left; }
+
+        .ac-matrix td {
+            padding: 8px 10px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            color: #D1D5DB;
+        }
+
+        .ac-matrix td:first-child { text-align: left; color: #e7e7e7; font-weight: 600; }
+
+        .ac-matrix tbody tr:hover td { background: rgba(53,204,163,0.025); }
+
+        .ac-matrix .rate-high { color: #35CCA3; font-weight: 700; }
+        .ac-matrix .rate-mid { color: #E8BB34; font-weight: 700; }
+        .ac-matrix .rate-low { color: #f87171; font-weight: 700; }
+
+        /* ======================== INSIGHTS ITEMS ======================== */
+        .ac-insight-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+            margin-bottom: 8px;
+            align-items: flex-start;
+        }
+
+        .ac-insight-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .ac-insight-icon.green { background: rgba(53,204,163,0.15); color: #35CCA3; }
+        .ac-insight-icon.yellow { background: rgba(232,187,52,0.15); color: #E8BB34; }
+        .ac-insight-icon.red { background: rgba(248,113,113,0.15); color: #f87171; }
+        .ac-insight-icon.blue { background: rgba(96,165,250,0.15); color: #60a5fa; }
+
+        .ac-insight-text strong {
+            display: block;
+            color: #e7e7e7;
+            font-size: clamp(0.78em, 0.88vw, 1em);
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .ac-insight-text span {
+            font-size: clamp(0.7em, 0.78vw, 0.88em);
+            color: #8c95a3;
+            line-height: 1.5;
+        }
+
+        /* ======================== MOTIVO HINT ======================== */
+        .ac-motivo-hint {
+            background: rgba(96,165,250,0.08);
+            border: 1px solid rgba(96,165,250,0.2);
+            border-radius: 10px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: clamp(0.7em, 0.78vw, 0.88em);
+            color: #93c5fd;
+            margin-bottom: 1.2vh;
+        }
+
+        .ac-motivo-hint svg { flex-shrink: 0; color: #60a5fa; }
+
+        /* ======================== SYNC STATUS ======================== */
+        .ac-sync-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 1.5vh;
+            font-size: clamp(0.65em, 0.72vw, 0.82em);
+            color: #4b5563;
+        }
+
+        .ac-sync-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #374151;
+        }
+
+        .ac-sync-dot.live { background: #35CCA3; box-shadow: 0 0 6px rgba(53,204,163,0.5); animation: pulse 2s infinite; }
+        .ac-sync-dot.warn { background: #E8BB34; }
+        .ac-sync-dot.err { background: #f87171; }
+
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+        /* ======================== RESPONSIVE ======================== */
+        @media (max-width: 900px) {
+            .ac-kpi-row { grid-template-columns: repeat(2, 1fr); }
+            .ac-two-col { grid-template-columns: 1fr; }
+            .ac-chart-right { grid-template-columns: 1fr; }
+            .ac-three-col { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 600px) {
+            .ac-kpi-row { grid-template-columns: 1fr 1fr; }
+            .ac-three-col { grid-template-columns: 1fr; }
+            .ac-tab-btn { padding: 8px 10px; font-size: 0.78em; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ============ SIDEBAR ============ -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Dashboards</h3>
+            <button class="sidebar-close" onclick="toggleSidebar()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="index.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                    <span>Cancelamentos</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="comercial.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    <span>Comercial</span>
+                </a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="analise-comercial.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                    <span>Análise Comercial</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="relacionamento.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <span>Relacionamento</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="suporte.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span>Suporte</span>
+                </a>
+            </li>
+            <li class="sidebar-item sidebar-admin-only">
+                <a href="admin.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1-2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1-2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span>Admin</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- ============ HEADER ============ -->
+    <header class="header">
+        <div class="header-top">
+            <button class="hamburger-btn" onclick="toggleSidebar()" title="Menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <h1 class="header-main-title">Análise Comercial</h1>
+            <div class="header-controls">
+                <button class="btn-icon-small btn-sync-sheets" id="btnRefresh" onclick="loadAllData()" title="Recarregar dados">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                </button>
+                <span class="user-display-name" id="userDisplayName"></span>
+                <button class="btn-icon-small btn-logout" onclick="hubstromLogout()" title="Sair">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============ MAIN ============ -->
+    <main class="ac-main">
+
+        <!-- Status Firebase negociações -->
+        <div class="ac-config-panel" id="firebaseNegPanel" style="display:none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#35CCA3" stroke-width="2" style="flex-shrink:0">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <span class="ac-config-label" style="color:#35CCA3">Firebase ativo</span>
+            <span class="ac-config-status ok" id="firebaseNegStatus">Carregando negociações...</span>
+            <span style="flex:1"></span>
+            <span style="font-size:0.72em;color:#4b5563">Dados enviados automaticamente pelo Apps Script</span>
+        </div>
+
+        <!-- Config manual (fallback quando Apps Script não está configurado) -->
+        <details class="ac-config-panel" id="manualConfigPanel" style="cursor:pointer">
+            <summary style="display:flex;align-items:center;gap:10px;list-style:none;outline:none">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#64748b;flex-shrink:0">
+                    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                <span class="ac-config-label" style="color:#64748b">Fonte manual de negociações</span>
+                <span style="font-size:0.7em;color:#374151;font-weight:400">(somente se o Apps Script não estiver ativo)</span>
+            </summary>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px">
+                <input type="text" class="ac-config-url" id="negSheetUrl"
+                    placeholder="URL da planilha publicada">
+                <input type="text" class="ac-config-gid" id="negSheetGid"
+                    placeholder="GID da aba">
+                <button class="ac-config-btn" onclick="saveAndLoad()" id="btnLoadNeg">Carregar</button>
+                <span class="ac-config-status" id="negLoadStatus"></span>
+            </div>
+        </details>
+
+        <!-- Sync bar -->
+        <div class="ac-sync-bar">
+            <div class="ac-sync-dot" id="syncDot"></div>
+            <span id="syncText">Aguardando Firebase...</span>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="ac-kpi-row">
+            <div class="ac-kpi-card warning">
+                <div class="ac-kpi-label">Pendentes</div>
+                <div class="ac-kpi-value" id="kpiPendCount">—</div>
+                <div class="ac-kpi-sub" id="kpiPendValor">negociações em aberto</div>
+            </div>
+            <div class="ac-kpi-card danger">
+                <div class="ac-kpi-label">Desistentes</div>
+                <div class="ac-kpi-value" id="kpiDesistCount">—</div>
+                <div class="ac-kpi-sub" id="kpiDesistValor">oportunidades perdidas</div>
+            </div>
+            <div class="ac-kpi-card info">
+                <div class="ac-kpi-label">Valor em Risco (Pendentes)</div>
+                <div class="ac-kpi-value" id="kpiRisco">—</div>
+                <div class="ac-kpi-sub" id="kpiRiscoSub">aguardando decisão</div>
+            </div>
+            <div class="ac-kpi-card">
+                <div class="ac-kpi-label">Taxa de Conversão</div>
+                <div class="ac-kpi-value" id="kpiConversao">—</div>
+                <div class="ac-kpi-sub" id="kpiConversaoSub">contratados / total gerados</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="ac-tabs">
+            <button class="ac-tab-btn active" onclick="switchTab('pendentes')" id="tabBtnPendentes">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                Pendentes
+                <span class="ac-tab-badge warn" id="tabBadgePend">0</span>
+            </button>
+            <button class="ac-tab-btn" onclick="switchTab('desistentes')" id="tabBtnDesistentes">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                Desistentes
+                <span class="ac-tab-badge danger" id="tabBadgeDesist">0</span>
+            </button>
+            <button class="ac-tab-btn" onclick="switchTab('insights')" id="tabBtnInsights">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                Insights Estratégicos
+            </button>
+        </div>
+
+        <!-- ======================== TAB: PENDENTES ======================== -->
+        <div class="ac-tab-content active" id="ac-tab-pendentes">
+
+            <div id="motivoHintPend"></div>
+
+            <div class="ac-two-col">
+                <!-- Por Closer -->
+                <div class="ac-card">
+                    <div class="ac-card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                        </svg>
+                        Pendentes por Closer
+                    </div>
+                    <div class="ac-chart-wrap">
+                        <canvas id="chartPendCloser"></canvas>
+                    </div>
+                </div>
+
+                <!-- Por Motivo / Plano -->
+                <div class="ac-card">
+                    <div class="ac-card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <span id="chartPendRightTitle">Pendentes por Plano</span>
+                    </div>
+                    <div class="ac-chart-wrap">
+                        <canvas id="chartPendRight"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Pendentes -->
+            <div class="ac-card">
+                <div class="ac-card-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    Lista de Pendentes
+                    <span class="ac-count" id="pendTableCount"></span>
+                </div>
+                <div class="ac-table-wrap" id="pendTableWrap">
+                    <div class="ac-empty">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <p>Aguardando dados do Firebase...</p>
+                        <small>Os registros aparecerão automaticamente após instalar o apps-script-analise-comercial-sync.js</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================== TAB: DESISTENTES ======================== -->
+        <div class="ac-tab-content" id="ac-tab-desistentes">
+
+            <div id="motivoHintDesist"></div>
+
+            <div class="ac-two-col">
+                <!-- Por Closer -->
+                <div class="ac-card">
+                    <div class="ac-card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                        </svg>
+                        Desistências por Closer
+                    </div>
+                    <div class="ac-chart-wrap">
+                        <canvas id="chartDesistCloser"></canvas>
+                    </div>
+                </div>
+
+                <!-- Motivos -->
+                <div class="ac-card">
+                    <div class="ac-card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <span id="chartDesistRightTitle">Motivos de Desistência</span>
+                    </div>
+                    <div class="ac-chart-wrap">
+                        <canvas id="chartDesistRight"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Por Plano (quando motivo existe, plano fica aqui) -->
+            <div class="ac-card" id="cardDesistPlano">
+                <div class="ac-card-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+                    </svg>
+                    Desistências por Plano
+                </div>
+                <div class="ac-chart-wrap small">
+                    <canvas id="chartDesistPlano"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabela de Desistentes -->
+            <div class="ac-card">
+                <div class="ac-card-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    Lista de Desistentes
+                    <span class="ac-count" id="desistTableCount"></span>
+                </div>
+                <div class="ac-table-wrap" id="desistTableWrap">
+                    <div class="ac-empty">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <p>Aguardando dados do Firebase...</p>
+                        <small>Os registros aparecerão automaticamente após instalar o apps-script-analise-comercial-sync.js</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================== TAB: INSIGHTS ======================== -->
+        <div class="ac-tab-content" id="ac-tab-insights">
+
+            <div class="ac-two-col">
+                <!-- Funil de Conversão -->
+                <div class="ac-card">
+                    <div class="ac-card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                        </svg>
+                        Funil de Conversão
+                    </div>
+                    <div class="ac-funnel" id="funnelContainer">
+                        <div class="ac-empty">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                            <p>Aguardando dados</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Valor perdido vs recuperável -->
+                <div class="ac-card">
+                    <div class="ac-card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                        Distribuição de Valor
+                    </div>
+                    <div class="ac-chart-wrap">
+                        <canvas id="chartValorDist"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Matriz de Performance dos Closers -->
+            <div class="ac-card">
+                <div class="ac-card-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
+                    </svg>
+                    Matriz de Performance — Closers
+                    <span style="font-size:0.78em;color:#64748b;font-weight:400;margin-left:4px">(além do ranking)</span>
+                </div>
+                <div style="overflow-x:auto" id="matrizContainer">
+                    <div class="ac-empty">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                        <p>Aguardando dados dos closers</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insights e Recomendações -->
+            <div class="ac-two-col">
+                <div class="ac-card">
+                    <div class="ac-card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        Alertas Estratégicos
+                    </div>
+                    <div id="alertasContainer">
+                        <div class="ac-empty">
+                            <p>Aguardando dados para gerar alertas</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ac-card">
+                    <div class="ac-card-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                        Recomendações de Ação
+                    </div>
+                    <div id="recContainer">
+                        <div class="ac-empty">
+                            <p>Aguardando dados para gerar recomendações</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+
+<script>
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+var liveKpis = {};
+var liveClosers = [];
+var allDeals = [];
+var pendentes = [];
+var desistentes = [];
+var contratados = [];
+var gerados = [];
+var hasMotivo = false;
+
+// Chart instances
+var chartPendCloserInst = null;
+var chartPendRightInst = null;
+var chartDesistCloserInst = null;
+var chartDesistRightInst = null;
+var chartDesistPlanoInst = null;
+var chartValorDistInst = null;
+
+// Storage key
+var STORAGE_KEY = 'ac_neg_config';
+
+// ============================================================
+// UTILS
+// ============================================================
+function parseMoneyValue(str) {
+    if (!str) return 0;
+    str = str.toString().replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
+    return parseFloat(str) || 0;
+}
+
+function formatMoney(val) {
+    if (!val) return 'R$ 0,00';
+    return 'R$ ' + val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatPct(val, total) {
+    if (!total) return '0%';
+    return ((val / total) * 100).toFixed(1).replace('.', ',') + '%';
+}
+
+function daysAgo(dateStr) {
+    if (!dateStr) return null;
+    var parts = dateStr.split('/');
+    if (parts.length === 3) {
+        var d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+        if (!isNaN(d)) {
+            var diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+            return diff;
+        }
+    }
+    // Try ISO format
+    var d2 = new Date(dateStr);
+    if (!isNaN(d2)) {
+        return Math.floor((Date.now() - d2.getTime()) / 86400000);
+    }
+    return null;
+}
+
+function groupBy(arr, key) {
+    var result = {};
+    for (var i = 0; i < arr.length; i++) {
+        var k = arr[i][key] || 'Não informado';
+        result[k] = (result[k] || 0) + 1;
+    }
+    return result;
+}
+
+function sortObj(obj) {
+    return Object.entries(obj).sort(function(a,b){ return b[1]-a[1]; });
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(tab) {
+    var tabs = ['pendentes', 'desistentes', 'insights'];
+    for (var i = 0; i < tabs.length; i++) {
+        var el = document.getElementById('ac-tab-' + tabs[i]);
+        var btn = document.getElementById('tabBtn' + tabs[i].charAt(0).toUpperCase() + tabs[i].slice(1));
+        if (el) el.classList.toggle('active', tabs[i] === tab);
+        if (btn) btn.classList.toggle('active', tabs[i] === tab);
+    }
+}
+
+// ============================================================
+// CSV PARSE
+// ============================================================
+function parseCSVLine(line) {
+    var result = [];
+    var cur = '';
+    var inQ = false;
+    for (var i = 0; i < line.length; i++) {
+        var c = line[i];
+        if (c === '"') {
+            if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+            else inQ = !inQ;
+        } else if (c === ',' && !inQ) {
+            result.push(cur.trim());
+            cur = '';
+        } else {
+            cur += c;
+        }
+    }
+    result.push(cur.trim());
+    return result;
+}
+
+function parseNegociacoes(csv) {
+    var lines = csv.split('\n').filter(function(l){ return l.trim(); });
+    if (lines.length < 2) return [];
+
+    var headers = parseCSVLine(lines[0]).map(function(h){ return h.toLowerCase().trim(); });
+
+    // Map common header names
+    function findCol(candidates) {
+        for (var i = 0; i < candidates.length; i++) {
+            var idx = headers.indexOf(candidates[i].toLowerCase());
+            if (idx >= 0) return idx;
+        }
+        // Partial match
+        for (var j = 0; j < candidates.length; j++) {
+            for (var k = 0; k < headers.length; k++) {
+                if (headers[k].includes(candidates[j].toLowerCase())) return k;
+            }
+        }
+        return -1;
+    }
+
+    var cols = {
+        data:    findCol(['negociação','negociacao','data','data negociação']),
+        empresa: findCol(['razão social','razao social','contabilidade','empresa','cliente','cnpj']),
+        contato: findCol(['nome','responsável','responsavel','contato']),
+        closer:  findCol(['closer','especialista','vendedor']),
+        status:  findCol(['status']),
+        plano:   findCol(['plano','plano comercial','produto']),
+        valor:   findCol(['valor c/ desconto','valor com desconto','valor final','valor']),
+        // Coluna K "Obs" = motivo de desistência (preenchida só nos desistentes)
+        motivo:  findCol(['obs','observação','observacao','motivo','razão','razao']),
+        contrato:findCol(['contrato','tipo contrato','tipo']),
+        fechamento: findCol(['data o fechamento','data fechamento','data de fechamento','fechamento']),
+        pagamento: findCol(['pagamento'])
+    };
+
+    // Se não achou pelo header, força coluna K (índice 10) como Obs
+    if (cols.motivo < 0 && headers.length > 10) cols.motivo = 10;
+
+    hasMotivo = cols.motivo >= 0;
+
+    var deals = [];
+    for (var i = 1; i < lines.length; i++) {
+        var row = parseCSVLine(lines[i]);
+        if (!row.length || !row[0]) continue;
+
+        var status = cols.status >= 0 ? (row[cols.status] || '').trim() : '';
+        if (!status) continue;
+
+        deals.push({
+            data:      cols.data >= 0 ? row[cols.data] || '' : '',
+            empresa:   cols.empresa >= 0 ? row[cols.empresa] || '' : '',
+            contato:   cols.contato >= 0 ? row[cols.contato] || '' : '',
+            closer:    cols.closer >= 0 ? row[cols.closer] || '' : '',
+            status:    status,
+            plano:     cols.plano >= 0 ? row[cols.plano] || '' : '',
+            valor:     cols.valor >= 0 ? row[cols.valor] || '' : '',
+            motivo:    cols.motivo >= 0 ? row[cols.motivo] || '' : '',
+            contrato:  cols.contrato >= 0 ? row[cols.contrato] || '' : '',
+            fechamento: cols.fechamento >= 0 ? row[cols.fechamento] || '' : '',
+            pagamento: cols.pagamento >= 0 ? row[cols.pagamento] || '' : ''
+        });
+    }
+    return deals;
+}
+
+// ============================================================
+// CONFIG / LOAD NEGOCIAÇÕES
+// ============================================================
+function saveAndLoad() {
+    var url = document.getElementById('negSheetUrl').value.trim();
+    var gid = document.getElementById('negSheetGid').value.trim();
+    if (!url) {
+        setStatus('Informe a URL da planilha', 'err');
+        return;
+    }
+    // Save config
+    var cfg = { url: url, gid: gid };
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); } catch(e){}
+    if (typeof database !== 'undefined' && database) {
+        try { database.ref('ac_neg_config').set(cfg); } catch(e){}
+    }
+    loadNegociacoes(url, gid);
+}
+
+function setStatus(msg, type) {
+    var el = document.getElementById('negLoadStatus');
+    el.textContent = msg;
+    el.className = 'ac-config-status' + (type ? ' ' + type : '');
+}
+
+async function loadNegociacoes(url, gid) {
+    var btn = document.getElementById('btnLoadNeg');
+    btn.disabled = true;
+    btn.textContent = 'Carregando...';
+    setStatus('Buscando dados...', '');
+
+    try {
+        // Build CSV export URL
+        var csvUrl = url;
+        if (!csvUrl.includes('output=csv')) {
+            csvUrl += (csvUrl.includes('?') ? '&' : '?') + 'output=csv';
+        }
+        if (gid) csvUrl += '&gid=' + gid;
+
+        var res = await fetch(csvUrl);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var csv = await res.text();
+
+        allDeals = parseNegociacoes(csv);
+
+        // Filter by status
+        pendentes   = allDeals.filter(function(d){ return /pendente/i.test(d.status); });
+        desistentes = allDeals.filter(function(d){ return /desist|perdid|n.o\s*fechou/i.test(d.status); });
+        contratados = allDeals.filter(function(d){ return /contratad|assinad|fechad/i.test(d.status); });
+        gerados     = allDeals.filter(function(d){ return /gerado/i.test(d.status); });
+
+        setStatus('✓ ' + allDeals.length + ' registros carregados', 'ok');
+        renderAll();
+
+    } catch(err) {
+        setStatus('Erro: ' + err.message, 'err');
+        console.error(err);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Carregar';
+    }
+}
+
+function loadSavedConfig() {
+    // Try localStorage first
+    try {
+        var saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            var cfg = JSON.parse(saved);
+            if (cfg.url) {
+                document.getElementById('negSheetUrl').value = cfg.url;
+                document.getElementById('negSheetGid').value = cfg.gid || '';
+                loadNegociacoes(cfg.url, cfg.gid);
+                return;
+            }
+        }
+    } catch(e){}
+
+    // Try Firebase
+    if (typeof database !== 'undefined' && database) {
+        database.ref('ac_neg_config').once('value', function(snap) {
+            if (snap.exists()) {
+                var cfg = snap.val();
+                document.getElementById('negSheetUrl').value = cfg.url || '';
+                document.getElementById('negSheetGid').value = cfg.gid || '';
+                if (cfg.url) loadNegociacoes(cfg.url, cfg.gid);
+            }
+        });
+    }
+}
+
+// ============================================================
+// FIREBASE LISTENERS (separados: comercial_live e analise_comercial_live)
+// ============================================================
+function startFirebaseListener() {
+    if (typeof database === 'undefined' || !database) return;
+
+    // Listener 1: KPIs e Closers (mesmo path do dashboard comercial, sem interferência)
+    database.ref('comercial_live').on('value', function(snap) {
+        if (!snap.exists()) return;
+        var data = snap.val();
+        liveKpis    = data.kpis    || {};
+        liveClosers = data.closers || [];
+
+        var hora = data.updatedISO
+            ? new Date(data.updatedISO).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
+            : '';
+
+        updateKPIsFromFirebase();
+
+        // Se ainda não chegaram negociações detalhadas, renderiza o que já temos dos closers
+        if (allDeals.length === 0) renderTabsFromKpisData();
+
+        renderInsights();
+        setSyncStatus('live', 'Dados em tempo real' + (hora ? ' · ' + hora : ''));
+    });
+
+    // Listener 2: Negociações — path exclusivo do apps-script-analise-comercial-sync.js
+    database.ref('analise_comercial_live').on('value', function(snap) {
+        if (!snap.exists()) return;
+        var data = snap.val();
+        if (!data.negociacoes || !Array.isArray(data.negociacoes) || !data.negociacoes.length) return;
+
+        var hora = data.updatedISO
+            ? new Date(data.updatedISO).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
+            : '';
+        processFirebaseNegociacoes(data.negociacoes, hora);
+    });
+}
+
+// Processa negociações vindas do analise_comercial_live.
+// Mapeia o campo "obs" (coluna K) para "motivo" internamente.
+function processFirebaseNegociacoes(firebaseDeals, hora) {
+    allDeals = firebaseDeals.map(function(d) {
+        return {
+            data:       d.data       || '',
+            empresa:    d.empresa    || '',
+            contato:    d.contato    || '',
+            closer:     d.closer     || '',
+            status:     d.status     || '',
+            plano:      d.plano      || '',
+            valor:      d.valor      || '',
+            motivo:     d.obs        || '',   // coluna K "Obs" → motivo
+            contrato:   d.contrato   || '',
+            fechamento: d.fechamento || '',
+            pagamento:  d.pagamento  || ''
+        };
+    });
+
+    // Filtros por status
+    pendentes   = allDeals.filter(function(d){ return /pendente/i.test(d.status); });
+    desistentes = allDeals.filter(function(d){ return /desist|perdid/i.test(d.status); });
+    contratados = allDeals.filter(function(d){ return /contratad|assinad|fechad/i.test(d.status); });
+    gerados     = allDeals.filter(function(d){ return /gerado/i.test(d.status); });
+
+    // Obs é preenchida só nos desistentes → hasMotivo = true se algum tiver
+    hasMotivo = desistentes.some(function(d){ return d.motivo && d.motivo.trim(); });
+
+    // Mostra painel Firebase, oculta prompt de configuração manual
+    var fbPanel = document.getElementById('firebaseNegPanel');
+    var fbStatus = document.getElementById('firebaseNegStatus');
+    if (fbPanel) fbPanel.style.display = 'flex';
+    if (fbStatus) fbStatus.textContent =
+        allDeals.length + ' negociações sincronizadas' + (hora ? ' · ' + hora : '');
+
+    renderAll();
+}
+
+// Renderiza o que está disponível só com dados do comercial_live (closers).
+// Chamada quando analise_comercial_live ainda não tem dados.
+function renderTabsFromKpisData() {
+    // ---- Gráfico: Pendentes por Closer (campo pendente de cada closer) ----
+    if (liveClosers.length > 0) {
+        var labels = [], values = [];
+        liveClosers.forEach(function(c) {
+            // "pendente" pode ser "3", "3 pendentes" ou número direto
+            var raw = (c.pendente || '0').toString().replace(/[^\d]/g, '');
+            var num = parseInt(raw) || 0;
+            labels.push(c.nome || 'Sem nome');
+            values.push(num);
+        });
+        if (values.some(function(v) { return v > 0; })) {
+            buildBarChart('chartPendCloser', labels, values, '#E8BB34');
+        }
+    }
+
+    // ---- Mensagem informativa nas tabelas ----
+    var infoHtml =
+        '<div class="ac-motivo-hint" style="margin:0">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+        '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' +
+        '</svg>' +
+        '<span>Para ver os registros individuais, instale o <strong style="color:#93c5fd">apps-script-analise-comercial-sync.js</strong>' +
+        ' na planilha de Negociações e execute <strong style="color:#93c5fd">setupTrigger()</strong> uma vez.</span>' +
+        '</div>';
+
+    var pw = document.getElementById('pendTableWrap');
+    var dw = document.getElementById('desistTableWrap');
+    if (pw && pw.querySelector('.ac-empty')) pw.innerHTML = infoHtml;
+    if (dw && dw.querySelector('.ac-empty')) dw.innerHTML = infoHtml;
+}
+
+function setSyncStatus(type, text) {
+    var dot = document.getElementById('syncDot');
+    var txt = document.getElementById('syncText');
+    dot.className = 'ac-sync-dot ' + type;
+    txt.textContent = text;
+}
+
+// ============================================================
+// UPDATE KPIs
+// ============================================================
+function updateKPIsFromFirebase() {
+    // If we have individual deal data, prefer that
+    if (allDeals.length > 0) {
+        updateKPIsFromDeals();
+        return;
+    }
+
+    // Use aggregate KPIs from Firebase
+    var pendCount = liveKpis['Contratos Pendentes'] || '';
+    var pendVal   = liveKpis['Pendentes'] || '';
+    var desistVal = liveKpis['Desistentes'] || '';
+
+    document.getElementById('kpiPendCount').textContent = pendCount || '—';
+    document.getElementById('kpiPendValor').textContent = pendVal ? 'valor: ' + pendVal : 'negociações em aberto';
+
+    document.getElementById('kpiDesistCount').textContent = desistVal || '—';
+    document.getElementById('kpiDesistValor').textContent = 'oportunidades perdidas';
+
+    var pend = parseMoneyValue(pendVal);
+    document.getElementById('kpiRisco').textContent = pend > 0 ? formatMoney(pend) : '—';
+    document.getElementById('kpiRiscoSub').textContent = 'aguardando decisão';
+
+    // Conversão from closers average
+    if (liveClosers.length > 0) {
+        var soma = 0;
+        liveClosers.forEach(function(c){
+            soma += parseFloat((c.taxaConversao || '0').replace('%','').replace(',','.')) || 0;
+        });
+        var avg = soma / liveClosers.length;
+        document.getElementById('kpiConversao').textContent = avg.toFixed(1).replace('.',',') + '%';
+        document.getElementById('kpiConversaoSub').textContent = 'média dos especialistas';
+    }
+
+    // Atualiza badges das abas com contagem agregada
+    var badgePend = document.getElementById('tabBadgePend');
+    if (badgePend && pendCount) badgePend.textContent = pendCount;
+
+    // Contagem de desistentes: tenta extrair número do valor monetário dos closers
+    var desistCountNum = 0;
+    liveClosers.forEach(function(c) {
+        // campo pendente no closer contém count de pendentes por closer
+        // não temos desistentes por closer no agregado, mas podemos somar
+    });
+    // Atualiza pendTableCount se não tiver dados detalhados
+    if (pendCount) {
+        var ptc = document.getElementById('pendTableCount');
+        if (ptc && !ptc.textContent) ptc.textContent = pendCount + ' registros';
+    }
+}
+
+function updateKPIsFromDeals() {
+    var total = allDeals.length;
+    var pTotal = pendentes.length;
+    var dTotal = desistentes.length;
+    var cTotal = contratados.length;
+
+    document.getElementById('kpiPendCount').textContent = pTotal;
+    var pendVal = pendentes.reduce(function(s,d){ return s + parseMoneyValue(d.valor); }, 0);
+    document.getElementById('kpiPendValor').textContent = pendVal > 0 ? formatMoney(pendVal) : pTotal + ' negociações em aberto';
+
+    document.getElementById('kpiDesistCount').textContent = dTotal;
+    var desistVal = desistentes.reduce(function(s,d){ return s + parseMoneyValue(d.valor); }, 0);
+    document.getElementById('kpiDesistValor').textContent = desistVal > 0 ? 'perdidos: ' + formatMoney(desistVal) : dTotal + ' oportunidades perdidas';
+
+    document.getElementById('kpiRisco').textContent = pendVal > 0 ? formatMoney(pendVal) : '—';
+    document.getElementById('kpiRiscoSub').textContent = pTotal + ' negociações aguardando';
+
+    var taxa = total > 0 ? ((cTotal / total) * 100) : 0;
+    document.getElementById('kpiConversao').textContent = taxa.toFixed(1).replace('.',',') + '%';
+    document.getElementById('kpiConversaoSub').textContent = cTotal + ' contratados de ' + total + ' gerados';
+
+    document.getElementById('tabBadgePend').textContent = pTotal;
+    document.getElementById('tabBadgeDesist').textContent = dTotal;
+}
+
+// ============================================================
+// RENDER ALL
+// ============================================================
+function renderAll() {
+    updateKPIsFromDeals();
+    renderPendenteTab();
+    renderDesistentesTab();
+    renderInsights();
+    showMotivoHint();
+}
+
+// ============================================================
+// MOTIVO HINT
+// ============================================================
+function showMotivoHint() {
+    var hint = hasMotivo ? '' :
+        '<div class="ac-motivo-hint">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+        'Para ver o motivo de cada negociação, adicione uma coluna <strong style="color:#60a5fa">Motivo</strong> na sua planilha de negociações.' +
+        '</div>';
+    document.getElementById('motivoHintPend').innerHTML = hint;
+    document.getElementById('motivoHintDesist').innerHTML = hint;
+}
+
+// ============================================================
+// PENDENTES TAB
+// ============================================================
+function renderPendenteTab() {
+    renderCloserChart(pendentes, 'chartPendCloser', '#E8BB34');
+
+    if (hasMotivo) {
+        document.getElementById('chartPendRightTitle').textContent = 'Motivos de Pendência';
+        renderMotivosChart(pendentes, 'chartPendRight');
+    } else {
+        document.getElementById('chartPendRightTitle').textContent = 'Pendentes por Plano';
+        renderPlanoChart(pendentes, 'chartPendRight', '#E8BB34');
+    }
+
+    renderDealsTable(pendentes, 'pendTableWrap', 'pendente');
+    document.getElementById('pendTableCount').textContent = pendentes.length + ' registros';
+}
+
+// ============================================================
+// DESISTENTES TAB
+// ============================================================
+function renderDesistentesTab() {
+    renderCloserChart(desistentes, 'chartDesistCloser', '#f87171');
+
+    if (hasMotivo) {
+        document.getElementById('chartDesistRightTitle').textContent = 'Motivos de Desistência';
+        renderMotivosChart(desistentes, 'chartDesistRight');
+        document.getElementById('cardDesistPlano').style.display = 'block';
+        renderPlanoChart(desistentes, 'chartDesistPlano', '#f87171');
+    } else {
+        document.getElementById('chartDesistRightTitle').textContent = 'Desistências por Plano';
+        renderPlanoChart(desistentes, 'chartDesistRight', '#f87171');
+        document.getElementById('cardDesistPlano').style.display = 'none';
+    }
+
+    renderDealsTable(desistentes, 'desistTableWrap', 'desistente');
+    document.getElementById('desistTableCount').textContent = desistentes.length + ' registros';
+}
+
+// ============================================================
+// CHARTS
+// ============================================================
+var COLORS = ['#35CCA3','#68C9AE','#E8BB34','#f87171','#60a5fa','#a78bfa','#fb923c','#34d399','#f472b6','#94a3b8'];
+
+function buildBarChart(canvasId, labels, values, color) {
+    var ctx = document.getElementById(canvasId);
+    if (!ctx) return null;
+    // Destroy existing
+    var existing = Chart.getChart(ctx);
+    if (existing) existing.destroy();
+
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: color || '#35CCA3',
+                borderRadius: 6,
+                borderSkipped: false,
+                maxBarThickness: 40
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                datalabels: {
+                    anchor: 'end',
+                    align: 'end',
+                    color: '#8c95a3',
+                    font: { size: 11, weight: '600', family: 'Poppins' }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.04)' },
+                    ticks: { color: '#64748b', font: { size: 11, family: 'Poppins' } }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: '#D1D5DB', font: { size: 11, family: 'Poppins' } }
+                }
+            }
+        },
+        plugins: [ChartDataLabels]
+    });
+}
+
+function buildDoughnutChart(canvasId, labels, values, colors) {
+    var ctx = document.getElementById(canvasId);
+    if (!ctx) return null;
+    var existing = Chart.getChart(ctx);
+    if (existing) existing.destroy();
+
+    return new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors || COLORS,
+                borderWidth: 0,
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: '#D1D5DB',
+                        font: { size: 11, family: 'Poppins' },
+                        boxWidth: 10,
+                        padding: 10
+                    }
+                },
+                datalabels: {
+                    color: '#fff',
+                    font: { size: 11, weight: '700', family: 'Poppins' },
+                    formatter: function(val, ctx) {
+                        var total = ctx.dataset.data.reduce(function(a,b){return a+b;}, 0);
+                        return total > 0 ? Math.round(val/total*100) + '%' : '';
+                    }
+                }
+            }
+        },
+        plugins: [ChartDataLabels]
+    });
+}
+
+function renderCloserChart(deals, canvasId, color) {
+    if (!deals.length) {
+        renderEmptyChart(canvasId);
+        return;
+    }
+    var grouped = groupBy(deals, 'closer');
+    var sorted = sortObj(grouped);
+    var labels = sorted.map(function(e){ return e[0] || 'Sem Closer'; });
+    var values = sorted.map(function(e){ return e[1]; });
+    buildBarChart(canvasId, labels, values, color || '#35CCA3');
+}
+
+function renderPlanoChart(deals, canvasId, color) {
+    if (!deals.length) {
+        renderEmptyChart(canvasId);
+        return;
+    }
+    var grouped = groupBy(deals, 'plano');
+    var sorted = sortObj(grouped);
+    var labels = sorted.map(function(e){ return e[0] || 'Sem Plano'; });
+    var values = sorted.map(function(e){ return e[1]; });
+    var colors = COLORS.map(function(c){ return c; });
+    buildDoughnutChart(canvasId, labels, values, colors);
+}
+
+function renderMotivosChart(deals, canvasId) {
+    var grouped = groupBy(deals, 'motivo');
+    var sorted = sortObj(grouped);
+    var labels = sorted.map(function(e){ return e[0] || 'Não informado'; });
+    var values = sorted.map(function(e){ return e[1]; });
+    if (!values.length) { renderEmptyChart(canvasId); return; }
+    buildDoughnutChart(canvasId, labels, values, null);
+}
+
+function renderEmptyChart(canvasId) {
+    var ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    var existing = Chart.getChart(ctx);
+    if (existing) existing.destroy();
+}
+
+// ============================================================
+// DEALS TABLE
+// ============================================================
+function renderDealsTable(deals, containerId, type) {
+    var wrap = document.getElementById(containerId);
+    if (!wrap) return;
+
+    if (!deals.length) {
+        wrap.innerHTML = '<div class="ac-empty">' +
+            '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
+            (type === 'pendente'
+                ? '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'
+                : '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>') +
+            '</svg>' +
+            '<p>Nenhum ' + type + ' encontrado</p>' +
+            '<small>Verifique o status na planilha de negociações</small>' +
+            '</div>';
+        return;
+    }
+
+    var html = '<table class="ac-table"><thead><tr>' +
+        '<th>Empresa</th>' +
+        '<th>Closer</th>' +
+        '<th>Plano</th>' +
+        '<th>Valor</th>' +
+        (hasMotivo ? '<th>Obs / Motivo</th>' : '') +
+        '<th>Tipo</th>' +
+        '<th>Data</th>' +
+        (type === 'pendente' ? '<th>Dias</th>' : '') +
+        '</tr></thead><tbody>';
+
+    for (var i = 0; i < deals.length; i++) {
+        var d = deals[i];
+        var dias = daysAgo(d.data);
+        var diasClass = '';
+        if (dias !== null && type === 'pendente') {
+            if (dias > 30) diasClass = 'style="color:#f87171;font-weight:700"';
+            else if (dias > 15) diasClass = 'style="color:#E8BB34;font-weight:600"';
+        }
+        var badgeClass = type === 'pendente' ? 'ac-badge-pendente' : 'ac-badge-desistente';
+        html += '<tr>' +
+            '<td class="empresa" title="' + escHtml(d.empresa) + '">' + escHtml(d.empresa || '—') + '</td>' +
+            '<td>' + escHtml(d.closer || '—') + '</td>' +
+            '<td>' + (d.plano ? '<span class="ac-badge ac-badge-gerado">' + escHtml(d.plano) + '</span>' : '—') + '</td>' +
+            '<td>' + (d.valor ? escHtml(d.valor) : '—') + '</td>' +
+            (hasMotivo ? '<td>' + (d.motivo ? '<span title="' + escHtml(d.motivo) + '">' + escHtml(d.motivo.length > 35 ? d.motivo.slice(0,35)+'…' : d.motivo) + '</span>' : '<span style="color:#4b5563">—</span>') + '</td>' : '') +
+            '<td>' + (d.contrato ? escHtml(d.contrato) : '—') + '</td>' +
+            '<td>' + escHtml(d.data || '—') + '</td>' +
+            (type === 'pendente' ? '<td><span ' + diasClass + '>' + (dias !== null ? dias + 'd' : '—') + '</span></td>' : '') +
+            '</tr>';
+    }
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============================================================
+// INSIGHTS TAB
+// ============================================================
+function renderInsights() {
+    renderFunnel();
+    renderValorDist();
+    renderMatrix();
+    renderAlertas();
+    renderRecomendacoes();
+}
+
+function renderFunnel() {
+    var container = document.getElementById('funnelContainer');
+    var total = allDeals.length;
+    if (!total && !liveKpis['Gerados']) {
+        // Try using Firebase KPIs
+        renderFunnelFromKpis();
+        return;
+    }
+
+    var steps = [
+        { label: 'Gerados',    count: allDeals.length,    color: '#60a5fa' },
+        { label: 'Contratados',count: contratados.length,  color: '#35CCA3' },
+        { label: 'Pendentes',  count: pendentes.length,    color: '#E8BB34' },
+        { label: 'Desistentes',count: desistentes.length,  color: '#f87171' }
+    ];
+
+    var max = Math.max.apply(null, steps.map(function(s){return s.count;})) || 1;
+    var html = '';
+    for (var i = 0; i < steps.length; i++) {
+        var s = steps[i];
+        var pct = Math.max((s.count / max) * 100, 4);
+        html += '<div class="ac-funnel-step">' +
+            '<span class="ac-funnel-step-label">' + s.label + '</span>' +
+            '<div class="ac-funnel-bar-track">' +
+            '<div class="ac-funnel-bar-fill" style="width:' + pct + '%;background:' + s.color + '">' +
+            (s.count > 0 ? formatPct(s.count, allDeals.length) : '') +
+            '</div></div>' +
+            '<span class="ac-funnel-step-count" style="color:' + s.color + '">' + s.count + '</span>' +
+            '</div>';
+    }
+    container.innerHTML = html;
+}
+
+function renderFunnelFromKpis() {
+    var container = document.getElementById('funnelContainer');
+    var assinados  = parseMoneyValue(liveKpis['Assinados'] || '0');
+    var pendVal    = parseMoneyValue(liveKpis['Pendentes'] || '0');
+    var desistVal  = parseMoneyValue(liveKpis['Desistentes'] || '0');
+    var total      = parseMoneyValue(liveKpis['Total'] || liveKpis['Equipe'] || '0');
+
+    if (!total && !assinados) {
+        container.innerHTML = '<div class="ac-empty"><p>Aguardando dados do Firebase</p></div>';
+        return;
+    }
+
+    var steps = [
+        { label: 'Total Pipeline', val: total,     color: '#60a5fa' },
+        { label: 'Assinados',      val: assinados, color: '#35CCA3' },
+        { label: 'Pendentes',      val: pendVal,   color: '#E8BB34' },
+        { label: 'Desistentes',    val: desistVal, color: '#f87171' }
+    ];
+
+    var max = Math.max.apply(null, steps.map(function(s){return s.val;})) || 1;
+    var html = '';
+    for (var i = 0; i < steps.length; i++) {
+        var s = steps[i];
+        var pct = Math.max((s.val / max) * 100, 3);
+        html += '<div class="ac-funnel-step">' +
+            '<span class="ac-funnel-step-label">' + s.label + '</span>' +
+            '<div class="ac-funnel-bar-track">' +
+            '<div class="ac-funnel-bar-fill" style="width:' + pct + '%;background:' + s.color + '">' +
+            (s.val > 0 ? formatMoney(s.val).replace('R$ ','') : '') +
+            '</div></div>' +
+            '<span class="ac-funnel-step-count" style="color:' + s.color + '">' + formatMoney(s.val) + '</span>' +
+            '</div>';
+    }
+    container.innerHTML = html;
+}
+
+function renderValorDist() {
+    var ctx = document.getElementById('chartValorDist');
+    if (!ctx) return;
+    var existing = Chart.getChart(ctx);
+    if (existing) existing.destroy();
+
+    var assinVal  = contratados.reduce(function(s,d){return s+parseMoneyValue(d.valor);}, 0)
+                    || parseMoneyValue(liveKpis['Assinados'] || '0');
+    var pendVal   = pendentes.reduce(function(s,d){return s+parseMoneyValue(d.valor);}, 0)
+                    || parseMoneyValue(liveKpis['Pendentes'] || '0');
+    var desistVal = desistentes.reduce(function(s,d){return s+parseMoneyValue(d.valor);}, 0)
+                    || parseMoneyValue(liveKpis['Desistentes'] || '0');
+
+    if (!assinVal && !pendVal && !desistVal) return;
+
+    chartValorDistInst = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Assinados', 'Pendentes', 'Desistentes'],
+            datasets: [{
+                data: [assinVal, pendVal, desistVal],
+                backgroundColor: ['#35CCA3', '#E8BB34', '#f87171'],
+                borderWidth: 0,
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { color: '#D1D5DB', font: { size: 11, family: 'Poppins' }, boxWidth: 10, padding: 10 }
+                },
+                datalabels: {
+                    color: '#fff',
+                    font: { size: 11, weight: '700', family: 'Poppins' },
+                    formatter: function(val, ctx) {
+                        var total = ctx.dataset.data.reduce(function(a,b){return a+b;}, 0);
+                        return total > 0 ? Math.round(val/total*100) + '%' : '';
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            return ' ' + formatMoney(ctx.raw);
+                        }
+                    }
+                }
+            }
+        },
+        plugins: [ChartDataLabels]
+    });
+}
+
+function renderMatrix() {
+    var container = document.getElementById('matrizContainer');
+
+    // Build closer data from deals + Firebase closers
+    var closerMap = {};
+
+    // Seed from Firebase closers
+    for (var i = 0; i < liveClosers.length; i++) {
+        var fc = liveClosers[i];
+        closerMap[fc.nome] = {
+            nome: fc.nome,
+            totalVendas: parseMoneyValue(fc.totalVendas),
+            taxaConversao: parseFloat((fc.taxaConversao||'0').replace('%','').replace(',','.')) || 0,
+            pendentes: 0,
+            desistentes: 0,
+            contratados: 0,
+            valorPerdido: 0,
+            valorPendente: 0
+        };
+    }
+
+    // Enrich from deals
+    function processDeals(list, type) {
+        for (var j = 0; j < list.length; j++) {
+            var d = list[j];
+            var nome = d.closer || 'Sem Closer';
+            if (!closerMap[nome]) {
+                closerMap[nome] = { nome: nome, totalVendas: 0, taxaConversao: 0, pendentes: 0, desistentes: 0, contratados: 0, valorPerdido: 0, valorPendente: 0 };
+            }
+            closerMap[nome][type]++;
+            if (type === 'desistentes') closerMap[nome].valorPerdido += parseMoneyValue(d.valor);
+            if (type === 'pendentes')   closerMap[nome].valorPendente += parseMoneyValue(d.valor);
+            if (type === 'contratados') closerMap[nome].totalVendas += parseMoneyValue(d.valor);
+        }
+    }
+
+    processDeals(pendentes, 'pendentes');
+    processDeals(desistentes, 'desistentes');
+    processDeals(contratados, 'contratados');
+
+    var closers = Object.values(closerMap);
+    if (!closers.length) {
+        container.innerHTML = '<div class="ac-empty"><p>Dados de closers não disponíveis</p><small>Verifique a planilha de negociações e a conexão com Firebase</small></div>';
+        return;
+    }
+
+    // Calculate derived metrics
+    closers.forEach(function(c) {
+        var totalDeals = c.contratados + c.pendentes + c.desistentes;
+        if (totalDeals > 0 && c.taxaConversao === 0) {
+            c.taxaConversao = (c.contratados / totalDeals * 100);
+        }
+        c.taxaDesist = totalDeals > 0 ? (c.desistentes / totalDeals * 100) : 0;
+    });
+
+    // Sort by taxa conversão desc
+    closers.sort(function(a,b){ return b.taxaConversao - a.taxaConversao; });
+
+    var html = '<table class="ac-matrix"><thead><tr>' +
+        '<th>Closer</th>' +
+        '<th>Contratados</th>' +
+        '<th>Pendentes</th>' +
+        '<th>Desistências</th>' +
+        '<th>Taxa Conv.</th>' +
+        '<th>Taxa Desist.</th>' +
+        '<th>Valor Pendente</th>' +
+        '<th>Valor Perdido</th>' +
+        '</tr></thead><tbody>';
+
+    for (var i = 0; i < closers.length; i++) {
+        var c = closers[i];
+        var rateClass = c.taxaConversao >= 50 ? 'rate-high' : c.taxaConversao >= 25 ? 'rate-mid' : 'rate-low';
+        var desistClass = c.taxaDesist > 30 ? 'rate-low' : c.taxaDesist > 15 ? 'rate-mid' : 'rate-high';
+        html += '<tr>' +
+            '<td>' + escHtml(c.nome) + '</td>' +
+            '<td>' + c.contratados + '</td>' +
+            '<td>' + c.pendentes + '</td>' +
+            '<td>' + c.desistentes + '</td>' +
+            '<td class="' + rateClass + '">' + c.taxaConversao.toFixed(1).replace('.',',') + '%</td>' +
+            '<td class="' + desistClass + '">' + c.taxaDesist.toFixed(1).replace('.',',') + '%</td>' +
+            '<td>' + (c.valorPendente > 0 ? formatMoney(c.valorPendente) : '—') + '</td>' +
+            '<td>' + (c.valorPerdido > 0 ? '<span style="color:#f87171">' + formatMoney(c.valorPerdido) + '</span>' : '—') + '</td>' +
+            '</tr>';
+    }
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function renderAlertas() {
+    var container = document.getElementById('alertasContainer');
+    var alertas = [];
+
+    // Pendentes críticos (> 30 dias)
+    var criticos = pendentes.filter(function(d) {
+        var dias = daysAgo(d.data);
+        return dias !== null && dias > 30;
+    });
+    if (criticos.length > 0) {
+        alertas.push({ icon: 'red', svg: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+            title: criticos.length + ' pendentes há mais de 30 dias',
+            text: 'Negociações antigas têm menor chance de conversão. Acione esses leads com urgência ou reclassifique o status.' });
+    }
+
+    // Closer com mais desistências
+    if (desistentes.length > 0) {
+        var dGrp = groupBy(desistentes, 'closer');
+        var topDesist = sortObj(dGrp)[0];
+        if (topDesist && topDesist[0] !== 'Não informado') {
+            alertas.push({ icon: 'yellow', svg: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',
+                title: topDesist[0] + ' tem ' + topDesist[1] + ' desistências',
+                text: 'Verificar abordagem comercial, qualidade dos leads recebidos ou necessidade de treinamento específico.' });
+        }
+    }
+
+    // Plano com mais pendentes
+    if (pendentes.length > 0) {
+        var pGrp = groupBy(pendentes, 'plano');
+        var topPend = sortObj(pGrp)[0];
+        if (topPend && topPend[0] !== 'Não informado') {
+            alertas.push({ icon: 'blue', svg: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>',
+                title: 'Plano "' + topPend[0] + '" concentra mais pendentes',
+                text: 'Possível objeção de preço/fit neste plano. Revise proposta de valor ou ofereça um período de experiência.' });
+        }
+    }
+
+    // Alto valor em risco
+    if (pendentes.length > 0) {
+        var totalRisco = pendentes.reduce(function(s,d){return s+parseMoneyValue(d.valor);},0);
+        if (totalRisco > 0) {
+            alertas.push({ icon: 'yellow', svg: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+                title: formatMoney(totalRisco) + ' em pipeline pendente',
+                text: 'Priorize follow-ups com os leads de maior valor. Cada dia a mais reduz a probabilidade de fechamento.' });
+        }
+    }
+
+    if (!alertas.length) {
+        if (!allDeals.length) {
+            container.innerHTML = '<div class="ac-empty"><p>Configure a planilha para gerar alertas personalizados</p></div>';
+        } else {
+            container.innerHTML = '<div class="ac-insight-item"><div class="ac-insight-icon green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><div class="ac-insight-text"><strong>Situação sob controle</strong><span>Nenhum alerta crítico identificado no momento.</span></div></div>';
+        }
+        return;
+    }
+
+    var html = '';
+    for (var i = 0; i < alertas.length; i++) {
+        var a = alertas[i];
+        html += '<div class="ac-insight-item">' +
+            '<div class="ac-insight-icon ' + a.icon + '">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + a.svg + '</svg>' +
+            '</div><div class="ac-insight-text"><strong>' + a.title + '</strong><span>' + a.text + '</span></div></div>';
+    }
+    container.innerHTML = html;
+}
+
+function renderRecomendacoes() {
+    var container = document.getElementById('recContainer');
+    var recs = [];
+
+    // Taxa de conversão geral
+    var total = allDeals.length;
+    if (total > 0) {
+        var taxa = (contratados.length / total * 100);
+        if (taxa < 30) {
+            recs.push({ icon: 'red', svg: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+                title: 'Taxa de conversão abaixo de 30%',
+                text: 'Revise a qualificação dos leads antes de enviar para negociação. Poucos leads qualificados valem mais que muitos não qualificados.' });
+        }
+    }
+
+    // Desistentes com obs: mostrar o motivo mais frequente
+    if (hasMotivo && desistentes.length > 0) {
+        var obsGrp = groupBy(desistentes, 'motivo');
+        var topObs = sortObj(obsGrp).filter(function(e){ return e[0] !== 'Não informado' && e[0]; })[0];
+        if (topObs) {
+            recs.push({ icon: 'red', svg: '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+                title: 'Principal motivo de desistência: "' + topObs[0] + '"',
+                text: 'Aparece em ' + topObs[1] + ' de ' + desistentes.length + ' desistências. Crie um script de contorno específico para este cenário.' });
+        }
+    }
+
+    // Pendentes sem obs preenchido
+    if (!hasMotivo && pendentes.length > 3) {
+        recs.push({ icon: 'blue', svg: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+            title: 'Preencha a coluna "Obs" nos desistentes',
+            text: 'O campo Obs (coluna K) está vazio nos desistentes. Com ele preenchido, a análise mostra os motivos de perda em gráfico.' });
+    }
+
+    // Desistentes por plano
+    if (desistentes.length > 0 && pendentes.length > 0) {
+        recs.push({ icon: 'yellow', svg: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',
+            title: 'Implemente follow-up estruturado',
+            text: 'Defina um SLA de retorno para cada etapa do pipeline. Pendentes sem contato por mais de 7 dias devem ser priorizados automaticamente.' });
+    }
+
+    // Recomendação geral
+    recs.push({ icon: 'green', svg: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+        title: 'Reunião semanal de pipeline',
+        text: 'Realize uma revisão semanal do pipeline com toda a equipe. Analise cada pendente e defina próximas ações com prazo definido.' });
+
+    var html = '';
+    for (var i = 0; i < recs.length; i++) {
+        var r = recs[i];
+        html += '<div class="ac-insight-item">' +
+            '<div class="ac-insight-icon ' + r.icon + '">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + r.svg + '</svg>' +
+            '</div><div class="ac-insight-text"><strong>' + r.title + '</strong><span>' + r.text + '</span></div></div>';
+    }
+    container.innerHTML = html || '<div class="ac-empty"><p>Configure a planilha para gerar recomendações personalizadas</p></div>';
+}
+
+// ============================================================
+// LOAD ALL
+// ============================================================
+function loadAllData() {
+    var btn = document.getElementById('btnRefresh');
+    if (btn) btn.classList.add('loading');
+    setSyncStatus('', 'Atualizando...');
+
+    // Reload negociações if configured
+    var url = document.getElementById('negSheetUrl').value.trim();
+    var gid = document.getElementById('negSheetGid').value.trim();
+    if (url) {
+        loadNegociacoes(url, gid);
+    }
+
+    setTimeout(function(){ if (btn) btn.classList.remove('loading'); }, 1500);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Load saved config
+    loadSavedConfig();
+
+    // Init Firebase listener
+    if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
+        startFirebaseListener();
+    } else {
+        window.addEventListener('firebaseReady', function() {
+            startFirebaseListener();
+        });
+    }
+
+    // Render insights from Firebase even without deals
+    setTimeout(function() {
+        if (!allDeals.length) renderInsights();
+    }, 2000);
+});
+</script>
+</body>
+</html>

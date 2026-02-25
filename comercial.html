@@ -790,6 +790,14 @@
                     </a>
                 </li>
                 <li class="sidebar-item">
+                    <a href="analise-comercial.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                        <span>Análise Comercial</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
                     <a href="relacionamento.html">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -1150,6 +1158,7 @@
         let lastTodayValue = 0;
         let firebaseListenerActive = false;
         let lastFirebaseHash = '';
+        let lastFirebaseUpdatedAt = 0; // Timestamp do último sync do Apps Script
         let currentViewMode = 'live'; // 'live' ou '2025-02' etc.
         let appsScriptRealtimeActive = false; // True quando Apps Script está enviando dados via Firebase
 
@@ -1683,6 +1692,7 @@
 
                 database.ref('comercial_live').set(dataToSync);
                 lastFirebaseHash = simpleHash(JSON.stringify(dataToSync.kpis) + JSON.stringify(dataToSync.closers));
+                lastFirebaseUpdatedAt = dataToSync.updatedAt;
                 console.log('Dados sincronizados para Firebase comercial_live');
             } catch (e) {
                 console.error('Erro ao sincronizar para Firebase:', e);
@@ -1732,13 +1742,20 @@
                     }
                 }
 
-                var newHash = simpleHash(JSON.stringify(data.kpis) + JSON.stringify(data.closers));
+                // Deduplicação: Apps Script usa timestamp (sempre único a cada sync);
+                // outras fontes usam hash do conteúdo para evitar re-render duplo.
+                var isAppsScript = data.source === 'apps_script' || data.source === 'apps_script_bulk';
+                if (isAppsScript) {
+                    var t = data.updatedAt || 0;
+                    if (t && t === lastFirebaseUpdatedAt) return;
+                    lastFirebaseUpdatedAt = t;
+                } else {
+                    var newHash = simpleHash(JSON.stringify(data.kpis) + JSON.stringify(data.closers));
+                    if (newHash === lastFirebaseHash) return;
+                    lastFirebaseHash = newHash;
+                }
 
-                // Ignorar se os dados são os mesmos
-                if (newHash === lastFirebaseHash) return;
-
-                console.log('[Comercial RT] Dados alterados em tempo real!');
-                lastFirebaseHash = newHash;
+                console.log('[Comercial RT] Dados alterados em tempo real! source=' + (data.source || 'unknown'));
 
                 // Detectar se houve nova venda (valor do dia aumentou)
                 var newDiaValue = parseMoneyValue(data.kpis['Dia'] || 'R$ 0,00');

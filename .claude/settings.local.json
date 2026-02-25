@@ -37,7 +37,8 @@
       "Bash(git -C \"C:/Users/Admin/Desktop/cancelamentos\" log --oneline -- relacionamento.html)",
       "Bash(git -C \"C:\\\\Users\\\\Admin\\\\Desktop\\\\cancelamentos\" log --oneline -- relacionamento.html)",
       "Bash(cmd /c \"cd C:\\\\Users\\\\Admin\\\\Desktop\\\\cancelamentos && git log --oneline -- relacionamento.html\")",
-      "Bash(powershell -File:*)"
+      "Bash(powershell -File:*)",
+      "Bash(git -C \"c:/Users/Admin/Desktop/cancelamentos\" show --stat 2bc23e2)"
     ]
   }
 }

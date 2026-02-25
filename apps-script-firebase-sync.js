@@ -22,6 +22,9 @@
  * CONFIGURAÇÃO:
  * - Altere FIREBASE_URL se o seu projeto Firebase for diferente
  * - Altere os nomes das abas se forem diferentes na sua planilha
+ *
+ * NOTA: Os dados de negociações (Análise Comercial) são sincronizados
+ * pelo script separado apps-script-analise-comercial-sync.js
  */
 
 // ===================== CONFIGURAÇÃO =====================
@@ -29,8 +32,8 @@ var FIREBASE_URL = 'https://relatorio-geral-default-rtdb.firebaseio.com';
 var FIREBASE_PATH = '/comercial_live.json';
 
 // Nomes das abas na planilha (ajuste conforme necessário)
-var SHEET_DADOS = 'Dados';        // Aba com KPIs (primeira aba, gid=0)
-var SHEET_CLOSER = 'Closer';      // Aba com ranking dos closers
+var SHEET_DADOS        = 'Dados';        // Aba com KPIs (primeira aba, gid=0)
+var SHEET_CLOSER       = 'Closer';       // Aba com ranking dos closers
 var SHEET_ULTIMA_VENDA = 'última venda'; // Aba com última venda
 
 // ===================== TRIGGER SETUP =====================
@@ -40,28 +43,36 @@ var SHEET_ULTIMA_VENDA = 'última venda'; // Aba com última venda
  * Vai em Executar → setupTrigger
  */
 function setupTrigger() {
-  // Remover triggers antigos para evitar duplicatas
+  // Remove triggers antigos para evitar duplicatas
   var triggers = ScriptApp.getProjectTriggers();
+  var removed = 0;
   for (var i = 0; i < triggers.length; i++) {
     if (triggers[i].getHandlerFunction() === 'onSheetEdit') {
       ScriptApp.deleteTrigger(triggers[i]);
+      removed++;
     }
   }
+  Logger.log('[Setup] ' + removed + ' trigger(s) antigos removidos.');
 
-  // Criar novo trigger onChange (detecta edições, inclusive de fórmulas)
-  ScriptApp.newTrigger('onSheetEdit')
-    .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
-    .onChange()
-    .create();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // Criar trigger onEdit para edições diretas do usuário
-  ScriptApp.newTrigger('onSheetEdit')
-    .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
-    .onEdit()
-    .create();
+  // onChange: detecta qualquer mudança (colar, inserir linha, fórmulas, etc.)
+  ScriptApp.newTrigger('onSheetEdit').forSpreadsheet(ss).onChange().create();
 
-  Logger.log('Triggers criados com sucesso!');
-  SpreadsheetApp.getUi().alert('Triggers instalados com sucesso! O dashboard vai atualizar em tempo real.');
+  // onEdit: detecta edição direta de célula pelo usuário
+  ScriptApp.newTrigger('onSheetEdit').forSpreadsheet(ss).onEdit().create();
+
+  Logger.log('[Setup] 2 triggers criados (onChange + onEdit) para onSheetEdit.');
+
+  // Faz um sync imediato para confirmar que está funcionando
+  onSheetEdit();
+
+  SpreadsheetApp.getUi().alert(
+    'Triggers instalados!\n\n' +
+    '✓ onEdit  — edição direta de célula\n' +
+    '✓ onChange — colar, inserir linha, fórmulas\n\n' +
+    'Sync inicial realizado. O dashboard já está atualizado.'
+  );
 }
 
 // ===================== MAIN FUNCTION =====================
@@ -70,20 +81,23 @@ function setupTrigger() {
  * Disparada automaticamente quando a planilha é editada.
  * Lê todos os dados e envia para o Firebase.
  */
-function onSheetEdit(e) {
+function onSheetEdit() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    // Ler dados da aba Dados (KPIs)
-    var kpis = readKPIs(ss);
+    // Aguarda fórmulas recalcularem (COUNTIF/SUMIF entre abas podem ter lag)
+    SpreadsheetApp.flush();
+    Utilities.sleep(800);
 
-    // Ler dados da aba Closer (ranking)
-    var closers = readClosers(ss);
-
-    // Ler dados da aba Última Venda
+    // Ler dados das abas
+    var kpis        = readKPIs(ss);
+    var closers     = readClosers(ss);
     var ultimaVenda = readUltimaVenda(ss);
 
-    // Montar payload
+    // Log para diagnóstico (ver em Executar → Registros no Apps Script)
+    Logger.log('[Sync] KPIs enviados: ' + JSON.stringify(kpis));
+    Logger.log('[Sync] Closers: ' + closers.length + ' | ' + new Date().toISOString());
+
     var payload = {
       kpis: kpis,
       closers: closers,
@@ -93,15 +107,12 @@ function onSheetEdit(e) {
       source: 'apps_script'
     };
 
-    // Enviar para Firebase (real-time)
     sendToFirebase(payload);
-
-    // Salvar snapshot mensal (histórico)
     saveMonthlySnapshot(payload);
 
-    Logger.log('Dados enviados para Firebase com sucesso!');
+    Logger.log('[Sync] Concluído com sucesso: ' + new Date().toISOString());
   } catch (error) {
-    Logger.log('Erro ao sincronizar: ' + error.message);
+    Logger.log('[Sync] ERRO: ' + error.message);
   }
 }
 
@@ -189,7 +200,6 @@ function readUltimaVenda(ss) {
  */
 function sendToFirebase(data) {
   var url = FIREBASE_URL + FIREBASE_PATH;
-
   var options = {
     method: 'put',
     contentType: 'application/json',
@@ -197,13 +207,18 @@ function sendToFirebase(data) {
     muteHttpExceptions: true
   };
 
-  var response = UrlFetchApp.fetch(url, options);
-  var code = response.getResponseCode();
-
-  if (code !== 200) {
-    Logger.log('Erro Firebase HTTP ' + code + ': ' + response.getContentText());
-    throw new Error('Firebase retornou HTTP ' + code);
+  // Tenta até 3 vezes em caso de falha de rede
+  for (var attempt = 1; attempt <= 3; attempt++) {
+    var response = UrlFetchApp.fetch(url, options);
+    var code = response.getResponseCode();
+    if (code === 200) {
+      Logger.log('[Firebase] Enviado com sucesso (tentativa ' + attempt + ')');
+      return;
+    }
+    Logger.log('[Firebase] Tentativa ' + attempt + ' falhou: HTTP ' + code);
+    if (attempt < 3) Utilities.sleep(1000);
   }
+  throw new Error('Firebase indisponivel apos 3 tentativas');
 }
 
 // ===================== MONTHLY SNAPSHOT =====================
@@ -248,7 +263,7 @@ function saveMonthlySnapshot(data) {
  * Pode ser executada direto do Apps Script ou via menu customizado.
  */
 function manualSync() {
-  onSheetEdit(null);
+  onSheetEdit();
   SpreadsheetApp.getUi().alert('Dados sincronizados com o dashboard!');
 }
 
