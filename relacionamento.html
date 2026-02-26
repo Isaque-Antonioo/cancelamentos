@@ -305,6 +305,18 @@
         .acesso-dias.atencao  { background: rgba(251,146,60,0.12); color: #FB923C; }
         .acesso-dias.nunca    { background: rgba(107,114,128,0.12); color: #6B7280; }
 
+        /* A atualizar */
+        .atualizar-hint {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(251,146,60,0.06);
+            border: 1px solid rgba(251,146,60,0.15);
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            font-size: clamp(0.65em, 0.72vw, 0.78em);
+            color: #FB923C;
+        }
+
         /* HS chart */
         .hs-chart-wrap {
             display: flex; align-items: center; gap: clamp(10px, 1.5vw, 20px);
@@ -418,6 +430,7 @@
         .badge-red    { background: rgba(239,68,68,0.12);  color: #F87171; }
         .badge-purple { background: rgba(168,85,247,0.1);  color: #C084FC; }
         .badge-green  { background: rgba(53,204,163,0.12); color: #35CCA3; }
+        .badge-orange { background: rgba(251,146,60,0.12); color: #FB923C; }
         .client-panel { border-top: 1px solid rgba(255,255,255,0.05); }
 
         /* =========== BUSCA CNPJ =========== */
@@ -741,6 +754,13 @@
                                 Sem Acesso
                                 <span id="semAcessoCount" class="tab-badge badge-purple"></span>
                             </button>
+                            <button class="client-tab" id="tabAtualizar" onclick="setClientFilter('atualizar')">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                                A atualizar
+                                <span id="atualizarCount" class="tab-badge badge-orange"></span>
+                            </button>
                             <button class="client-tab" id="tabEmDia" onclick="setClientFilter('emdia')">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="20 6 9 17 4 12"/>
@@ -780,6 +800,15 @@
                         <div class="rel-card-body client-panel" id="painelAcesso" style="display:none;">
                             <div class="rel-loading" id="semAcessoLoading"><div class="rel-spinner"></div></div>
                             <div id="semAcessoContainer"></div>
+                        </div>
+
+                        <!-- Painel A atualizar -->
+                        <div class="rel-card-body client-panel" id="painelAtualizar" style="display:none;">
+                            <div class="atualizar-hint">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                Clientes ativos sem data de acesso registrada. Preencha o campo "Último Acesso" na planilha para classificá-los corretamente.
+                            </div>
+                            <div id="atualizarContainer"></div>
                         </div>
 
                         <!-- Painel Em Dia -->
@@ -1283,9 +1312,31 @@ function renderSemAcesso(stats) {
     if (loading) loading.style.display = 'none';
     document.getElementById('semAcessoCount').textContent = (stats.semAcessoList || []).length;
     const lista = (stats.semAcessoList || []).filter(function(c) { return matchCnpj(c.cnpj); });
-    renderSemAcessoRows(lista.length === (stats.semAcessoList || []).length ? lista : lista);
-    // store for later filter
+    renderSemAcessoRows(lista);
     _lastStats = stats;
+}
+
+function renderAAtualizar(stats) {
+    const lista = (stats.aAtualizar || []);
+    document.getElementById('atualizarCount').textContent = lista.length;
+    const container = document.getElementById('atualizarContainer');
+    if (!container) return;
+    const filtered = lista.filter(function(c) { return matchCnpj(c.cnpj); });
+    if (!filtered.length) {
+        container.innerHTML = '<p style="color:#35CCA3;font-size:0.85em;padding:8px;">Nenhum cliente sem data de acesso.</p>';
+        return;
+    }
+    container.innerHTML = filtered.map(function(c) {
+        const foto = getFoto(c.especialista);
+        const fotoEl = foto ? `<img src="${foto}" class="esp-tag-avatar" onerror="this.style.display='none'" style="width:18px;height:18px;">` : '';
+        return `<div class="acesso-item">
+            <div style="flex:1;min-width:0;">
+                <div class="acesso-cnpj">${c.cnpj || '—'}</div>
+                <div class="acesso-esp" style="display:flex;align-items:center;gap:4px;">${fotoEl}${c.especialista || '—'} · ${healthBadge(c.health)}</div>
+            </div>
+            <span class="acesso-dias" style="background:rgba(251,146,60,0.1);color:#FB923C;">Sem data</span>
+        </div>`;
+    }).join('');
 }
 
 // ============================================================
@@ -1321,6 +1372,8 @@ function applyCurrentTabFilter() {
         const lista = (_lastStats && _lastStats.semAcessoList) ? _lastStats.semAcessoList : [];
         const filtered = lista.filter(function(c) { return matchCnpj(c.cnpj); });
         renderSemAcessoRows(filtered);
+    } else if (tipo === 'atualizar') {
+        if (_lastStats) renderAAtualizar(_lastStats);
     } else if (tipo === 'emdia') {
         const filtered = _emDiaData.filter(function(c) { return matchCnpj(c.cnpj); });
         drawEmDiaRows(filtered);
@@ -1331,12 +1384,14 @@ function applyCurrentTabFilter() {
 // FILTRO DE CLIENTES (tabs)
 // ============================================================
 function setClientFilter(tipo) {
-    document.getElementById('tabRisco').classList.toggle('active',  tipo === 'risco');
-    document.getElementById('tabAcesso').classList.toggle('active', tipo === 'acesso');
-    document.getElementById('tabEmDia').classList.toggle('active',  tipo === 'emdia');
-    document.getElementById('painelRisco').style.display  = tipo === 'risco'  ? '' : 'none';
-    document.getElementById('painelAcesso').style.display = tipo === 'acesso' ? '' : 'none';
-    document.getElementById('painelEmDia').style.display  = tipo === 'emdia'  ? '' : 'none';
+    document.getElementById('tabRisco').classList.toggle('active',     tipo === 'risco');
+    document.getElementById('tabAcesso').classList.toggle('active',    tipo === 'acesso');
+    document.getElementById('tabAtualizar').classList.toggle('active', tipo === 'atualizar');
+    document.getElementById('tabEmDia').classList.toggle('active',     tipo === 'emdia');
+    document.getElementById('painelRisco').style.display     = tipo === 'risco'     ? '' : 'none';
+    document.getElementById('painelAcesso').style.display    = tipo === 'acesso'    ? '' : 'none';
+    document.getElementById('painelAtualizar').style.display = tipo === 'atualizar' ? '' : 'none';
+    document.getElementById('painelEmDia').style.display     = tipo === 'emdia'     ? '' : 'none';
 }
 
 // ============================================================
@@ -1391,6 +1446,7 @@ function computeStatsFromRows(rows) {
         comErros: 0,
         semAcessoRecente: 0,
         semAcessoList: [],
+        aAtualizar: [],
         clientesRisco: [],
         clientesEmDia: []
     };
@@ -1423,20 +1479,22 @@ function computeStatsFromRows(rows) {
         // Com erros
         if (erros > 0) stats.comErros++;
 
-        // Sem acesso recente (> 30 dias ou nunca acessou)
-        let dias = null;
-        if (!acesso) {
-            dias = 9999;
-        } else {
+        // Sem data de acesso (ativo): vai para "A atualizar" — não conta no sem acesso
+        if (!acesso && status !== 'inativo') {
+            stats.aAtualizar.push({ cnpj, especialista: esp, health, plano });
+        } else if (acesso) {
+            // Tem data: verificar se passou de 30 dias
             const parts = acesso.split('/');
             if (parts.length === 3) {
                 const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-                if (!isNaN(d.getTime())) dias = Math.floor((hoje - d) / 86400000);
+                if (!isNaN(d.getTime())) {
+                    const dias = Math.floor((hoje - d) / 86400000);
+                    if (dias > 30 && status !== 'inativo') {
+                        stats.semAcessoRecente++;
+                        stats.semAcessoList.push({ cnpj, especialista: esp, health, ultimoAcesso: acesso, dias });
+                    }
+                }
             }
-        }
-        if (dias !== null && dias > 30 && status !== 'inativo') {
-            stats.semAcessoRecente++;
-            stats.semAcessoList.push({ cnpj, especialista: esp, health, ultimoAcesso: acesso, dias });
         }
 
         // Clientes em risco / em dia
@@ -1547,6 +1605,7 @@ function applyGlobalFilter(filter) {
     requestAnimationFrame(function() {
         renderRisco(stats);
         renderSemAcesso(stats);
+        renderAAtualizar(stats);
         renderEmDia(stats);
     });
 }
@@ -1579,6 +1638,7 @@ function processAndRender(data) {
     requestAnimationFrame(function() {
         renderRisco(stats);
         renderSemAcesso(stats);
+        renderAAtualizar(stats);
         renderEmDia(stats);
     });
 
