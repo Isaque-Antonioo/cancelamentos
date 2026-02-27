@@ -1,147 +1,98 @@
 /**
  * =====================================================
- * HUBSTROM - Apps Script: Análise Comercial → Firebase
+ * HUBSTROM - Análise de Desistentes → Firebase
  * =====================================================
  *
- * Script dedicado à sincronização das negociações para o
- * dashboard de Análise Comercial. Completamente separado
- * do script do comercial (comercial_live) para não interferir.
- *
- * COMO INSTALAR:
- * 1. Abra a planilha de Negociações no Google Sheets
+ * COMO INSTALAR (faça isso UMA VEZ):
+ * 1. Abra a planilha "Análise de desistentes de todos os meses"
  * 2. Vá em Extensões → Apps Script
- * 3. Cole este código inteiro no editor
- * 4. Clique em "Salvar" (ícone de disquete)
- * 5. Selecione "setupTrigger" no dropdown e clique em Executar UMA VEZ
- *    - Aceite todas as permissões solicitadas
- * 6. Pronto! Toda edição na planilha atualiza o dashboard em tempo real
- *
- * COMO FUNCIONA:
- * - Toda edição na planilha dispara o trigger
- * - Lê todos os registros da aba de Negociações
- * - Coluna K (Obs) = motivo de desistência (preenchida nos Desistentes)
- * - Envia para Firebase no path: analise_comercial_live/
- * - O dashboard Análise Comercial escuta esse path em tempo real
- *
- * CONFIGURAÇÃO:
- * - FIREBASE_URL: altere se o seu projeto Firebase for diferente
- * - SHEET_NAME: nome exato da aba com as negociações
- * - COL_OBS_INDEX: índice da coluna Obs (K = 10, base 0)
+ * 3. APAGUE todo o código existente
+ * 4. Cole ESTE código inteiro
+ * 5. Salve (Ctrl+S)
+ * 6. No dropdown de funções, selecione "setupTrigger" e clique Executar
+ * 7. Aceite todas as permissões
+ * 8. Pronto! O dashboard atualiza automaticamente a cada edição.
  */
 
 // ===================== CONFIGURAÇÃO =====================
-var FIREBASE_URL    = 'https://relatorio-geral-default-rtdb.firebaseio.com';
-var FIREBASE_PATH   = '/analise_comercial_live.json';
 
-// Nome da aba com as negociações (ajuste se necessário)
-var SHEET_NAME = 'Negociações';
+var FIREBASE_URL  = 'https://relatorio-geral-default-rtdb.firebaseio.com';
+var FIREBASE_PATH = '/analise_comercial_live.json';
+var LOG_PATH      = '/sync_log.json';
 
-// Coluna Obs: índice 0-based. Coluna K = 10.
-// Usada como fallback se o cabeçalho "Obs" não for encontrado.
-var COL_OBS_INDEX = 10;
-
-var LOG_PATH = '/sync_log.json';
-
-function logEntry(level, funcName, msg, detail) {
-  try {
-    var entry = {
-      t:      Date.now(),
-      iso:    new Date().toISOString(),
-      level:  level,
-      source: 'analise_comercial',
-      fn:     funcName,
-      msg:    msg,
-      detail: detail || ''
-    };
-    UrlFetchApp.fetch(FIREBASE_URL + LOG_PATH, {
-      method: 'post',
-      contentType: 'application/json',
-      payload: JSON.stringify(entry),
-      muteHttpExceptions: true
-    });
-  } catch (e) {
-    Logger.log('[Log] Falha: ' + e.message);
-  }
-}
+// Nome EXATO da aba na planilha (verifique maiúsculas/minúsculas)
+var SHEET_NAME = 'Análise de desistentes de todos os meses';
 
 // ===================== TRIGGER SETUP =====================
 
 function setupTrigger() {
+  // Remove triggers antigos para evitar duplicatas
   var triggers = ScriptApp.getProjectTriggers();
   for (var i = 0; i < triggers.length; i++) {
-    if (triggers[i].getHandlerFunction() === 'onNegEdit') {
+    if (triggers[i].getHandlerFunction() === 'onEdit_Desistentes') {
       ScriptApp.deleteTrigger(triggers[i]);
     }
   }
 
-  ScriptApp.newTrigger('onNegEdit')
-    .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
-    .onChange()
-    .create();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  ScriptApp.newTrigger('onNegEdit')
-    .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
-    .onEdit()
-    .create();
+  ScriptApp.newTrigger('onEdit_Desistentes').forSpreadsheet(ss).onEdit().create();
+  ScriptApp.newTrigger('onEdit_Desistentes').forSpreadsheet(ss).onChange().create();
 
-  Logger.log('Triggers criados com sucesso!');
-  SpreadsheetApp.getUi().alert('Triggers instalados! O dashboard Análise Comercial vai atualizar em tempo real.');
+  // Sync inicial imediato
+  var resultado = syncDesistentes();
+
+  var msg = '✅ Triggers instalados!\n\n' +
+    'Registros enviados: ' + resultado.total + '\n\n';
+
+  if (resultado.total === 0) {
+    msg += '⚠️  ATENÇÃO: Nenhum registro encontrado.\n' +
+      'Execute "diagnostico" para verificar o problema.';
+  } else {
+    msg += 'O dashboard Análise Comercial já está atualizado!';
+  }
+
+  SpreadsheetApp.getUi().alert('Hubstrom — Setup', msg, SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
-// ===================== MAIN FUNCTION =====================
+// ===================== TRIGGER AUTOMÁTICO =====================
 
-function onNegEdit() {
+function onEdit_Desistentes() {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-
-    SpreadsheetApp.flush();
-    Utilities.sleep(800);
-
-    var negociacoes = readNegociacoes(ss);
-
-    var payload = {
-      negociacoes: negociacoes,
-      total: negociacoes.length,
-      updatedAt: Date.now(),
-      updatedISO: new Date().toISOString(),
-      source: 'apps_script'
-    };
-
-    sendToFirebase(payload);
-    saveMonthlySnapshot(payload);
-
-    logEntry('info', 'onNegEdit',
-      'Sync OK — ' + negociacoes.length + ' negociacoes', '');
-    Logger.log('Negociacoes sincronizadas: ' + negociacoes.length);
-  } catch (error) {
-    logEntry('error', 'onNegEdit', error.message, error.stack || '');
-    Logger.log('Erro ao sincronizar: ' + error.message);
+    syncDesistentes();
+  } catch (e) {
+    logEntry('error', 'onEdit_Desistentes', e.message, e.stack || '');
+    Logger.log('[Erro] ' + e.message);
   }
 }
 
-// ===================== DATA READER =====================
+// ===================== LEITURA + ENVIO =====================
 
-/**
- * Lê todos os registros da aba de Negociações.
- * Detecta colunas pelos cabeçalhos automaticamente.
- * Coluna K (índice 10) = campo "Obs" — motivo de desistência.
- * Preenchido apenas nos registros com status Desistente.
- */
-function readNegociacoes(ss) {
+function syncDesistentes() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  SpreadsheetApp.flush();
+  Utilities.sleep(500);
+
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
-    Logger.log('Aba "' + SHEET_NAME + '" não encontrada');
-    return [];
+    logEntry('error', 'syncDesistentes', 'Aba nao encontrada: ' + SHEET_NAME, '');
+    Logger.log('[Erro] Aba "' + SHEET_NAME + '" não encontrada.');
+    return { total: 0, registros: [] };
   }
 
   var data = sheet.getDataRange().getDisplayValues();
-  if (data.length < 2) return [];
+  if (data.length < 2) {
+    Logger.log('[Aviso] Aba vazia ou sem dados.');
+    return { total: 0, registros: [] };
+  }
 
   var headers = data[0];
 
-  function findCol(names) {
-    for (var n = 0; n < names.length; n++) {
-      var needle = names[n].toLowerCase();
+  // Detecta colunas pelos cabeçalhos automaticamente
+  function findCol(candidates) {
+    for (var n = 0; n < candidates.length; n++) {
+      var needle = candidates[n].toLowerCase();
       for (var h = 0; h < headers.length; h++) {
         if (headers[h].toLowerCase().trim().indexOf(needle) >= 0) return h;
       }
@@ -149,46 +100,66 @@ function readNegociacoes(ss) {
     return -1;
   }
 
-  var colData      = findCol(['negociacao', 'negociação', 'data negoc']);
-  var colEmpresa   = findCol(['razao social', 'razão social', 'contabilidade', 'empresa', 'cliente']);
-  var colContato   = findCol(['responsavel', 'responsável', 'nome', 'contato']);
-  var colCloser    = findCol(['closer', 'especialista', 'vendedor']);
+  var colData      = findCol(['data']);
+  var colCliente   = findCol(['cliente', 'razao social', 'razão social', 'empresa', 'contabilidade']);
   var colStatus    = findCol(['status']);
-  var colPlano     = findCol(['plano']);
-  var colValor     = findCol(['valor c/', 'valor com', 'valor final', 'valor']);
-  var colContrato  = findCol(['contrato', 'tipo contrato']);
-  var colFechamento = findCol(['data o fechamento', 'data fechamento', 'fechamento']);
-  var colPagamento = findCol(['pagamento']);
+  var colMotivo    = findCol(['motivo', 'obs', 'observacao', 'observação', 'razão', 'razao']);
+  var colCategoria = findCol(['categoria', 'category', 'cat']);
 
-  // Coluna Obs (motivo desistência): busca pelo header, senão usa coluna K
-  var colObs = findCol(['obs', 'observacao', 'observação', 'motivo']);
-  if (colObs < 0) colObs = COL_OBS_INDEX;
+  Logger.log('[Colunas] data=' + colData + ' cliente=' + colCliente +
+    ' status=' + colStatus + ' motivo=' + colMotivo);
 
-  var negociacoes = [];
+  var registros = [];
 
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
-    if (!row[0] && !row[1]) continue; // linha vazia
+
+    // Ignora linhas completamente vazias
+    if (!row[0] && !row[1] && !row[2]) continue;
 
     var status = colStatus >= 0 ? row[colStatus].toString().trim() : '';
-    if (!status) continue;
+    if (!status) continue; // Ignora linhas sem status
 
-    negociacoes.push({
-      data:       colData >= 0       ? row[colData].toString().trim()       : '',
-      empresa:    colEmpresa >= 0    ? row[colEmpresa].toString().trim()    : '',
-      contato:    colContato >= 0    ? row[colContato].toString().trim()    : '',
-      closer:     colCloser >= 0     ? row[colCloser].toString().trim()     : '',
-      status:     status,
-      plano:      colPlano >= 0      ? row[colPlano].toString().trim()      : '',
-      valor:      colValor >= 0      ? row[colValor].toString().trim()      : '',
-      obs:        colObs >= 0        ? row[colObs].toString().trim()        : '',
-      contrato:   colContrato >= 0   ? row[colContrato].toString().trim()   : '',
-      fechamento: colFechamento >= 0 ? row[colFechamento].toString().trim() : '',
-      pagamento:  colPagamento >= 0  ? row[colPagamento].toString().trim()  : ''
+    registros.push({
+      data:      colData      >= 0 ? row[colData].toString().trim()      : '',
+      cliente:   colCliente   >= 0 ? row[colCliente].toString().trim()   : '',
+      status:    status,
+      motivo:    colMotivo    >= 0 ? row[colMotivo].toString().trim()    : '',
+      categoria: colCategoria >= 0 ? row[colCategoria].toString().trim() : ''
     });
   }
 
-  return negociacoes;
+  var payload = {
+    registros:   registros,
+    // Mantém campo "negociacoes" para compatibilidade com o dashboard HTML
+    negociacoes: registros.map(function(r) {
+      return {
+        data:      r.data,
+        empresa:   r.cliente,
+        status:    r.status,
+        obs:       r.motivo,
+        categoria: r.categoria,
+        closer:    '',
+        plano:     '',
+        valor:     '',
+        contato:   '',
+        contrato:   '',
+        fechamento: '',
+        pagamento:  ''
+      };
+    }),
+    total:      registros.length,
+    updatedAt:  Date.now(),
+    updatedISO: new Date().toISOString(),
+    source:     'apps_script'
+  };
+
+  sendToFirebase(payload);
+
+  logEntry('info', 'syncDesistentes', 'Sync OK — ' + registros.length + ' registros', '');
+  Logger.log('[Sync] ' + registros.length + ' registros enviados.');
+
+  return { total: registros.length, registros: registros };
 }
 
 // ===================== FIREBASE =====================
@@ -201,59 +172,129 @@ function sendToFirebase(data) {
     payload: JSON.stringify(data),
     muteHttpExceptions: true
   };
+
   for (var attempt = 1; attempt <= 3; attempt++) {
     var response = UrlFetchApp.fetch(url, options);
     var code = response.getResponseCode();
     if (code === 200) return;
-    var errMsg = 'HTTP ' + code + ': ' + response.getContentText().substring(0, 200);
-    Logger.log('[Firebase] Tentativa ' + attempt + ' falhou: ' + errMsg);
-    logEntry('warn', 'sendToFirebase',
-      'Tentativa ' + attempt + ' falhou: HTTP ' + code, errMsg);
+    Logger.log('[Firebase] Tentativa ' + attempt + ' falhou: HTTP ' + code);
     if (attempt < 3) Utilities.sleep(1000);
   }
-  var finalErr = 'Firebase indisponivel apos 3 tentativas';
-  logEntry('error', 'sendToFirebase', finalErr, url);
-  throw new Error(finalErr);
+  throw new Error('Firebase indisponível após 3 tentativas');
 }
 
-// ===================== SNAPSHOT MENSAL =====================
+// ===================== LOG =====================
 
-function saveMonthlySnapshot(data) {
-  var now = new Date();
-  var monthKey = now.getFullYear() + '-' + (now.getMonth() + 1).toString().padStart(2, '0');
-  var url = FIREBASE_URL + '/analise_comercial_history/' + monthKey + '.json';
-
-  var snapshot = {
-    negociacoes: data.negociacoes,
-    total: data.total,
-    savedAt: Date.now(),
-    savedISO: now.toISOString()
-  };
-
-  var options = {
-    method: 'put',
-    contentType: 'application/json',
-    payload: JSON.stringify(snapshot),
-    muteHttpExceptions: true
-  };
-
-  var response = UrlFetchApp.fetch(url, options);
-  if (response.getResponseCode() === 200) {
-    Logger.log('Snapshot mensal salvo: ' + monthKey);
-  }
+function logEntry(level, funcName, msg, detail) {
+  try {
+    UrlFetchApp.fetch(FIREBASE_URL + LOG_PATH, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify({
+        t: Date.now(), iso: new Date().toISOString(),
+        level: level, source: 'analise_comercial',
+        fn: funcName, msg: msg, detail: detail || ''
+      }),
+      muteHttpExceptions: true
+    });
+  } catch (e) { /* silencioso */ }
 }
 
 // ===================== MANUAL SYNC =====================
 
 function manualSync() {
-  onNegEdit();
-  SpreadsheetApp.getUi().alert('Negociações sincronizadas com o dashboard!');
+  try {
+    var resultado = syncDesistentes();
+    SpreadsheetApp.getUi().alert(
+      'Hubstrom — Sync',
+      '✅ Sincronizado!\n\nRegistros enviados: ' + resultado.total,
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+  } catch (e) {
+    SpreadsheetApp.getUi().alert('Erro', e.message, SpreadsheetApp.getUi().ButtonSet.OK);
+  }
 }
+
+// ===================== DIAGNÓSTICO =====================
+
+function diagnostico() {
+  var ui = SpreadsheetApp.getUi();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var lines = [];
+
+  lines.push('=== DIAGNÓSTICO HUBSTROM ===\n');
+
+  // Lista todas as abas
+  var abas = ss.getSheets().map(function(s) { return '"' + s.getName() + '"'; });
+  lines.push('Abas na planilha: ' + abas.join(', '));
+  lines.push('');
+
+  // Verifica aba alvo
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    lines.push('❌ Aba "' + SHEET_NAME + '" NÃO encontrada!');
+    lines.push('   → Altere a variável SHEET_NAME no código para o nome correto.');
+    ui.alert('Diagnóstico', lines.join('\n'), ui.ButtonSet.OK);
+    return;
+  }
+
+  lines.push('✅ Aba "' + SHEET_NAME + '" encontrada.');
+
+  var data = sheet.getDataRange().getDisplayValues();
+  lines.push('Linhas na aba: ' + data.length + ' (incluindo cabeçalho)');
+
+  if (data.length < 2) {
+    lines.push('❌ Aba vazia!');
+    ui.alert('Diagnóstico', lines.join('\n'), ui.ButtonSet.OK);
+    return;
+  }
+
+  // Cabeçalhos
+  var headers = data[0];
+  lines.push('\nCabeçalhos: ' + headers.map(function(h, i) {
+    return i + ':"' + h + '"';
+  }).join(' | '));
+
+  // Verifica Status
+  var colStatus = -1;
+  for (var h = 0; h < headers.length; h++) {
+    if (headers[h].toLowerCase().indexOf('status') >= 0) { colStatus = h; break; }
+  }
+
+  if (colStatus < 0) {
+    lines.push('\n❌ Coluna "Status" não encontrada!');
+  } else {
+    lines.push('\n✅ Coluna Status: posição ' + colStatus);
+    // Conta por status
+    var cont = {};
+    var total = 0;
+    for (var i = 1; i < data.length; i++) {
+      var st = data[i][colStatus] ? data[i][colStatus].toString().trim() : '';
+      if (st) { cont[st] = (cont[st] || 0) + 1; total++; }
+    }
+    lines.push('Registros com status preenchido: ' + total);
+    for (var s in cont) lines.push('  "' + s + '": ' + cont[s]);
+  }
+
+  // Tenta sync
+  lines.push('\n--- Executando sync ---');
+  try {
+    var res = syncDesistentes();
+    lines.push('✅ Sync OK! ' + res.total + ' registros enviados para o Firebase.');
+  } catch (e) {
+    lines.push('❌ Erro no sync: ' + e.message);
+  }
+
+  ui.alert('Diagnóstico Hubstrom', lines.join('\n'), ui.ButtonSet.OK);
+}
+
+// ===================== MENU =====================
 
 function onOpen() {
   SpreadsheetApp.getUi()
-    .createMenu('Hubstrom - Análise Comercial')
+    .createMenu('Hubstrom')
     .addItem('Sincronizar agora', 'manualSync')
-    .addItem('Configurar triggers', 'setupTrigger')
+    .addItem('Configurar triggers (primeira vez)', 'setupTrigger')
+    .addItem('Diagnóstico', 'diagnostico')
     .addToUi();
 }

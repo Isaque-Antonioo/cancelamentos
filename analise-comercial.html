@@ -484,6 +484,50 @@
 
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
+        /* ======================== MONTH FILTER ======================== */
+        .ac-month-filter {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 1.2vh;
+        }
+
+        .ac-month-label {
+            font-size: clamp(0.65em, 0.72vw, 0.8em);
+            color: #64748b;
+            font-weight: 600;
+            margin-right: 2px;
+            white-space: nowrap;
+        }
+
+        .ac-month-btn {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 4px 13px;
+            color: #94a3b8;
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(0.65em, 0.72vw, 0.8em);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.18s;
+            white-space: nowrap;
+        }
+
+        .ac-month-btn:hover {
+            border-color: rgba(53,204,163,0.3);
+            color: #D1D5DB;
+            background: rgba(255,255,255,0.07);
+        }
+
+        .ac-month-btn.active {
+            background: rgba(53,204,163,0.14);
+            border-color: rgba(53,204,163,0.5);
+            color: #35CCA3;
+            font-weight: 700;
+        }
+
         /* ======================== RESPONSIVE ======================== */
         @media (max-width: 900px) {
             .ac-kpi-row { grid-template-columns: repeat(2, 1fr); }
@@ -639,6 +683,9 @@
             <div class="ac-sync-dot" id="syncDot"></div>
             <span id="syncText">Aguardando Firebase...</span>
         </div>
+
+        <!-- Filtro de mês -->
+        <div class="ac-month-filter" id="monthFilterBar" style="display:none"></div>
 
         <!-- KPI Row -->
         <div class="ac-kpi-row">
@@ -939,6 +986,9 @@ var chartValorDistInst = null;
 // Storage key
 var STORAGE_KEY = 'ac_neg_config';
 
+// Filtro de mês (null = todos)
+var currentMonthFilter = null;
+
 // ============================================================
 // UTILS
 // ============================================================
@@ -987,6 +1037,78 @@ function groupBy(arr, key) {
 
 function sortObj(obj) {
     return Object.entries(obj).sort(function(a,b){ return b[1]-a[1]; });
+}
+
+// ============================================================
+// FILTRO DE MÊS
+// ============================================================
+var MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+function getMonthKey(dateStr) {
+    if (!dateStr) return null;
+    var parts = dateStr.split('/');
+    if (parts.length === 3 && parts[2].length >= 4) {
+        return parts[2] + '-' + parts[1].padStart(2, '0');
+    }
+    return null;
+}
+
+function monthKeyToLabel(key) {
+    var parts = key.split('-');
+    var m = parseInt(parts[1], 10) - 1;
+    return MESES_LABEL[m] + '/' + parts[0];
+}
+
+function buildMonthFilter() {
+    var bar = document.getElementById('monthFilterBar');
+    if (!bar) return;
+
+    var monthSet = {};
+    allDeals.forEach(function(d) {
+        var k = getMonthKey(d.data);
+        if (k) monthSet[k] = true;
+    });
+
+    var months = Object.keys(monthSet).sort().reverse();
+
+    if (months.length === 0) {
+        bar.style.display = 'none';
+        return;
+    }
+
+    bar.style.display = 'flex';
+
+    var html = '<span class="ac-month-label">Filtrar por mês:</span>';
+    html += '<button class="ac-month-btn' + (currentMonthFilter === null ? ' active' : '') +
+        '" onclick="setMonthFilter(null)">Todos</button>';
+
+    months.forEach(function(k) {
+        var active = currentMonthFilter === k ? ' active' : '';
+        html += '<button class="ac-month-btn' + active +
+            '" onclick="setMonthFilter(\'' + k + '\')">' + monthKeyToLabel(k) + '</button>';
+    });
+
+    bar.innerHTML = html;
+}
+
+function setMonthFilter(key) {
+    currentMonthFilter = key;
+    applyMonthFilterAndRender();
+}
+
+function applyMonthFilterAndRender() {
+    var base = currentMonthFilter === null
+        ? allDeals
+        : allDeals.filter(function(d) { return getMonthKey(d.data) === currentMonthFilter; });
+
+    pendentes   = base.filter(function(d){ return /pendente/i.test(d.status); });
+    desistentes = base.filter(function(d){ return /desist|perdid/i.test(d.status); });
+    contratados = base.filter(function(d){ return /contratad|assinad|fechad/i.test(d.status); });
+    gerados     = base.filter(function(d){ return /gerado/i.test(d.status); });
+    hasMotivo   = desistentes.some(function(d){ return (d.categoria && d.categoria.trim()) || (d.motivo && d.motivo.trim()); });
+
+    buildMonthFilter();
+    renderAll();
 }
 
 // ============================================================
@@ -1136,14 +1258,9 @@ async function loadNegociacoes(url, gid) {
 
         allDeals = parseNegociacoes(csv);
 
-        // Filter by status
-        pendentes   = allDeals.filter(function(d){ return /pendente/i.test(d.status); });
-        desistentes = allDeals.filter(function(d){ return /desist|perdid|n.o\s*fechou/i.test(d.status); });
-        contratados = allDeals.filter(function(d){ return /contratad|assinad|fechad/i.test(d.status); });
-        gerados     = allDeals.filter(function(d){ return /gerado/i.test(d.status); });
-
         setStatus('✓ ' + allDeals.length + ' registros carregados', 'ok');
-        renderAll();
+        buildMonthFilter();
+        applyMonthFilterAndRender();
 
     } catch(err) {
         setStatus('Erro: ' + err.message, 'err');
@@ -1210,9 +1327,31 @@ function startFirebaseListener() {
 
     // Listener 2: Negociações — path exclusivo do apps-script-analise-comercial-sync.js
     database.ref('analise_comercial_live').on('value', function(snap) {
-        if (!snap.exists()) return;
+        if (!snap.exists()) {
+            // Nunca houve sync — mostra instrução padrão
+            return;
+        }
         var data = snap.val();
-        if (!data.negociacoes || !Array.isArray(data.negociacoes) || !data.negociacoes.length) return;
+
+        if (!data.negociacoes || !Array.isArray(data.negociacoes) || !data.negociacoes.length) {
+            // Sync rodou mas retornou 0 registros → mostrar aviso de diagnóstico
+            var fbPanel = document.getElementById('firebaseNegPanel');
+            var fbStatus = document.getElementById('firebaseNegStatus');
+            if (fbPanel) {
+                fbPanel.style.display = 'flex';
+                fbPanel.style.borderColor = 'rgba(232,187,52,0.4)';
+                fbPanel.style.background = 'linear-gradient(135deg,rgba(232,187,52,0.06),rgba(232,187,52,0.02))';
+            }
+            if (fbStatus) {
+                fbStatus.textContent = '';
+                fbStatus.innerHTML =
+                    '<span style="color:#E8BB34">⚠ Apps Script conectado mas retornou 0 negociações.</span>' +
+                    ' No Apps Script, execute o menu <strong style="color:#93c5fd">Hubstrom → Diagnóstico (verificar erros)</strong>' +
+                    ' para identificar o problema (nome da aba, coluna Status vazia, etc).';
+            }
+            setSyncStatus('warn', 'Apps Script conectado · 0 negociações encontradas');
+            return;
+        }
 
         var hora = data.updatedISO
             ? new Date(data.updatedISO).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
@@ -1233,30 +1372,24 @@ function processFirebaseNegociacoes(firebaseDeals, hora) {
             status:     d.status     || '',
             plano:      d.plano      || '',
             valor:      d.valor      || '',
-            motivo:     d.obs        || '',   // coluna K "Obs" → motivo
+            motivo:     d.obs        || '',
+            categoria:  d.categoria  || '',
             contrato:   d.contrato   || '',
             fechamento: d.fechamento || '',
             pagamento:  d.pagamento  || ''
         };
     });
 
-    // Filtros por status
-    pendentes   = allDeals.filter(function(d){ return /pendente/i.test(d.status); });
-    desistentes = allDeals.filter(function(d){ return /desist|perdid/i.test(d.status); });
-    contratados = allDeals.filter(function(d){ return /contratad|assinad|fechad/i.test(d.status); });
-    gerados     = allDeals.filter(function(d){ return /gerado/i.test(d.status); });
-
-    // Obs é preenchida só nos desistentes → hasMotivo = true se algum tiver
-    hasMotivo = desistentes.some(function(d){ return d.motivo && d.motivo.trim(); });
-
-    // Mostra painel Firebase, oculta prompt de configuração manual
+    // Mostra painel Firebase
     var fbPanel = document.getElementById('firebaseNegPanel');
     var fbStatus = document.getElementById('firebaseNegStatus');
     if (fbPanel) fbPanel.style.display = 'flex';
     if (fbStatus) fbStatus.textContent =
-        allDeals.length + ' negociações sincronizadas' + (hora ? ' · ' + hora : '');
+        allDeals.length + ' registros sincronizados' + (hora ? ' · ' + hora : '');
 
-    renderAll();
+    // Monta filtro de meses e renderiza com o filtro atual
+    buildMonthFilter();
+    applyMonthFilterAndRender();
 }
 
 // Renderiza o que está disponível só com dados do comercial_live (closers).
@@ -1564,7 +1697,10 @@ function renderPlanoChart(deals, canvasId, color) {
 }
 
 function renderMotivosChart(deals, canvasId) {
-    var grouped = groupBy(deals, 'motivo');
+    // Usa categoria se disponível, senão cai para motivo
+    var hasCategoria = deals.some(function(d){ return d.categoria && d.categoria.trim(); });
+    var campo = hasCategoria ? 'categoria' : 'motivo';
+    var grouped = groupBy(deals, campo);
     var sorted = sortObj(grouped);
     var labels = sorted.map(function(e){ return e[0] || 'Não informado'; });
     var values = sorted.map(function(e){ return e[1]; });
@@ -1604,7 +1740,7 @@ function renderDealsTable(deals, containerId, type) {
         '<th>Closer</th>' +
         '<th>Plano</th>' +
         '<th>Valor</th>' +
-        (hasMotivo ? '<th>Obs / Motivo</th>' : '') +
+        (hasMotivo ? '<th>Categoria</th>' : '') +
         '<th>Tipo</th>' +
         '<th>Data</th>' +
         (type === 'pendente' ? '<th>Dias</th>' : '') +
@@ -1624,7 +1760,15 @@ function renderDealsTable(deals, containerId, type) {
             '<td>' + escHtml(d.closer || '—') + '</td>' +
             '<td>' + (d.plano ? '<span class="ac-badge ac-badge-gerado">' + escHtml(d.plano) + '</span>' : '—') + '</td>' +
             '<td>' + (d.valor ? escHtml(d.valor) : '—') + '</td>' +
-            (hasMotivo ? '<td>' + (d.motivo ? '<span title="' + escHtml(d.motivo) + '">' + escHtml(d.motivo.length > 35 ? d.motivo.slice(0,35)+'…' : d.motivo) + '</span>' : '<span style="color:#4b5563">—</span>') + '</td>' : '') +
+            (hasMotivo ? '<td>' + (function() {
+                var cat = d.categoria && d.categoria.trim() ? d.categoria : '';
+                var mot = d.motivo && d.motivo.trim() ? d.motivo : '';
+                var display = cat || (mot.length > 35 ? mot.slice(0,35)+'…' : mot);
+                var tooltip = mot || cat;
+                return display
+                    ? '<span title="' + escHtml(tooltip) + '">' + escHtml(display) + '</span>'
+                    : '<span style="color:#4b5563">—</span>';
+            })() + '</td>' : '') +
             '<td>' + (d.contrato ? escHtml(d.contrato) : '—') + '</td>' +
             '<td>' + escHtml(d.data || '—') + '</td>' +
             (type === 'pendente' ? '<td><span ' + diasClass + '>' + (dias !== null ? dias + 'd' : '—') + '</span></td>' : '') +
@@ -1948,7 +2092,8 @@ function renderRecomendacoes() {
 
     // Desistentes com obs: mostrar o motivo mais frequente
     if (hasMotivo && desistentes.length > 0) {
-        var obsGrp = groupBy(desistentes, 'motivo');
+        var hasCategoria = desistentes.some(function(d){ return d.categoria && d.categoria.trim(); });
+        var obsGrp = groupBy(desistentes, hasCategoria ? 'categoria' : 'motivo');
         var topObs = sortObj(obsGrp).filter(function(e){ return e[0] !== 'Não informado' && e[0]; })[0];
         if (topObs) {
             recs.push({ icon: 'red', svg: '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
