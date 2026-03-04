@@ -725,7 +725,10 @@ async function getAllUsers() {
 
 // Criar novo usuário
 async function createUser(userData) {
-    if (!isFirebaseReady()) return null;
+    if (!isFirebaseReady()) {
+        console.error('[Users] createUser: Firebase não está pronto');
+        throw new Error('Firebase não está pronto. Recarregue a página e tente novamente.');
+    }
 
     try {
         const newRef = database.ref('users').push();
@@ -738,7 +741,7 @@ async function createUser(userData) {
         return newRef.key;
     } catch (error) {
         console.error('[Users] Erro ao criar usuário:', error);
-        return null;
+        throw error;
     }
 }
 

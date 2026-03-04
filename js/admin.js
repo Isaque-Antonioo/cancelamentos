@@ -292,23 +292,19 @@
                 };
 
                 const newId = await createUser(userData);
-                if (newId) {
-                    if (typeof logAuditEvent === 'function') {
-                        logAuditEvent('user_created', {
-                            targetUserId: newId,
-                            displayName: displayName,
-                            role: role
-                        });
-                    }
-                    closeUserModal();
-                    await loadUsers();
-                } else {
-                    alert('Erro ao criar usuario.');
+                if (typeof logAuditEvent === 'function') {
+                    logAuditEvent('user_created', {
+                        targetUserId: newId,
+                        displayName: displayName,
+                        role: role
+                    });
                 }
+                closeUserModal();
+                await loadUsers();
             }
         } catch (error) {
             console.error('Erro ao salvar usuario:', error);
-            alert('Erro ao salvar usuario.');
+            alert('Erro: ' + (error.message || error));
         }
 
         btnSave.disabled = false;
@@ -487,14 +483,20 @@
     // ==========================================
 
     function init() {
-        // Aguardar Firebase estar pronto
-        if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
-            loadUsers();
+        async function doInit() {
+            // Garantir que o admin seed existe antes de carregar a lista
+            if (typeof ensureAdminExists === 'function') {
+                await ensureAdminExists();
+            }
+            await loadUsers();
             populateAuditUserFilter();
+        }
+
+        if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
+            doInit();
         } else {
             window.addEventListener('firebaseReady', function() {
-                loadUsers();
-                populateAuditUserFilter();
+                doInit();
             });
         }
     }
