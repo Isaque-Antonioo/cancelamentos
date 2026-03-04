@@ -446,19 +446,32 @@ function convertFirebaseRowsToObjects(data) {
     const headers = data.headers;
     const rows = data.rows;
 
-    // dataVersion 2: rows são arrays — reconstruir objetos
-    if (data.dataVersion === 2 || (rows.length > 0 && Array.isArray(rows[0]))) {
-        return rows.map(function(rowArray) {
-            const obj = {};
-            for (let i = 0; i < headers.length; i++) {
-                obj[headers[i]] = (rowArray[i] !== undefined && rowArray[i] !== null) ? rowArray[i] : '';
-            }
-            return obj;
-        });
+    // Só conta linha se coluna A tem número sequencial válido (mesma regra do Apps Script)
+    function colAValida(val) {
+        var v = (val !== undefined && val !== null) ? val.toString().trim() : '';
+        if (v === '') return false;
+        var n = parseInt(v, 10);
+        return !isNaN(n) && n > 0;
     }
 
-    // Formato antigo: rows já são objetos — retornar direto
-    return rows;
+    // dataVersion 2: rows são arrays — reconstruir objetos
+    if (data.dataVersion === 2 || (rows.length > 0 && Array.isArray(rows[0]))) {
+        return rows
+            .filter(function(rowArray) { return colAValida(rowArray[0]); })
+            .map(function(rowArray) {
+                const obj = {};
+                for (let i = 0; i < headers.length; i++) {
+                    obj[headers[i]] = (rowArray[i] !== undefined && rowArray[i] !== null) ? rowArray[i] : '';
+                }
+                return obj;
+            });
+    }
+
+    // Formato antigo: rows já são objetos — filtrar pelo primeiro header
+    return rows.filter(function(row) {
+        var firstHeader = headers[0];
+        return firstHeader ? colAValida(row[firstHeader]) : true;
+    });
 }
 
 /**
@@ -520,12 +533,7 @@ function attachCancelamentosListener(monthKey) {
         // Converter rows do Firebase para formato de objetos
         const csvObjects = convertFirebaseRowsToObjects(data);
 
-        if (csvObjects.length === 0) {
-            console.warn('[Cancelamentos RT] Conversão retornou 0 registros.');
-            return;
-        }
-
-        // Atualizar dados globais
+        // Atualizar dados globais (pode ser array vazio — dashboard mostra 0)
         window.csvData = csvObjects;
 
         // Atualizar dashboard
