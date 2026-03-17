@@ -465,6 +465,29 @@
 
         /* Header extras */
         .header-rt { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+        /* =========== ERROS HISTÓRICO CHART =========== */
+        .erros-chart-card {
+            flex-shrink: 0;
+            height: clamp(130px, 15vh, 170px);
+        }
+        .erros-chart-wrap {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .erros-period-btns {
+            display: flex; gap: 4px; margin-left: auto;
+        }
+        .erros-period-btn {
+            background: none; border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 6px; padding: 2px 8px;
+            color: #4B5563; font-family: 'Poppins', sans-serif;
+            font-size: clamp(0.62em, 0.72vw, 0.74em); font-weight: 600;
+            cursor: pointer; transition: all 0.15s; text-transform: none; letter-spacing: 0;
+        }
+        .erros-period-btn:hover { color: #9CA3AF; border-color: rgba(255,255,255,0.14); }
+        .erros-period-btn.active { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.3); color: #F87171; }
     </style>
 </head>
 <body>
@@ -692,6 +715,27 @@
                     <div class="kpi-tile-data">
                         <span class="kpi-tile-value" id="kpiSemAcesso">-</span>
                         <span class="kpi-tile-label">Sem acesso +30d</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verificando Erro — histórico por dia -->
+            <div class="rel-card erros-chart-card">
+                <div class="rel-card-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                    Verificando Erro — Progressão Diária
+                    <span id="errosChartSubtitle" style="font-size:0.85em;color:#4B5563;font-weight:400;text-transform:none;letter-spacing:0;margin-left:10px;"></span>
+                    <div class="erros-period-btns">
+                        <button class="erros-period-btn active" id="ePeriod10"  onclick="setErrosPeriod(10)">10d</button>
+                        <button class="erros-period-btn"        id="ePeriod30"  onclick="setErrosPeriod(30)">30d</button>
+                        <button class="erros-period-btn"        id="ePeriodAll" onclick="setErrosPeriod(0)">Tudo</button>
+                    </div>
+                </div>
+                <div class="rel-card-body" style="padding: 4px 14px 8px;">
+                    <div class="erros-chart-wrap">
+                        <canvas id="errosDiarioChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -1611,6 +1655,156 @@ function applyGlobalFilter(filter) {
 }
 
 // ============================================================
+// GRÁFICO — VERIFICANDO ERRO POR DIA
+// ============================================================
+let errosDiarioChartInstance = null;
+let _errosRawSnapshot = {};
+let _errosPeriod = 10;
+
+function setErrosPeriod(dias) {
+    _errosPeriod = dias;
+    ['ePeriod10','ePeriod30','ePeriodAll'].forEach(function(id) {
+        document.getElementById(id).classList.remove('active');
+    });
+    const map = { 10: 'ePeriod10', 30: 'ePeriod30', 0: 'ePeriodAll' };
+    if (map[dias]) document.getElementById(map[dias]).classList.add('active');
+    renderErrosDiarioChart(_errosRawSnapshot);
+}
+
+function renderErrosDiarioChart(snapshot) {
+    _errosRawSnapshot = snapshot || {};
+    const raw = _errosRawSnapshot;
+
+    const hoje = new Date();
+    const hojeKey = hoje.toISOString().slice(0, 10);
+
+    // Determinar janela de dias a exibir
+    // Para períodos fixos (10d/30d): sempre gera os N dias a partir de hoje (passado + futuro)
+    // Para "Tudo": usa todos os dias registrados + completa até hoje
+    const labels = [];
+    const valores = [];
+
+    if (_errosPeriod > 0) {
+        // Janela fixa: começa N-1 dias atrás e vai até hoje
+        // Isso garante o grid sempre cheio, mesmo com poucos dados
+        for (let i = _errosPeriod - 1; i >= 0; i--) {
+            const d = new Date(hoje);
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().slice(0, 10);
+            const parts = key.split('-');
+            labels.push(parts[2] + '/' + parts[1]);
+            valores.push(raw[key] != null ? (raw[key].total || 0) : null);
+        }
+    } else {
+        // Tudo: todos os dias registrados em ordem
+        const allKeys = Array.from(new Set(Object.keys(raw))).sort();
+        allKeys.forEach(function(key) {
+            const parts = key.split('-');
+            labels.push(parts[2] + '/' + parts[1]);
+            valores.push(raw[key] != null ? (raw[key].total || 0) : null);
+        });
+        // Garantir que hoje aparece
+        if (!raw[hojeKey]) {
+            labels.push(hojeKey.split('-')[2] + '/' + hojeKey.split('-')[1]);
+            valores.push(0);
+        }
+    }
+
+    const maxVal = Math.max(...valores.filter(function(v) { return v !== null; }), 1);
+    const subtitle = document.getElementById('errosChartSubtitle');
+    if (subtitle) {
+        const totalHoje = raw[hojeKey] != null ? (raw[hojeKey].total || 0) : 0;
+        const totalDias = Object.keys(raw).length + (raw[hojeKey] == null ? 1 : 0);
+        subtitle.textContent = 'Hoje: ' + totalHoje + ' · ' + totalDias + ' dia' + (totalDias !== 1 ? 's' : '') + ' registrado' + (totalDias !== 1 ? 's' : '');
+    }
+
+    const ctx = document.getElementById('errosDiarioChart').getContext('2d');
+
+    if (errosDiarioChartInstance) {
+        errosDiarioChartInstance.data.labels = labels;
+        errosDiarioChartInstance.data.datasets[0].data = valores;
+        errosDiarioChartInstance.update('none');
+        return;
+    }
+
+    errosDiarioChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Verificando Erro',
+                data: valores,
+                backgroundColor: function(context) {
+                    const chart = context.chart;
+                    const { ctx: c, chartArea } = chart;
+                    if (!chartArea) return 'rgba(248,113,113,0.5)';
+                    const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                    gradient.addColorStop(0, 'rgba(248,113,113,0.75)');
+                    gradient.addColorStop(1, 'rgba(248,113,113,0.15)');
+                    return gradient;
+                },
+                borderColor: '#F87171',
+                borderWidth: 1,
+                borderRadius: 4,
+                borderSkipped: false,
+                spanGaps: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1C2333',
+                    borderColor: 'rgba(248,113,113,0.3)',
+                    borderWidth: 1,
+                    titleColor: '#9CA3AF',
+                    bodyColor: '#F87171',
+                    callbacks: {
+                        label: function(c) {
+                            return c.raw === null ? ' Sem dados' : ' ' + c.raw + ' clientes';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        color: '#4B5563',
+                        font: { family: 'Poppins', size: 10 },
+                        maxTicksLimit: 15,
+                        maxRotation: 0
+                    },
+                    border: { display: false }
+                },
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: maxVal + 1,
+                    grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+                    ticks: {
+                        color: '#4B5563',
+                        font: { family: 'Poppins', size: 10 },
+                        stepSize: 1,
+                        precision: 0
+                    },
+                    border: { display: false }
+                }
+            },
+            animation: { duration: 400 }
+        }
+    });
+}
+
+function startErrosHistoricoListener() {
+    if (typeof database === 'undefined' || !database) return;
+    database.ref('relacionamento_erros_historico').on('value', function(snapshot) {
+        renderErrosDiarioChart(snapshot.exists() ? snapshot.val() : {});
+    });
+}
+
+// ============================================================
 // FIREBASE LISTENER
 // ============================================================
 let lastChecksum = '';
@@ -1675,10 +1869,12 @@ function startRelacionamentoListener() {
 // Iniciar quando Firebase estiver pronto
 window.addEventListener('firebaseReady', function() {
     startRelacionamentoListener();
+    startErrosHistoricoListener();
 });
 
 if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
     startRelacionamentoListener();
+    startErrosHistoricoListener();
 }
 </script>
 </body>

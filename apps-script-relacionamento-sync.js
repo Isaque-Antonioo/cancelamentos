@@ -23,6 +23,7 @@
 // ===================== CONFIGURAÇÃO =====================
 var FIREBASE_URL = 'https://relatorio-geral-default-rtdb.firebaseio.com';
 var FIREBASE_PATH = '/relacionamento_live.json';
+var FIREBASE_ERROS_HISTORICO = '/relacionamento_erros_historico';
 
 // Nomes das abas na planilha
 var SHEET_DADOS   = 'Dados tratados';
@@ -114,6 +115,7 @@ function syncAllData() {
     };
 
     sendToFirebase(payload);
+    saveErrosHistory(stats.comErros);
     Logger.log('Relacionamento sincronizado: ' + dadosResult.rows.length + ' registros');
 
   } catch (e) {
@@ -323,6 +325,30 @@ function generateChecksum(rows) {
     hash = hash & hash;
   }
   return Math.abs(hash).toString(36) + '_' + rows.length;
+}
+
+// ===================== HISTÓRICO DE ERROS POR DIA =====================
+
+function saveErrosHistory(comErros) {
+  try {
+    var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    var url = FIREBASE_URL + FIREBASE_ERROS_HISTORICO + '/' + today + '.json';
+    var options = {
+      method: 'put',
+      contentType: 'application/json',
+      payload: JSON.stringify({ data: today, total: comErros, atualizadoEm: new Date().toISOString() }),
+      muteHttpExceptions: true
+    };
+    var response = UrlFetchApp.fetch(url, options);
+    var code = response.getResponseCode();
+    if (code < 200 || code >= 300) {
+      Logger.log('Erro ao salvar historico erros HTTP ' + code);
+    } else {
+      Logger.log('Historico erros salvo: ' + today + ' = ' + comErros);
+    }
+  } catch (e) {
+    Logger.log('Erro ao salvar historico erros: ' + e.message);
+  }
 }
 
 // ===================== FIREBASE =====================
