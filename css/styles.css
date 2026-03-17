@@ -4,6 +4,8 @@
    UI/UX Otimizado para Clareza Visual
    =================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+
 /* Variáveis de Cores Hubstrom - Design Premium */
 :root {
     --hubstrom-dark: #0f1419;
@@ -107,7 +109,7 @@ html {
 }
 
 body {
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Poppins', 'Segoe UI', sans-serif;
     background: linear-gradient(135deg, #0f172a 0%, var(--hubstrom-dark) 50%, #1a2744 100%);
     background-attachment: fixed;
     min-height: 100vh;
