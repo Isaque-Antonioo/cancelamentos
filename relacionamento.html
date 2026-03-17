@@ -21,473 +21,315 @@
 
         /* =========== LAYOUT =========== */
         .rel-body {
-            display: flex;
-            flex-direction: column;
-            gap: clamp(6px, 0.8vh, 12px);
-            padding: clamp(6px, 0.8vh, 12px) clamp(8px, 1vw, 16px);
+            display: flex; flex-direction: column; gap: 8px;
+            padding: 8px 12px 10px;
         }
 
         /* =========== KPI ROW =========== */
         .kpi-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: clamp(6px, 0.7vw, 10px);
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
             flex-shrink: 0;
         }
-
         .kpi-tile {
-            background: #161B22;
+            background: #141920;
             border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 10px;
-            padding: clamp(8px, 1vh, 14px) clamp(10px, 1vw, 16px);
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            border-radius: 12px;
+            padding: 11px 14px 10px;
+            display: flex; flex-direction: column; gap: 7px;
+            position: relative; overflow: hidden;
+        }
+        .kpi-tile::after {
+            content: ''; position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            border-radius: 12px 12px 0 0;
+        }
+        .kpi-tile.ac-blue::after   { background: linear-gradient(90deg,#6366F1,#818CF8); }
+        .kpi-tile.ac-green::after  { background: linear-gradient(90deg,#10B981,#35CCA3); }
+        .kpi-tile.ac-orange::after { background: linear-gradient(90deg,#F97316,#FB923C); }
+        .kpi-tile.ac-red::after    { background: linear-gradient(90deg,#EF4444,#F87171); }
+        .kpi-tile.ac-yellow::after { background: linear-gradient(90deg,#D97706,#EAB308); }
+        .kpi-tile.ac-purple::after { background: linear-gradient(90deg,#7C3AED,#C084FC); }
+
+        .kpi-row-top { display: flex; align-items: center; justify-content: space-between; }
+        .kpi-tile-label {
+            font-size: clamp(0.6em, 0.7vw, 0.72em);
+            color: #6B7280; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px;
         }
         .kpi-tile-icon {
-            width: clamp(32px, 3.5vw, 44px);
-            height: clamp(32px, 3.5vw, 44px);
-            border-radius: 9px;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
+            width: 26px; height: 26px; border-radius: 7px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
-        .kpi-tile-icon.green  { background: rgba(53,204,163,0.12); color: #35CCA3; }
-        .kpi-tile-icon.red    { background: rgba(239,68,68,0.12);  color: #F87171; }
-        .kpi-tile-icon.orange { background: rgba(251,146,60,0.12); color: #FB923C; }
-        .kpi-tile-icon.blue   { background: rgba(99,102,241,0.12); color: #818CF8; }
-        .kpi-tile-icon.yellow { background: rgba(234,179,8,0.12);  color: #EAB308; }
-        .kpi-tile-icon.purple { background: rgba(168,85,247,0.12); color: #C084FC; }
-
-        .kpi-tile-data { display: flex; flex-direction: column; }
+        .kpi-tile-icon.green  { background: rgba(53,204,163,0.1);  color: #35CCA3; }
+        .kpi-tile-icon.red    { background: rgba(239,68,68,0.1);   color: #F87171; }
+        .kpi-tile-icon.orange { background: rgba(251,146,60,0.1);  color: #FB923C; }
+        .kpi-tile-icon.blue   { background: rgba(99,102,241,0.1);  color: #818CF8; }
+        .kpi-tile-icon.yellow { background: rgba(234,179,8,0.1);   color: #EAB308; }
+        .kpi-tile-icon.purple { background: rgba(168,85,247,0.1);  color: #C084FC; }
         .kpi-tile-value {
-            font-size: clamp(1.2em, 2vw, 1.8em);
-            font-weight: 700;
-            line-height: 1.1;
-            color: #F0F0F0;
-        }
-        .kpi-tile-label {
-            font-size: clamp(0.62em, 0.8vw, 0.78em);
-            color: #6B7280;
-            font-weight: 500;
+            font-size: clamp(1.5em, 2.4vw, 2.1em);
+            font-weight: 800; line-height: 1;
+            color: #F1F5F9; letter-spacing: -0.5px;
         }
 
-        /* =========== MAIN GRID =========== */
+        /* =========== MAIN GRID — 3 colunas =========== */
         .main-grid {
             display: grid;
-            grid-template-columns: 38% 1fr;
-            gap: clamp(6px, 0.7vw, 10px);
-            height: clamp(380px, 68vh, 700px);
+            grid-template-columns: 26% 20% 1fr;
+            gap: 8px;
+            height: clamp(420px, 72vh, 760px);
             overflow: hidden;
         }
 
         /* =========== CARDS =========== */
         .rel-card {
-            background: #161B22;
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-height: 0;
+            background: #141920;
+            border: 1px solid rgba(255,255,255,0.055);
+            border-radius: 14px;
+            display: flex; flex-direction: column;
+            overflow: hidden; min-height: 0;
         }
         .rel-card-title {
-            display: flex; align-items: center; gap: 8px;
-            padding: clamp(8px, 1vh, 12px) clamp(10px, 1.2vw, 16px);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            font-size: clamp(0.72em, 0.9vw, 0.88em);
-            font-weight: 600;
-            color: #9CA3AF;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            display: flex; align-items: center; gap: 7px;
+            padding: 9px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.045);
+            font-size: clamp(0.66em, 0.78vw, 0.8em);
+            font-weight: 700; color: #6B7280;
+            text-transform: uppercase; letter-spacing: 0.7px;
             flex-shrink: 0;
         }
         .rel-card-title svg { color: #35CCA3; flex-shrink: 0; }
         .rel-card-body {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: clamp(8px, 1vh, 12px) clamp(10px, 1.2vw, 16px);
+            flex: 1; overflow-y: auto; overflow-x: hidden;
+            padding: 10px 14px;
         }
-        .rel-card-body::-webkit-scrollbar { width: 4px; }
+        .rel-card-body::-webkit-scrollbar { width: 3px; }
         .rel-card-body::-webkit-scrollbar-track { background: transparent; }
-        .rel-card-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        .rel-card-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 4px; }
 
-        /* =========== LEFT COLUMN =========== */
-        .left-col {
-            display: flex;
-            flex-direction: column;
-            gap: clamp(6px, 0.7vw, 10px);
-            overflow: hidden;
-            height: 100%;
+        /* =========== COLUNAS =========== */
+        .left-col, .center-col, .right-col {
+            display: flex; flex-direction: column;
+            gap: 8px; overflow: hidden; height: 100%;
         }
 
-        /* Especialistas */
+        /* =========== ESPECIALISTAS =========== */
         .especialista-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: clamp(6px, 0.8vh, 10px) 0;
+            display: flex; align-items: center; gap: 9px;
+            padding: 7px 0;
             border-bottom: 1px solid rgba(255,255,255,0.04);
         }
         .especialista-item:last-child { border-bottom: none; }
         .esp-avatar {
-            width: clamp(34px, 3vw, 44px);
-            height: clamp(34px, 3vw, 44px);
-            border-radius: 50%;
-            object-fit: cover;
-            flex-shrink: 0;
-            border: 2px solid rgba(53,204,163,0.3);
-            background: #1E2530;
+            width: clamp(30px, 2.6vw, 38px); height: clamp(30px, 2.6vw, 38px);
+            border-radius: 50%; object-fit: cover; flex-shrink: 0;
+            border: 2px solid rgba(53,204,163,0.22); background: #1E2530;
         }
         .esp-avatar-placeholder {
-            width: clamp(34px, 3vw, 44px);
-            height: clamp(34px, 3vw, 44px);
-            border-radius: 50%;
-            background: rgba(53,204,163,0.1);
-            border: 2px solid rgba(53,204,163,0.3);
+            width: clamp(30px, 2.6vw, 38px); height: clamp(30px, 2.6vw, 38px);
+            border-radius: 50%; background: rgba(53,204,163,0.07);
+            border: 2px solid rgba(53,204,163,0.22);
             display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-            font-size: 0.9em; font-weight: 600; color: #35CCA3;
+            flex-shrink: 0; font-size: 0.85em; font-weight: 700; color: #35CCA3;
         }
         .esp-info { flex: 1; min-width: 0; }
-        .esp-name {
-            font-size: clamp(0.8em, 0.9vw, 0.92em);
-            font-weight: 600;
-            color: #E7E7E7;
-        }
-        .esp-sub {
-            font-size: clamp(0.68em, 0.75vw, 0.78em);
-            color: #6B7280;
-            margin-top: 2px;
-        }
-        .esp-total {
-            font-size: clamp(1em, 1.2vw, 1.3em);
-            font-weight: 700;
-            color: #35CCA3;
-            flex-shrink: 0;
-        }
-        .esp-health-bar {
-            display: flex;
-            height: 5px;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 5px;
-            gap: 1px;
-        }
+        .esp-name { font-size: clamp(0.76em, 0.86vw, 0.88em); font-weight: 600; color: #E2E8F0; }
+        .esp-sub  { font-size: clamp(0.63em, 0.7vw, 0.73em); color: #6B7280; margin-top: 2px; }
+        .esp-total { font-size: clamp(0.95em, 1.1vw, 1.18em); font-weight: 800; color: #35CCA3; flex-shrink: 0; }
+        .esp-health-bar { display: flex; height: 4px; border-radius: 3px; overflow: hidden; margin-top: 5px; gap: 1px; }
         .esp-health-seg { border-radius: 2px; }
 
-        /* Planos chart area */
+        /* =========== PLANOS =========== */
         .planos-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: clamp(6px, 0.8vw, 10px);
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 7px;
         }
         .plano-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.05);
             border-radius: 10px;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            padding: clamp(8px, 1vh, 14px);
-            gap: 4px;
-            text-align: center;
+            padding: 9px 6px; gap: 2px; text-align: center;
         }
-        .plano-name {
-            font-size: clamp(0.72em, 0.8vw, 0.85em);
-            color: #9CA3AF;
-            font-weight: 500;
-        }
-        .plano-count {
-            font-size: clamp(1.6em, 2.5vw, 2.2em);
-            font-weight: 800;
-            line-height: 1;
-        }
-        .plano-pct {
-            font-size: clamp(0.68em, 0.75vw, 0.78em);
-            color: #6B7280;
-        }
-        .plano-bar {
-            width: 100%; height: 4px; border-radius: 2px;
-            margin-top: 6px;
-        }
+        .plano-name { font-size: clamp(0.62em, 0.7vw, 0.74em); color: #6B7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+        .plano-count { font-size: clamp(1.3em, 2vw, 1.75em); font-weight: 800; line-height: 1; }
+        .plano-pct { font-size: clamp(0.6em, 0.66vw, 0.7em); color: #4B5563; }
+        .plano-bar { width: 100%; height: 3px; border-radius: 2px; margin-top: 4px; }
 
-        /* =========== RIGHT COLUMN =========== */
-        .right-col {
-            display: flex;
-            flex-direction: column;
-            gap: clamp(6px, 0.7vw, 10px);
-            overflow: hidden;
-            height: 100%;
-        }
-
-        /* Tabela de risco */
-        .risco-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: clamp(0.7em, 0.8vw, 0.83em);
-        }
+        /* =========== TABELAS =========== */
+        .risco-table { width: 100%; border-collapse: collapse; font-size: clamp(0.68em, 0.78vw, 0.81em); }
         .risco-table th {
-            text-align: left;
-            padding: 6px 8px;
-            color: #6B7280;
-            font-weight: 600;
-            font-size: 0.85em;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            cursor: pointer;
-            user-select: none;
-            white-space: nowrap;
+            text-align: left; padding: 5px 8px;
+            color: #4B5563; font-weight: 700; font-size: 0.8em;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.045);
+            cursor: pointer; user-select: none; white-space: nowrap;
         }
         .risco-table th:hover { color: #9CA3AF; }
         .risco-table th.sort-active { color: #35CCA3; }
-        .risco-table th .sort-arrow { margin-left: 4px; opacity: 0.5; font-style: normal; }
+        .risco-table th .sort-arrow { margin-left: 4px; opacity: 0.35; font-style: normal; }
         .risco-table th.sort-active .sort-arrow { opacity: 1; }
-        .risco-table td {
-            padding: clamp(5px, 0.7vh, 8px) 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.03);
-            vertical-align: middle;
-        }
+        .risco-table td { padding: clamp(4px, 0.6vh, 7px) 8px; border-bottom: 1px solid rgba(255,255,255,0.025); vertical-align: middle; }
         .risco-table tr:last-child td { border-bottom: none; }
-        .risco-table tr:hover td { background: rgba(255,255,255,0.02); }
+        .risco-table tr:hover td { background: rgba(255,255,255,0.015); }
 
-        /* Health badges */
+        /* =========== BADGES =========== */
         .badge-health {
             display: inline-flex; align-items: center; gap: 4px;
-            padding: 3px 8px; border-radius: 20px;
-            font-size: 0.85em; font-weight: 600;
-            white-space: nowrap;
+            padding: 2px 8px; border-radius: 20px;
+            font-size: 0.85em; font-weight: 600; white-space: nowrap;
         }
-        .badge-health::before {
-            content: ''; width: 6px; height: 6px; border-radius: 50%;
-        }
-        .badge-health.em-dia    { background: rgba(53,204,163,0.12); color: #35CCA3; }
-        .badge-health.em-dia::before { background: #35CCA3; }
-        .badge-health.perigo    { background: rgba(251,146,60,0.12);  color: #FB923C; }
-        .badge-health.perigo::before { background: #FB923C; }
-        .badge-health.risco     { background: rgba(239,68,68,0.12);   color: #F87171; }
-        .badge-health.risco::before  { background: #F87171; }
-        .badge-health.outros    { background: rgba(107,114,128,0.12); color: #9CA3AF; }
-        .badge-health.outros::before { background: #9CA3AF; }
+        .badge-health::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
+        .badge-health.em-dia  { background: rgba(53,204,163,0.1);  color: #35CCA3; }
+        .badge-health.em-dia::before  { background: #35CCA3; }
+        .badge-health.perigo  { background: rgba(251,146,60,0.1);  color: #FB923C; }
+        .badge-health.perigo::before  { background: #FB923C; }
+        .badge-health.risco   { background: rgba(239,68,68,0.1);   color: #F87171; }
+        .badge-health.risco::before   { background: #F87171; }
+        .badge-health.outros  { background: rgba(107,114,128,0.1); color: #9CA3AF; }
+        .badge-health.outros::before  { background: #9CA3AF; }
 
-        .esp-tag {
-            display: flex; align-items: center; gap: 5px;
-        }
-        .esp-tag-avatar {
-            width: 20px; height: 20px; border-radius: 50%; object-fit: cover;
-            background: #1E2530; border: 1px solid rgba(53,204,163,0.2);
-        }
-        .esp-tag-name { color: #B9C0CA; }
+        .esp-tag { display: flex; align-items: center; gap: 5px; }
+        .esp-tag-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; background: #1E2530; border: 1px solid rgba(53,204,163,0.15); }
+        .esp-tag-name { color: #94A3B8; }
 
         .badge-erros {
             display: inline-flex; align-items: center; justify-content: center;
             min-width: 20px; height: 20px; border-radius: 10px;
-            background: rgba(239,68,68,0.15); color: #F87171;
-            font-size: 0.82em; font-weight: 700; padding: 0 5px;
+            background: rgba(239,68,68,0.1); color: #F87171;
+            font-size: 0.8em; font-weight: 700; padding: 0 5px;
         }
-        .badge-erros.zero { background: transparent; color: #4B5563; }
+        .badge-erros.zero { background: transparent; color: #374151; }
 
-        /* Sem acesso */
-        .acesso-item {
-            display: flex; align-items: center; gap: 10px;
-            padding: clamp(5px, 0.7vh, 8px) 0;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-        }
+        /* =========== SEM ACESSO =========== */
+        .acesso-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
         .acesso-item:last-child { border-bottom: none; }
-        .acesso-cnpj { flex: 1; font-size: clamp(0.72em, 0.82vw, 0.85em); color: #B9C0CA; }
-        .acesso-esp  { font-size: clamp(0.68em, 0.78vw, 0.8em); color: #6B7280; }
-        .acesso-dias {
-            font-size: clamp(0.72em, 0.82vw, 0.85em);
-            font-weight: 600;
-            padding: 2px 7px; border-radius: 6px;
-        }
-        .acesso-dias.critico  { background: rgba(239,68,68,0.12); color: #F87171; }
-        .acesso-dias.atencao  { background: rgba(251,146,60,0.12); color: #FB923C; }
-        .acesso-dias.nunca    { background: rgba(107,114,128,0.12); color: #6B7280; }
+        .acesso-cnpj { flex: 1; font-size: clamp(0.7em, 0.8vw, 0.82em); color: #B9C0CA; }
+        .acesso-esp  { font-size: clamp(0.63em, 0.72vw, 0.76em); color: #6B7280; }
+        .acesso-dias { font-size: clamp(0.7em, 0.78vw, 0.8em); font-weight: 600; padding: 2px 7px; border-radius: 6px; }
+        .acesso-dias.critico { background: rgba(239,68,68,0.1);  color: #F87171; }
+        .acesso-dias.atencao { background: rgba(251,146,60,0.1); color: #FB923C; }
+        .acesso-dias.nunca   { background: rgba(107,114,128,0.1); color: #6B7280; }
 
-        /* A atualizar */
+        /* =========== A ATUALIZAR =========== */
         .atualizar-hint {
-            display: flex; align-items: center; gap: 8px;
-            background: rgba(251,146,60,0.06);
-            border: 1px solid rgba(251,146,60,0.15);
-            border-radius: 10px;
-            padding: 8px 12px;
-            margin-bottom: 10px;
-            font-size: clamp(0.65em, 0.72vw, 0.78em);
-            color: #FB923C;
+            display: flex; align-items: flex-start; gap: 8px;
+            background: rgba(251,146,60,0.04); border: 1px solid rgba(251,146,60,0.1);
+            border-radius: 10px; padding: 8px 12px; margin-bottom: 10px;
+            font-size: clamp(0.62em, 0.7vw, 0.74em); color: #FB923C; line-height: 1.5;
         }
+        .atualizar-hint svg { flex-shrink: 0; margin-top: 1px; }
 
-        /* HS chart */
-        .hs-chart-wrap {
-            display: flex; align-items: center; gap: clamp(10px, 1.5vw, 20px);
-            height: 100%;
-        }
+        /* =========== HS CHART =========== */
+        .hs-chart-wrap { display: flex; align-items: center; gap: clamp(8px, 1.2vw, 16px); height: 100%; }
         .hs-chart-canvas { flex-shrink: 0; }
-        .hs-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-        .hs-legend-item { display: flex; align-items: center; gap: 8px; }
-        .hs-legend-dot {
-            width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-        }
-        .hs-legend-label { font-size: clamp(0.72em, 0.82vw, 0.85em); color: #9CA3AF; flex: 1; }
-        .hs-legend-count { font-size: clamp(0.78em, 0.9vw, 0.9em); font-weight: 700; color: #E7E7E7; }
-        .hs-legend-pct { font-size: 0.78em; color: #6B7280; margin-left: 2px; }
+        .hs-legend { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+        .hs-legend-item { display: flex; align-items: center; gap: 7px; }
+        .hs-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .hs-legend-label { font-size: clamp(0.68em, 0.78vw, 0.8em); color: #9CA3AF; flex: 1; }
+        .hs-legend-count { font-size: clamp(0.74em, 0.85vw, 0.86em); font-weight: 700; color: #E2E8F0; }
+        .hs-legend-pct { font-size: 0.76em; color: #4B5563; margin-left: 2px; }
 
-        /* RT status */
+        /* =========== RT BADGE =========== */
         .rt-badge {
             display: flex; align-items: center; gap: 6px;
-            background: rgba(53,204,163,0.08); border: 1px solid rgba(53,204,163,0.15);
+            background: rgba(53,204,163,0.06); border: 1px solid rgba(53,204,163,0.14);
             border-radius: 20px; padding: 4px 10px;
-            font-size: clamp(0.68em, 0.78vw, 0.8em); color: #35CCA3;
+            font-size: clamp(0.65em, 0.74vw, 0.76em); color: #35CCA3;
         }
-        .rt-badge.offline { background: rgba(107,114,128,0.08); border-color: rgba(107,114,128,0.2); color: #6B7280; }
-        .rt-dot {
-            width: 7px; height: 7px; border-radius: 50%; background: #35CCA3;
-            animation: rtPulse 2s ease-in-out infinite;
-        }
+        .rt-badge.offline { background: rgba(107,114,128,0.06); border-color: rgba(107,114,128,0.14); color: #6B7280; }
+        .rt-dot { width: 6px; height: 6px; border-radius: 50%; background: #35CCA3; animation: rtPulse 2s ease-in-out infinite; }
         .rt-badge.offline .rt-dot { background: #6B7280; animation: none; }
         @keyframes rtPulse { 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
 
-        /* Loading */
-        .rel-loading {
-            display: flex; align-items: center; justify-content: center;
-            flex-direction: column; gap: 14px;
-            height: 100%; color: #6B7280; font-size: 0.9em;
-        }
-        .rel-spinner {
-            width: 36px; height: 36px; border: 3px solid rgba(53,204,163,0.15);
-            border-top-color: #35CCA3; border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
+        /* =========== LOADING =========== */
+        .rel-loading { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; height: 100%; color: #6B7280; font-size: 0.9em; }
+        .rel-spinner { width: 30px; height: 30px; border: 2.5px solid rgba(53,204,163,0.1); border-top-color: #35CCA3; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* =========== FILTRO GLOBAL DROPDOWN =========== */
-        .gf-dropdown-wrap {
-            position: relative;
-        }
+        /* =========== FILTRO GLOBAL =========== */
+        .gf-dropdown-wrap { position: relative; }
         .gf-dropdown-btn {
             display: flex; align-items: center; gap: 6px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 8px;
-            padding: 5px 10px;
-            color: #9CA3AF;
-            font-family: 'Poppins', sans-serif;
-            font-size: clamp(0.7em,0.8vw,0.82em);
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s;
-            white-space: nowrap;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 8px; padding: 5px 10px; color: #9CA3AF;
+            font-family: 'Poppins', sans-serif; font-size: clamp(0.67em,0.76vw,0.78em); font-weight: 600;
+            cursor: pointer; transition: all 0.15s; white-space: nowrap;
         }
         .gf-dropdown-btn:hover { background: rgba(255,255,255,0.07); color: #E7E7E7; }
         .gf-dropdown-btn.open  { border-color: rgba(53,204,163,0.3); color: #35CCA3; }
         .gf-dropdown-menu {
-            position: absolute;
-            top: calc(100% + 6px);
-            right: 0;
-            background: #1C2333;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 10px;
-            overflow: hidden;
-            min-width: 160px;
-            z-index: 100;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            position: absolute; top: calc(100% + 6px); right: 0;
+            background: #1C2333; border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px; overflow: hidden; min-width: 155px;
+            z-index: 100; box-shadow: 0 10px 28px rgba(0,0,0,0.5);
         }
         .gf-drop-opt {
-            display: flex; align-items: center; gap: 8px;
-            width: 100%; padding: 9px 14px;
-            background: none; border: none;
-            color: #9CA3AF;
-            font-family: 'Poppins', sans-serif;
-            font-size: clamp(0.72em,0.82vw,0.84em);
-            font-weight: 500;
-            cursor: pointer; text-align: left;
-            transition: background 0.12s;
+            display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 14px;
+            background: none; border: none; color: #9CA3AF;
+            font-family: 'Poppins', sans-serif; font-size: clamp(0.7em,0.78vw,0.8em); font-weight: 500;
+            cursor: pointer; text-align: left; transition: background 0.1s;
         }
         .gf-drop-opt:hover  { background: rgba(255,255,255,0.04); color: #E7E7E7; }
         .gf-drop-opt.active { background: rgba(53,204,163,0.07); color: #E7E7E7; font-weight: 600; }
-        .gf-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .gf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
         .gf-opt-count { margin-left: auto; font-size: 0.9em; color: #4B5563; }
 
         /* =========== CLIENT TABS =========== */
         .client-tab {
-            display: flex; align-items: center; gap: 6px;
-            padding: clamp(8px,1vh,12px) clamp(12px,1.4vw,18px);
+            display: flex; align-items: center; gap: 5px;
+            padding: clamp(7px,0.95vh,10px) clamp(9px,1.1vw,14px);
             background: none; border: none; border-bottom: 2px solid transparent;
             color: #6B7280; font-family: 'Poppins', sans-serif;
-            font-size: clamp(0.72em, 0.88vw, 0.88em); font-weight: 600;
+            font-size: clamp(0.68em, 0.82vw, 0.84em); font-weight: 600;
             cursor: pointer; transition: color 0.15s, border-color 0.15s;
-            text-transform: uppercase; letter-spacing: 0.5px;
-            white-space: nowrap;
+            text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
         }
         .client-tab:hover { color: #B9C0CA; }
         .client-tab.active { color: #E7E7E7; border-bottom-color: #35CCA3; }
         .client-tab svg { flex-shrink: 0; }
-        .tab-badge {
-            font-size: 0.85em; font-weight: 700;
-            padding: 1px 7px; border-radius: 10px;
-            letter-spacing: 0; text-transform: none;
-        }
-        .badge-red    { background: rgba(239,68,68,0.12);  color: #F87171; }
-        .badge-purple { background: rgba(168,85,247,0.1);  color: #C084FC; }
-        .badge-green  { background: rgba(53,204,163,0.12); color: #35CCA3; }
-        .badge-orange { background: rgba(251,146,60,0.12); color: #FB923C; }
-        .client-panel { border-top: 1px solid rgba(255,255,255,0.05); }
+        .tab-badge { font-size: 0.82em; font-weight: 700; padding: 1px 6px; border-radius: 10px; letter-spacing: 0; text-transform: none; }
+        .badge-red    { background: rgba(239,68,68,0.1);  color: #F87171; }
+        .badge-purple { background: rgba(168,85,247,0.1); color: #C084FC; }
+        .badge-green  { background: rgba(53,204,163,0.1); color: #35CCA3; }
+        .badge-orange { background: rgba(251,146,60,0.1); color: #FB923C; }
+        .client-panel { border-top: 1px solid rgba(255,255,255,0.04); }
 
         /* =========== BUSCA CNPJ =========== */
         .cnpj-search-wrap {
-            margin-left: auto;
-            display: flex; align-items: center; gap: 6px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 8px;
-            padding: 5px 10px;
-            transition: border-color 0.15s;
+            margin-left: auto; display: flex; align-items: center; gap: 5px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 8px; padding: 4px 9px; transition: border-color 0.15s;
         }
-        .cnpj-search-wrap:focus-within {
-            border-color: rgba(53,204,163,0.35);
-            background: rgba(53,204,163,0.04);
-        }
+        .cnpj-search-wrap:focus-within { border-color: rgba(53,204,163,0.3); background: rgba(53,204,163,0.03); }
         .cnpj-search-wrap svg { color: #4B5563; flex-shrink: 0; }
         .cnpj-search-input {
-            background: none; border: none; outline: none;
-            color: #E7E7E7;
-            font-family: 'Poppins', sans-serif;
-            font-size: clamp(0.7em, 0.8vw, 0.82em);
-            width: clamp(100px, 12vw, 180px);
+            background: none; border: none; outline: none; color: #E7E7E7;
+            font-family: 'Poppins', sans-serif; font-size: clamp(0.67em, 0.76vw, 0.78em);
+            width: clamp(90px, 11vw, 155px);
         }
-        .cnpj-search-input::placeholder { color: #4B5563; }
-        .cnpj-search-clear {
-            background: none; border: none; cursor: pointer;
-            color: #6B7280; font-size: 0.8em; padding: 0;
-            line-height: 1; transition: color 0.15s;
-        }
+        .cnpj-search-input::placeholder { color: #374151; }
+        .cnpj-search-clear { background: none; border: none; cursor: pointer; color: #6B7280; font-size: 0.76em; padding: 0; line-height: 1; transition: color 0.15s; }
         .cnpj-search-clear:hover { color: #E7E7E7; }
 
         /* Header extras */
         .header-rt { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 
-        /* =========== ERROS HISTÓRICO CHART =========== */
-        .erros-chart-card {
-            flex-shrink: 0;
-            height: clamp(130px, 15vh, 170px);
-        }
-        .erros-chart-wrap {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-        .erros-period-btns {
-            display: flex; gap: 4px; margin-left: auto;
-        }
+        /* =========== ERROS CHART =========== */
+        .erros-chart-wrap { position: relative; width: 100%; height: 100%; }
+        .erros-period-btns { display: flex; gap: 3px; margin-left: auto; }
         .erros-period-btn {
-            background: none; border: 1px solid rgba(255,255,255,0.07);
-            border-radius: 6px; padding: 2px 8px;
-            color: #4B5563; font-family: 'Poppins', sans-serif;
-            font-size: clamp(0.62em, 0.72vw, 0.74em); font-weight: 600;
+            background: none; border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 6px; padding: 2px 7px; color: #4B5563;
+            font-family: 'Poppins', sans-serif; font-size: clamp(0.58em, 0.67vw, 0.7em); font-weight: 600;
             cursor: pointer; transition: all 0.15s; text-transform: none; letter-spacing: 0;
         }
-        .erros-period-btn:hover { color: #9CA3AF; border-color: rgba(255,255,255,0.14); }
-        .erros-period-btn.active { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.3); color: #F87171; }
+        .erros-period-btn:hover { color: #9CA3AF; border-color: rgba(255,255,255,0.12); }
+        .erros-period-btn.active { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.25); color: #F87171; }
     </style>
 </head>
 <body>
@@ -623,201 +465,154 @@
         </div>
 
         <!-- Conteúdo (oculto até dados chegarem) -->
-        <div id="relContent" style="display:none; flex-direction:column; gap: inherit; height:100%;">
-
-            <!-- Distribuição de Planos — faixa full-width -->
-            <div class="rel-card" style="flex-shrink:0;">
-                <div class="rel-card-title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-                    </svg>
-                    Distribuição de Planos
-                </div>
-                <div class="rel-card-body" style="padding: 10px 14px;">
-                    <div class="planos-grid" id="planosGrid">
-                        <div class="rel-loading"><div class="rel-spinner"></div></div>
-                    </div>
-                </div>
-            </div>
+        <div id="relContent" style="display:none; flex-direction:column; gap:8px;">
 
             <!-- KPI Row -->
             <div class="kpi-row">
-                <div class="kpi-tile">
-                    <div class="kpi-tile-icon blue">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                            <circle cx="9" cy="7" r="4"/>
-                        </svg>
-                    </div>
-                    <div class="kpi-tile-data">
-                        <span class="kpi-tile-value" id="kpiTotal">-</span>
+                <div class="kpi-tile ac-blue">
+                    <div class="kpi-row-top">
                         <span class="kpi-tile-label">Total clientes</span>
+                        <div class="kpi-tile-icon blue">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        </div>
                     </div>
+                    <span class="kpi-tile-value" id="kpiTotal">—</span>
                 </div>
-                <div class="kpi-tile">
-                    <div class="kpi-tile-icon green">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                    </div>
-                    <div class="kpi-tile-data">
-                        <span class="kpi-tile-value" id="kpiEmDia">-</span>
+                <div class="kpi-tile ac-green">
+                    <div class="kpi-row-top">
                         <span class="kpi-tile-label">Em dia</span>
+                        <div class="kpi-tile-icon green">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
                     </div>
+                    <span class="kpi-tile-value" id="kpiEmDia">—</span>
                 </div>
-                <div class="kpi-tile">
-                    <div class="kpi-tile-icon orange">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                            <line x1="12" y1="9" x2="12" y2="13"/>
-                            <line x1="12" y1="17" x2="12.01" y2="17"/>
-                        </svg>
-                    </div>
-                    <div class="kpi-tile-data">
-                        <span class="kpi-tile-value" id="kpiPerigo">-</span>
+                <div class="kpi-tile ac-orange">
+                    <div class="kpi-row-top">
                         <span class="kpi-tile-label">Perigo</span>
+                        <div class="kpi-tile-icon orange">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </div>
                     </div>
+                    <span class="kpi-tile-value" id="kpiPerigo">—</span>
                 </div>
-                <div class="kpi-tile">
-                    <div class="kpi-tile-icon red">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="8" x2="12" y2="12"/>
-                            <line x1="12" y1="16" x2="12.01" y2="16"/>
-                        </svg>
-                    </div>
-                    <div class="kpi-tile-data">
-                        <span class="kpi-tile-value" id="kpiRisco">-</span>
+                <div class="kpi-tile ac-red">
+                    <div class="kpi-row-top">
                         <span class="kpi-tile-label">Risco Iminente</span>
+                        <div class="kpi-tile-icon red">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </div>
                     </div>
+                    <span class="kpi-tile-value" id="kpiRisco">—</span>
                 </div>
-                <div class="kpi-tile">
-                    <div class="kpi-tile-icon yellow">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                            <line x1="12" y1="9" x2="12" y2="13"/>
-                            <line x1="12" y1="17" x2="12.01" y2="17"/>
-                        </svg>
+                <div class="kpi-tile ac-yellow">
+                    <div class="kpi-row-top">
+                        <span class="kpi-tile-label">Verificando erro</span>
+                        <div class="kpi-tile-icon yellow">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </div>
                     </div>
-                    <div class="kpi-tile-data">
-                        <span class="kpi-tile-value" id="kpiErros">-</span>
-                        <span class="kpi-tile-label">Com erros</span>
-                    </div>
+                    <span class="kpi-tile-value" id="kpiErros">—</span>
                 </div>
-                <div class="kpi-tile">
-                    <div class="kpi-tile-icon purple">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                    </div>
-                    <div class="kpi-tile-data">
-                        <span class="kpi-tile-value" id="kpiSemAcesso">-</span>
+                <div class="kpi-tile ac-purple">
+                    <div class="kpi-row-top">
                         <span class="kpi-tile-label">Sem acesso +30d</span>
+                        <div class="kpi-tile-icon purple">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
                     </div>
+                    <span class="kpi-tile-value" id="kpiSemAcesso">—</span>
                 </div>
             </div>
 
-            <!-- Verificando Erro — histórico por dia -->
-            <div class="rel-card erros-chart-card">
-                <div class="rel-card-title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                    </svg>
-                    Verificando Erro — Progressão Diária
-                    <span id="errosChartSubtitle" style="font-size:0.85em;color:#4B5563;font-weight:400;text-transform:none;letter-spacing:0;margin-left:10px;"></span>
-                    <div class="erros-period-btns">
-                        <button class="erros-period-btn active" id="ePeriod10"  onclick="setErrosPeriod(10)">10d</button>
-                        <button class="erros-period-btn"        id="ePeriod30"  onclick="setErrosPeriod(30)">30d</button>
-                        <button class="erros-period-btn"        id="ePeriodAll" onclick="setErrosPeriod(0)">Tudo</button>
-                    </div>
-                </div>
-                <div class="rel-card-body" style="padding: 4px 14px 8px;">
-                    <div class="erros-chart-wrap">
-                        <canvas id="errosDiarioChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Main grid -->
+            <!-- Grid principal — 3 colunas -->
             <div class="main-grid">
 
-                <!-- LEFT -->
+                <!-- COL 1 — Especialistas + Planos -->
                 <div class="left-col">
-                    <!-- Especialistas -->
-                    <div class="rel-card" style="flex: 1.4; min-height:0;">
+                    <div class="rel-card" style="flex:1; min-height:0;">
                         <div class="rel-card-title">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                <circle cx="9" cy="7" r="4"/>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                            </svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                             Especialistas
                         </div>
                         <div class="rel-card-body" id="espContainer">
                             <div class="rel-loading"><div class="rel-spinner"></div></div>
                         </div>
                     </div>
+                    <div class="rel-card" style="flex-shrink:0;">
+                        <div class="rel-card-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                            Distribuição de Planos
+                        </div>
+                        <div class="rel-card-body" style="padding:8px 12px;">
+                            <div class="planos-grid" id="planosGrid">
+                                <div class="rel-loading"><div class="rel-spinner"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COL 2 — HealthScore + Erros/Dia + Planos -->
+                <div class="center-col">
 
                     <!-- HealthScore Donut -->
-                    <div class="rel-card" style="flex: 1; min-height:0;">
+                    <div class="rel-card" style="flex:1.1; min-height:0;">
                         <div class="rel-card-title">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                            </svg>
-                            HealthScore Geral
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                            HealthScore
                         </div>
-                        <div class="rel-card-body" style="display:flex; align-items:center; justify-content:center; padding: 10px 14px;">
+                        <div class="rel-card-body" style="display:flex; align-items:center; justify-content:center; padding:8px 12px;">
                             <div class="hs-chart-wrap">
-                                <canvas class="hs-chart-canvas" id="hsChart" width="130" height="130"></canvas>
+                                <canvas class="hs-chart-canvas" id="hsChart" width="105" height="105"></canvas>
                                 <div class="hs-legend" id="hsLegend"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Erros / Dia -->
+                    <div class="rel-card" style="flex:1; min-height:0;">
+                        <div class="rel-card-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            Erros / Dia
+                            <span id="errosChartSubtitle" style="font-size:0.88em;color:#4B5563;font-weight:400;text-transform:none;letter-spacing:0;margin-left:5px;"></span>
+                            <div class="erros-period-btns">
+                                <button class="erros-period-btn active" id="ePeriod10"  onclick="setErrosPeriod(10)">10d</button>
+                                <button class="erros-period-btn"        id="ePeriod30"  onclick="setErrosPeriod(30)">30d</button>
+                                <button class="erros-period-btn"        id="ePeriodAll" onclick="setErrosPeriod(0)">Tudo</button>
+                            </div>
+                        </div>
+                        <div class="rel-card-body" style="padding:4px 12px 8px;">
+                            <div class="erros-chart-wrap">
+                                <canvas id="errosDiarioChart"></canvas>
                             </div>
                         </div>
                     </div>
 
                 </div>
 
-                <!-- RIGHT -->
+                <!-- COL 3 — Clientes (tabs) -->
                 <div class="right-col">
                     <div class="rel-card" style="flex:1; min-height:0;">
                         <!-- Tabs + Busca -->
-                        <div class="rel-card-title" style="gap:0; padding-bottom:0; border-bottom: none;">
+                        <div class="rel-card-title" style="gap:0; padding-bottom:0; border-bottom:none;">
                             <button class="client-tab active" id="tabRisco" onclick="setClientFilter('risco')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                                </svg>
-                                Em Risco
-                                <span id="riscoCount" class="tab-badge badge-red"></span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                Em Risco <span id="riscoCount" class="tab-badge badge-red"></span>
                             </button>
                             <button class="client-tab" id="tabAcesso" onclick="setClientFilter('acesso')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                                </svg>
-                                Sem Acesso
-                                <span id="semAcessoCount" class="tab-badge badge-purple"></span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                Sem Acesso <span id="semAcessoCount" class="tab-badge badge-purple"></span>
                             </button>
                             <button class="client-tab" id="tabAtualizar" onclick="setClientFilter('atualizar')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                                </svg>
-                                A atualizar
-                                <span id="atualizarCount" class="tab-badge badge-orange"></span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                                A atualizar <span id="atualizarCount" class="tab-badge badge-orange"></span>
                             </button>
                             <button class="client-tab" id="tabEmDia" onclick="setClientFilter('emdia')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="20 6 9 17 4 12"/>
-                                </svg>
-                                Em Dia
-                                <span id="emDiaCount" class="tab-badge badge-green"></span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                Em Dia <span id="emDiaCount" class="tab-badge badge-green"></span>
                             </button>
-
-                            <!-- Busca por CNPJ -->
                             <div class="cnpj-search-wrap">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                </svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                                 <input type="text" id="cnpjSearch" class="cnpj-search-input" placeholder="Buscar CNPJ..." oninput="filterByCnpj(this.value)">
                                 <button class="cnpj-search-clear" id="cnpjClear" onclick="clearCnpjSearch()" style="display:none;">✕</button>
                             </div>
@@ -826,16 +621,14 @@
                         <!-- Painel Risco -->
                         <div class="rel-card-body client-panel" id="painelRisco">
                             <table class="risco-table">
-                                <thead>
-                                    <tr>
-                                        <th onclick="sortRiscoBy('cnpj')">CNPJ / Cliente<i class="sort-arrow" id="sarr-cnpj">↕</i></th>
-                                        <th onclick="sortRiscoBy('especialista')">Especialista<i class="sort-arrow" id="sarr-especialista">↕</i></th>
-                                        <th onclick="sortRiscoBy('plano')">Plano<i class="sort-arrow" id="sarr-plano">↕</i></th>
-                                        <th onclick="sortRiscoBy('health')">HealthScore<i class="sort-arrow" id="sarr-health">↕</i></th>
-                                        <th onclick="sortRiscoBy('ultimoAcesso')">Último Acesso<i class="sort-arrow" id="sarr-ultimoAcesso">↕</i></th>
-                                        <th onclick="sortRiscoBy('erros')">Erros<i class="sort-arrow" id="sarr-erros">↕</i></th>
-                                    </tr>
-                                </thead>
+                                <thead><tr>
+                                    <th onclick="sortRiscoBy('cnpj')">CNPJ / Cliente<i class="sort-arrow" id="sarr-cnpj">↕</i></th>
+                                    <th onclick="sortRiscoBy('especialista')">Especialista<i class="sort-arrow" id="sarr-especialista">↕</i></th>
+                                    <th onclick="sortRiscoBy('plano')">Plano<i class="sort-arrow" id="sarr-plano">↕</i></th>
+                                    <th onclick="sortRiscoBy('health')">HealthScore<i class="sort-arrow" id="sarr-health">↕</i></th>
+                                    <th onclick="sortRiscoBy('ultimoAcesso')">Último Acesso<i class="sort-arrow" id="sarr-ultimoAcesso">↕</i></th>
+                                    <th onclick="sortRiscoBy('erros')">Erros<i class="sort-arrow" id="sarr-erros">↕</i></th>
+                                </tr></thead>
                                 <tbody id="riscoTbody"></tbody>
                             </table>
                         </div>
@@ -858,21 +651,20 @@
                         <!-- Painel Em Dia -->
                         <div class="rel-card-body client-panel" id="painelEmDia" style="display:none;">
                             <table class="risco-table">
-                                <thead>
-                                    <tr>
-                                        <th onclick="sortEmDiaBy('cnpj')">CNPJ / Cliente<i class="sort-arrow" id="edarr-cnpj">↕</i></th>
-                                        <th onclick="sortEmDiaBy('especialista')">Especialista<i class="sort-arrow" id="edarr-especialista">↕</i></th>
-                                        <th onclick="sortEmDiaBy('plano')">Plano<i class="sort-arrow" id="edarr-plano">↕</i></th>
-                                        <th onclick="sortEmDiaBy('ultimoAcesso')">Último Acesso<i class="sort-arrow" id="edarr-ultimoAcesso">↕</i></th>
-                                        <th onclick="sortEmDiaBy('erros')">Erros<i class="sort-arrow" id="edarr-erros">↕</i></th>
-                                    </tr>
-                                </thead>
+                                <thead><tr>
+                                    <th onclick="sortEmDiaBy('cnpj')">CNPJ / Cliente<i class="sort-arrow" id="edarr-cnpj">↕</i></th>
+                                    <th onclick="sortEmDiaBy('especialista')">Especialista<i class="sort-arrow" id="edarr-especialista">↕</i></th>
+                                    <th onclick="sortEmDiaBy('plano')">Plano<i class="sort-arrow" id="edarr-plano">↕</i></th>
+                                    <th onclick="sortEmDiaBy('ultimoAcesso')">Último Acesso<i class="sort-arrow" id="edarr-ultimoAcesso">↕</i></th>
+                                    <th onclick="sortEmDiaBy('erros')">Erros<i class="sort-arrow" id="edarr-erros">↕</i></th>
+                                </tr></thead>
                                 <tbody id="emDiaTbody"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-            </div>
+
+            </div><!-- /main-grid -->
 
         </div>
     </div>
@@ -1101,6 +893,7 @@ function renderHSChart(stats) {
             type: 'doughnut',
             data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }] },
             options: {
+                responsive: false,
                 cutout: '68%',
                 plugins: { legend: { display: false }, tooltip: { callbacks: {
                     label: function(c) { return ' ' + c.label + ': ' + c.raw + ' (' + Math.round(c.raw/total*100) + '%)'; }
@@ -1825,19 +1618,26 @@ function processAndRender(data) {
 
     renderKPIs(stats);
     renderEspecialistas(stats);
-    renderHSChart(stats);
     renderPlanos(stats);
 
-    // Adiar tabelas pesadas para o próximo frame — KPIs e especialistas já visíveis
+    // Mostrar conteúdo ANTES de renderizar gráficos — canvas precisa estar visível para o Chart.js calcular dimensões
+    document.getElementById('relLoading').style.display = 'none';
+    document.getElementById('relContent').style.display = 'flex';
+
+    // Gráficos e tabelas no próximo frame (canvas já visível)
     requestAnimationFrame(function() {
+        renderHSChart(stats);
         renderRisco(stats);
         renderSemAcesso(stats);
         renderAAtualizar(stats);
         renderEmDia(stats);
+        // Destruir instância do erros/dia caso tenha sido criada com canvas oculto (dimensões zero)
+        if (errosDiarioChartInstance) {
+            errosDiarioChartInstance.destroy();
+            errosDiarioChartInstance = null;
+        }
+        renderErrosDiarioChart(_errosRawSnapshot);
     });
-
-    document.getElementById('relLoading').style.display = 'none';
-    document.getElementById('relContent').style.display = 'flex';
 
     const time = data.updatedISO ? new Date(data.updatedISO).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
     setRtStatus(true, 'Tempo real · ' + _allRows.length + ' clientes' + (time ? ' · ' + time : ''));
