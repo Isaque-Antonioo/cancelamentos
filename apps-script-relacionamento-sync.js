@@ -115,7 +115,7 @@ function syncAllData() {
     };
 
     sendToFirebase(payload);
-    saveErrosHistory(stats.comErros);
+    saveErrosHistory(stats.comErros, stats.comErrosAtivos);
     Logger.log('Relacionamento sincronizado: ' + dadosResult.rows.length + ' registros');
 
   } catch (e) {
@@ -201,6 +201,8 @@ function computeStats(headers, rows, fotoMap) {
   var iErros        = indexOfHeader(headers, ['qtd verificando', 'erro', 'erros']);
   var iCNPJ         = indexOfHeader(headers, ['cnpj']);
   var iContratacao  = indexOfHeader(headers, ['contratacao', 'contratação', 'data da contratacao', 'data da contratação']);
+  var iStatus       = indexOfHeader(headers, ['status', 'situacao', 'situação', 'ativo', 'inativo', 'situacao_cliente']);
+  
 
   var stats = {
     total: rows.length,
@@ -208,6 +210,7 @@ function computeStats(headers, rows, fotoMap) {
     planos: {},
     especialistas: {},
     comErros: 0,
+    comErrosAtivos: 0,    // somente clientes ATIVOS com erro
     semAcessoRecente: 0,  // sem acesso nos últimos 30 dias
     clientesRisco: []     // clientes com Perigo ou Risco Iminente
   };
@@ -223,6 +226,10 @@ function computeStats(headers, rows, fotoMap) {
     var ultimoAcesso = iUltimoAcesso >= 0 ? String(row[iUltimoAcesso] || '').trim() : '';
     var erros        = iErros >= 0        ? parseInt(row[iErros]) || 0 : 0;
     var cnpj         = iCNPJ >= 0         ? String(row[iCNPJ]         || '').trim() : '';
+    var statusRaw    = iStatus >= 0       ? String(row[iStatus]        || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') : '';
+    // Se não existe coluna de status, trata como ativo por padrão
+    // Se existe: só é ativo se contiver 'sim' ou 'ativo' explicitamente
+    var isAtivo      = iStatus < 0 || (statusRaw.indexOf('sim') !== -1 || statusRaw.indexOf('ativo') !== -1);
 
     // HealthScore
     if (health) {
@@ -250,11 +257,14 @@ function computeStats(headers, rows, fotoMap) {
         stats.especialistas[especialista].healthScore[health] =
           (stats.especialistas[especialista].healthScore[health] || 0) + 1;
       }
-      if (erros > 0) stats.especialistas[especialista].comErros++;
+      if (erros > 0 && isAtivo) stats.especialistas[especialista].comErros++;
     }
 
     // Com erros
-    if (erros > 0) stats.comErros++;
+    if (erros > 0) {
+      stats.comErros++;
+      if (isAtivo) stats.comErrosAtivos++;
+    }
 
     // Sem acesso recente (> 30 dias ou vazio)
     if (!ultimoAcesso || ultimoAcesso === '') {
@@ -329,14 +339,14 @@ function generateChecksum(rows) {
 
 // ===================== HISTÓRICO DE ERROS POR DIA =====================
 
-function saveErrosHistory(comErros) {
+function saveErrosHistory(comErros, comErrosAtivos) {
   try {
     var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
     var url = FIREBASE_URL + FIREBASE_ERROS_HISTORICO + '/' + today + '.json';
     var options = {
       method: 'put',
       contentType: 'application/json',
-      payload: JSON.stringify({ data: today, total: comErros, atualizadoEm: new Date().toISOString() }),
+      payload: JSON.stringify({ data: today, total: comErros, totalAtivos: comErrosAtivos || 0, atualizadoEm: new Date().toISOString() }),
       muteHttpExceptions: true
     };
     var response = UrlFetchApp.fetch(url, options);

@@ -1310,14 +1310,15 @@ function computeStatsFromRows(rows) {
             }
             stats.especialistas[esp].total++;
             if (health) stats.especialistas[esp].healthScore[health] = (stats.especialistas[esp].healthScore[health] || 0) + 1;
-            if (erros > 0) stats.especialistas[esp].comErros++;
+            if (erros > 0 && status === 'ativo') stats.especialistas[esp].comErros++;
         }
 
-        // Com erros
-        if (erros > 0) stats.comErros++;
+        // Com erros: somente clientes com status ativo (sim/ativo) são contados
+        // Se não há coluna de status, status vem como 'ativo' por padrão — conta todos
+        if (erros > 0 && status === 'ativo') stats.comErros++;
 
         // Sem data de acesso (ativo): vai para "A atualizar" — não conta no sem acesso
-        if (!acesso && status !== 'inativo') {
+        if (!acesso && status === 'ativo') {
             stats.aAtualizar.push({ cnpj, especialista: esp, health, plano });
         } else if (acesso) {
             // Tem data: verificar se passou de 30 dias
@@ -1435,15 +1436,19 @@ function applyGlobalFilter(filter) {
 
     const filtered = filterRows(_allRows, filter);
     const stats = computeStatsFromRows(filtered);
+    // Verificando Erro sempre conta somente ativos, independente do filtro
+    stats.comErros = computeStatsFromRows(filterRows(_allRows, 'ativo')).comErros;
     renderKPIs(stats);
     renderEspecialistas(stats);
     renderHSChart(stats);
     renderPlanos(stats);
+    _errosLiveHoje = stats.comErros;
     requestAnimationFrame(function() {
         renderRisco(stats);
         renderSemAcesso(stats);
         renderAAtualizar(stats);
         renderEmDia(stats);
+        renderErrosDiarioChart(_errosRawSnapshot);
     });
 }
 
@@ -1453,6 +1458,18 @@ function applyGlobalFilter(filter) {
 let errosDiarioChartInstance = null;
 let _errosRawSnapshot = {};
 let _errosPeriod = 10;
+let _errosLiveHoje = null; // valor ao vivo para hoje (sobrepõe o Firebase)
+
+function getErroValByFilter(entry) {
+    if (entry == null) return null;
+    if (_globalFilter === 'inativo') {
+        if (entry.totalInativos != null) return entry.totalInativos;
+        if (entry.total != null && entry.totalAtivos != null) return Math.max(0, entry.total - entry.totalAtivos);
+        return entry.total || 0;
+    }
+    // 'ativo' ou 'ambos' → usar totalAtivos se disponível
+    return entry.totalAtivos != null ? entry.totalAtivos : (entry.total || 0);
+}
 
 function setErrosPeriod(dias) {
     _errosPeriod = dias;
@@ -1471,6 +1488,12 @@ function renderErrosDiarioChart(snapshot) {
     const hoje = new Date();
     const hojeKey = hoje.toISOString().slice(0, 10);
 
+    // Retorna o valor correto para uma chave, sobrepondo hoje com o valor ao vivo se disponível
+    function getVal(key) {
+        if (key === hojeKey && _errosLiveHoje !== null) return _errosLiveHoje;
+        return raw[key] != null ? getErroValByFilter(raw[key]) : null;
+    }
+
     // Determinar janela de dias a exibir
     // Para períodos fixos (10d/30d): sempre gera os N dias a partir de hoje (passado + futuro)
     // Para "Tudo": usa todos os dias registrados + completa até hoje
@@ -1486,7 +1509,7 @@ function renderErrosDiarioChart(snapshot) {
             const key = d.toISOString().slice(0, 10);
             const parts = key.split('-');
             labels.push(parts[2] + '/' + parts[1]);
-            valores.push(raw[key] != null ? (raw[key].total || 0) : null);
+            valores.push(getVal(key));
         }
     } else {
         // Tudo: todos os dias registrados em ordem
@@ -1494,19 +1517,19 @@ function renderErrosDiarioChart(snapshot) {
         allKeys.forEach(function(key) {
             const parts = key.split('-');
             labels.push(parts[2] + '/' + parts[1]);
-            valores.push(raw[key] != null ? (raw[key].total || 0) : null);
+            valores.push(getVal(key));
         });
         // Garantir que hoje aparece
         if (!raw[hojeKey]) {
             labels.push(hojeKey.split('-')[2] + '/' + hojeKey.split('-')[1]);
-            valores.push(0);
+            valores.push(_errosLiveHoje !== null ? _errosLiveHoje : 0);
         }
     }
 
     const maxVal = Math.max(...valores.filter(function(v) { return v !== null; }), 1);
     const subtitle = document.getElementById('errosChartSubtitle');
     if (subtitle) {
-        const totalHoje = raw[hojeKey] != null ? (raw[hojeKey].total || 0) : 0;
+        const totalHoje = _errosLiveHoje !== null ? _errosLiveHoje : (raw[hojeKey] != null ? getErroValByFilter(raw[hojeKey]) : 0);
         const totalDias = Object.keys(raw).length + (raw[hojeKey] == null ? 1 : 0);
         subtitle.textContent = 'Hoje: ' + totalHoje + ' · ' + totalDias + ' dia' + (totalDias !== 1 ? 's' : '') + ' registrado' + (totalDias !== 1 ? 's' : '');
     }
@@ -1615,6 +1638,9 @@ function processAndRender(data) {
     updateGfCounts();
     const filtered = filterRows(_allRows, _globalFilter);
     const stats = computeStatsFromRows(filtered);
+    // Verificando Erro sempre conta somente ativos, independente do filtro
+    stats.comErros = computeStatsFromRows(filterRows(_allRows, 'ativo')).comErros;
+    _errosLiveHoje = stats.comErros;
 
     renderKPIs(stats);
     renderEspecialistas(stats);
