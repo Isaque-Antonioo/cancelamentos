@@ -190,10 +190,10 @@ function readColaboradores(sheet) {
   return result;
 }
 
-// ===================== ESTATÍSTICAS =====================
+// ESTATÍSTICAS 
 
 function computeStats(headers, rows, fotoMap) {
-  // Índices das colunas
+
   var iEspecialista = indexOfHeader(headers, ['especialista', 'responsavel', 'responsável']);
   var iPlano        = indexOfHeader(headers, ['plano']);
   var iHealth       = indexOfHeader(headers, ['healthscore', 'healtscore', 'healt', 'health', 'saude']);
@@ -227,8 +227,7 @@ function computeStats(headers, rows, fotoMap) {
     var erros        = iErros >= 0        ? parseInt(row[iErros]) || 0 : 0;
     var cnpj         = iCNPJ >= 0         ? String(row[iCNPJ]         || '').trim() : '';
     var statusRaw    = iStatus >= 0       ? String(row[iStatus]        || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') : '';
-    // Se não existe coluna de status, trata como ativo por padrão
-    // Se existe: só é ativo se contiver 'sim' ou 'ativo' explicitamente
+    
     var isAtivo      = iStatus < 0 || (statusRaw.indexOf('sim') !== -1 || statusRaw.indexOf('ativo') !== -1);
 
     // HealthScore

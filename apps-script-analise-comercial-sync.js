@@ -2,8 +2,6 @@
  * =====================================================
  * HUBSTROM - Análise de Desistentes → Firebase
  * =====================================================
- *
- * COMO INSTALAR (faça isso UMA VEZ):
  * 1. Abra a planilha "Análise de desistentes de todos os meses"
  * 2. Vá em Extensões → Apps Script
  * 3. APAGUE todo o código existente
@@ -14,7 +12,7 @@
  * 8. Pronto! O dashboard atualiza automaticamente a cada edição.
  */
 
-// ===================== CONFIGURAÇÃO =====================
+// CONFIGURAÇÃO 
 
 var FIREBASE_URL  = 'https://relatorio-geral-default-rtdb.firebaseio.com';
 var FIREBASE_PATH = '/analise_comercial_live.json';
