@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hubstrom - Monitoramento</title>
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M161 85c2.7-1.2 5.6.8 5.6 3.7v50.3c0 1.6-.9 3-2.4 3.7L35.2 199.9c-.9.4-1.9-.3-1.9-1.2v-54.4c0-1.6.9-3 2.4-3.7L161 85z' fill='%2335CCA3'/%3E%3Cpath d='M164.8.1c.9-.4 1.9.3 1.9 1.2v54.4c0 1.6-.9 3-2.4 3.7L39 114.9c-2.7 1.2-5.6-.8-5.6-3.7V61c0-1.6.9-3 2.4-3.7L164.8.1z' fill='%2335CCA3'/%3E%3C/svg%3E">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script src="js/auth.js"></script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; background: #0D1117; color: #E7E7E7; overflow-x: hidden; }
+
+        /* =========== LAYOUT =========== */
+        .mon-body {
+            display: flex; flex-direction: column; gap: 8px;
+            padding: 8px 12px 12px;
+            min-height: 0;
+        }
+
+        /* =========== KPI ROW =========== */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .kpi-tile {
+            background: #141920;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 12px 14px 10px;
+            display: flex; flex-direction: column; gap: 6px;
+            position: relative; overflow: hidden;
+        }
+        .kpi-tile::after {
+            content: ''; position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            border-radius: 12px 12px 0 0;
+        }
+        .kpi-tile.ac-red::after    { background: linear-gradient(90deg,#EF4444,#F87171); }
+        .kpi-tile.ac-orange::after { background: linear-gradient(90deg,#F97316,#FB923C); }
+        .kpi-tile.ac-green::after  { background: linear-gradient(90deg,#10B981,#35CCA3); }
+        .kpi-tile.ac-blue::after   { background: linear-gradient(90deg,#6366F1,#818CF8); }
+        .kpi-tile.ac-yellow::after { background: linear-gradient(90deg,#D97706,#EAB308); }
+        .kpi-tile.ac-teal::after   { background: linear-gradient(90deg,#35CCA3,#4EEBC4); }
+
+        .kpi-row-top { display: flex; align-items: center; justify-content: space-between; }
+        .kpi-tile-label {
+            font-size: clamp(0.58em, 0.68vw, 0.72em);
+            color: #6B7280; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.3;
+        }
+        .kpi-tile-icon {
+            width: 26px; height: 26px; border-radius: 7px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .kpi-tile-icon.red    { background: rgba(239,68,68,0.1);   color: #F87171; }
+        .kpi-tile-icon.orange { background: rgba(251,146,60,0.1);  color: #FB923C; }
+        .kpi-tile-icon.green  { background: rgba(53,204,163,0.1);  color: #35CCA3; }
+        .kpi-tile-icon.blue   { background: rgba(99,102,241,0.1);  color: #818CF8; }
+        .kpi-tile-icon.yellow { background: rgba(234,179,8,0.1);   color: #EAB308; }
+        .kpi-tile-icon.teal   { background: rgba(53,204,163,0.08); color: #4EEBC4; }
+        .kpi-tile-value {
+            font-size: clamp(1.5em, 2.3vw, 2.1em);
+            font-weight: 800; line-height: 1;
+            color: #F1F5F9; letter-spacing: -0.5px;
+        }
+        .kpi-tile-sub {
+            font-size: clamp(0.6em, 0.66vw, 0.7em);
+            color: #374151;
+        }
+
+        /* =========== MAIN GRID =========== */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 8px;
+            min-height: 0;
+            flex: 1;
+        }
+
+        /* =========== LEFT PANEL =========== */
+        .left-panel {
+            display: flex; flex-direction: column; gap: 8px;
+            min-height: 0;
+        }
+
+        /* =========== CARDS =========== */
+        .mon-card {
+            background: #141920;
+            border: 1px solid rgba(255,255,255,0.055);
+            border-radius: 14px;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        .mon-card-header {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            flex-shrink: 0;
+        }
+        .mon-card-title {
+            font-size: clamp(0.66em, 0.76vw, 0.8em);
+            font-weight: 700; color: #6B7280;
+            text-transform: uppercase; letter-spacing: 0.7px;
+            flex: 1;
+        }
+        .mon-card-body {
+            flex: 1; overflow-y: auto; overflow-x: hidden;
+            padding: 10px 14px;
+        }
+        .mon-card-body::-webkit-scrollbar { width: 3px; }
+        .mon-card-body::-webkit-scrollbar-track { background: transparent; }
+        .mon-card-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 4px; }
+
+        /* =========== ALERTS FEED =========== */
+        .alert-feed { display: flex; flex-direction: column; gap: 6px; }
+        .alert-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            transition: background 0.15s;
+        }
+        .alert-item.critico {
+            background: rgba(239,68,68,0.06);
+            border-color: rgba(239,68,68,0.14);
+        }
+        .alert-item.atencao {
+            background: rgba(251,146,60,0.05);
+            border-color: rgba(251,146,60,0.12);
+        }
+        .alert-item.ok {
+            background: rgba(53,204,163,0.04);
+            border-color: rgba(53,204,163,0.08);
+        }
+        .alert-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        }
+        .alert-dot.critico { background: #EF4444; box-shadow: 0 0 6px rgba(239,68,68,0.6); }
+        .alert-dot.atencao { background: #FB923C; }
+        .alert-dot.ok      { background: #35CCA3; }
+        .alert-info { flex: 1; min-width: 0; }
+        .alert-nome {
+            font-size: clamp(0.7em, 0.8vw, 0.82em); font-weight: 600; color: #E2E8F0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .alert-meta {
+            font-size: clamp(0.6em, 0.68vw, 0.7em); color: #6B7280; margin-top: 2px;
+        }
+        .alert-count {
+            font-size: clamp(0.78em, 0.88vw, 0.92em); font-weight: 800;
+            flex-shrink: 0; padding: 2px 8px; border-radius: 8px;
+        }
+        .alert-count.critico { background: rgba(239,68,68,0.15); color: #F87171; }
+        .alert-count.atencao { background: rgba(251,146,60,0.15); color: #FB923C; }
+        .alert-count.ok      { background: rgba(53,204,163,0.1);  color: #35CCA3; }
+
+        .alert-empty { color: #4B5563; font-size: 0.82em; text-align: center; padding: 20px 0; }
+
+        /* =========== PLANS GRID =========== */
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 6px;
+        }
+        .plan-tile {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 9px 8px 7px;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 3px; text-align: center;
+        }
+        .plan-tile-name { font-size: clamp(0.6em, 0.68vw, 0.72em); color: #6B7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+        .plan-tile-count { font-size: clamp(1.2em, 1.8vw, 1.6em); font-weight: 800; line-height: 1; color: #F1F5F9; }
+        .plan-tile-sub { font-size: clamp(0.58em, 0.64vw, 0.68em); color: #374151; }
+        .plan-tile-bar { width: 100%; height: 3px; border-radius: 2px; margin-top: 4px; }
+        .plan-tile-bar.critico { background: #EF4444; }
+        .plan-tile-bar.atencao { background: #F59E0B; }
+        .plan-tile-bar.ok      { background: #35CCA3; }
+        .plan-empty { color: #4B5563; font-size: 0.82em; text-align: center; padding: 10px 0; }
+
+        /* =========== TABLE SECTION =========== */
+        .table-section {
+            display: flex; flex-direction: column;
+            min-height: 0;
+        }
+        .table-controls {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            flex-shrink: 0; flex-wrap: wrap;
+        }
+        .table-filter-group { display: flex; align-items: center; gap: 6px; }
+        .filter-label { font-size: clamp(0.62em, 0.7vw, 0.74em); color: #4B5563; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+        .filter-btn {
+            display: flex; align-items: center; gap: 4px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 7px; padding: 4px 10px; color: #6B7280;
+            font-family: 'Poppins', sans-serif; font-size: clamp(0.64em, 0.73vw, 0.77em); font-weight: 600;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .filter-btn:hover { background: rgba(255,255,255,0.07); color: #B9C0CA; }
+        .filter-btn.active-all  { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.15); color: #E7E7E7; }
+        .filter-btn.active-crit { background: rgba(239,68,68,0.1);   border-color: rgba(239,68,68,0.25);   color: #F87171; }
+        .filter-btn.active-warn { background: rgba(251,146,60,0.1);  border-color: rgba(251,146,60,0.25);  color: #FB923C; }
+        .filter-btn.active-ok   { background: rgba(53,204,163,0.08); border-color: rgba(53,204,163,0.2);   color: #35CCA3; }
+
+        .search-wrap {
+            margin-left: auto; display: flex; align-items: center; gap: 5px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 8px; padding: 4px 9px; transition: border-color 0.15s;
+        }
+        .search-wrap:focus-within { border-color: rgba(53,204,163,0.3); background: rgba(53,204,163,0.03); }
+        .search-wrap svg { color: #4B5563; flex-shrink: 0; }
+        .search-input {
+            background: none; border: none; outline: none; color: #E7E7E7;
+            font-family: 'Poppins', sans-serif; font-size: clamp(0.65em, 0.73vw, 0.77em);
+            width: clamp(100px, 12vw, 170px);
+        }
+        .search-input::placeholder { color: #374151; }
+
+        .table-body { flex: 1; overflow-y: auto; overflow-x: auto; min-height: 0; }
+        .table-body::-webkit-scrollbar { width: 4px; height: 4px; }
+        .table-body::-webkit-scrollbar-track { background: transparent; }
+        .table-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 4px; }
+
+        .crit-table { width: 100%; border-collapse: collapse; font-size: clamp(0.68em, 0.78vw, 0.82em); }
+        .crit-table th {
+            text-align: left; padding: 7px 10px;
+            color: #4B5563; font-weight: 700; font-size: 0.8em;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            position: sticky; top: 0; background: #141920; z-index: 1;
+            white-space: nowrap; cursor: pointer; user-select: none;
+        }
+        .crit-table th:hover { color: #9CA3AF; }
+        .crit-table th.sort-active { color: #35CCA3; }
+        .crit-table td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.025); vertical-align: middle; }
+        .crit-table tr:last-child td { border-bottom: none; }
+        .crit-table tr:hover td { background: rgba(255,255,255,0.015); }
+        .crit-table .row-critico td:first-child { border-left: 2px solid rgba(239,68,68,0.5); }
+        .crit-table .row-atencao td:first-child { border-left: 2px solid rgba(251,146,60,0.4); }
+        .crit-table .row-ok td:first-child { border-left: 2px solid rgba(53,204,163,0.3); }
+
+        .td-cliente { font-weight: 600; color: #E2E8F0; max-width: 200px; }
+        .td-cliente-nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .td-plano { color: #9CA3AF; white-space: nowrap; }
+
+        .badge-alerta {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border-radius: 20px;
+            font-size: 0.82em; font-weight: 700; white-space: nowrap;
+        }
+        .badge-alerta::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
+        .badge-alerta.critico { background: rgba(239,68,68,0.12);  color: #F87171; }
+        .badge-alerta.critico::before { background: #EF4444; box-shadow: 0 0 4px rgba(239,68,68,0.6); }
+        .badge-alerta.atencao { background: rgba(251,146,60,0.12); color: #FB923C; }
+        .badge-alerta.atencao::before { background: #FB923C; }
+        .badge-alerta.ok      { background: rgba(53,204,163,0.1);  color: #35CCA3; }
+        .badge-alerta.ok::before { background: #35CCA3; }
+
+        .badge-health {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 7px; border-radius: 20px;
+            font-size: 0.82em; font-weight: 600; white-space: nowrap;
+        }
+        .badge-health.em-dia  { background: rgba(53,204,163,0.1);  color: #35CCA3; }
+        .badge-health.perigo  { background: rgba(251,146,60,0.1);  color: #FB923C; }
+        .badge-health.risco   { background: rgba(239,68,68,0.1);   color: #F87171; }
+        .badge-health.neutro  { background: rgba(107,114,128,0.1); color: #6B7280; }
+
+        .td-count {
+            font-size: clamp(0.82em, 0.9vw, 0.96em); font-weight: 800;
+            text-align: center;
+        }
+        .td-count.critico { color: #F87171; }
+        .td-count.atencao { color: #FB923C; }
+        .td-count.ok      { color: #35CCA3; }
+
+        .td-date { color: #6B7280; white-space: nowrap; }
+        .td-cs   { white-space: nowrap; }
+        .td-esp  { color: #9CA3AF; white-space: nowrap; max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+
+        .table-empty { text-align: center; padding: 40px; color: #4B5563; font-size: 0.85em; }
+        .table-count {
+            font-size: clamp(0.6em, 0.68vw, 0.72em); color: #374151; margin-left: auto;
+        }
+
+        /* =========== RT BADGE =========== */
+        .rt-badge {
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(53,204,163,0.06); border: 1px solid rgba(53,204,163,0.14);
+            border-radius: 20px; padding: 4px 10px;
+            font-size: clamp(0.62em, 0.7vw, 0.73em); color: #35CCA3; white-space: nowrap;
+        }
+        .rt-badge.offline { background: rgba(107,114,128,0.06); border-color: rgba(107,114,128,0.14); color: #6B7280; }
+        .rt-dot { width: 6px; height: 6px; border-radius: 50%; background: #35CCA3; animation: rtPulse 2s ease-in-out infinite; flex-shrink: 0; }
+        .rt-badge.offline .rt-dot { background: #6B7280; animation: none; }
+        @keyframes rtPulse { 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+
+        /* =========== LOADING =========== */
+        .mon-loading {
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; gap: 14px; padding: 60px 20px;
+            color: #6B7280; font-size: 0.88em;
+        }
+        .mon-spinner {
+            width: 32px; height: 32px;
+            border: 2.5px solid rgba(53,204,163,0.1);
+            border-top-color: #35CCA3;
+            border-radius: 50%; animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* =========== HEADER ADJUSTMENTS =========== */
+        .header-controls { display: flex; align-items: center; gap: 8px; }
+
+        /* =========== ALERT PULSE for critical count =========== */
+        .kpi-tile-value.has-critical { color: #F87171; }
+        .kpi-tile-value.has-warning  { color: #FB923C; }
+
+        /* =========== PLAN FILTER SELECT =========== */
+        .plan-select {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 7px; padding: 4px 8px; color: #9CA3AF;
+            font-family: 'Poppins', sans-serif; font-size: clamp(0.62em, 0.7vw, 0.74em); font-weight: 600;
+            cursor: pointer; outline: none;
+        }
+        .plan-select:focus { border-color: rgba(53,204,163,0.3); color: #E7E7E7; }
+
+        /* =========== SORT ARROWS =========== */
+        .sort-arrow { margin-left: 3px; opacity: 0.3; font-style: normal; }
+        .sort-active .sort-arrow { opacity: 1; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Dashboards</h3>
+            <button class="sidebar-close" onclick="toggleSidebar()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="index.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 20V10M12 20V4M6 20v-6"/>
+                    </svg>
+                    <span>Cancelamentos</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="comercial.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23"/>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    <span>Comercial</span>
+                </a>
+            </li>
+            <li class="sidebar-item" style="opacity:0.4;pointer-events:none;cursor:not-allowed;">
+                <a href="javascript:void(0)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                    <span>Análise Comercial <em style="font-size:0.68em;color:#6b7280;font-style:normal">— Em breve</em></span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="relacionamento.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <span>Relacionamento</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="suporte.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span>Suporte</span>
+                </a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="monitoramento.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span>Monitoramento</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="log-erros.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <span>Log de Erros</span>
+                </a>
+            </li>
+            <li class="sidebar-item sidebar-admin-only">
+                <a href="admin.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span>Admin</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-top">
+            <button class="hamburger-btn" onclick="toggleSidebar()" title="Menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <h1 class="header-main-title">Monitoramento de Clientes</h1>
+            <div class="header-controls">
+                <div id="rtBadge" class="rt-badge offline">
+                    <span class="rt-dot"></span>
+                    <span id="rtLabel">Conectando...</span>
+                </div>
+                <span class="user-display-name" id="userDisplayName"></span>
+                <button class="btn-icon-small btn-logout" onclick="hubstromLogout()" title="Sair">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <p id="headerSubtitle">Aguardando dados em tempo real...</p>
+    </header>
+
+    <!-- Dashboard body -->
+    <main class="main-content mon-body">
+
+        <!-- KPI Row -->
+        <div class="kpi-row">
+            <div class="kpi-tile ac-red">
+                <div class="kpi-row-top">
+                    <span class="kpi-tile-label">Clientes Criticos</span>
+                    <span class="kpi-tile-icon red">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="kpi-tile-value" id="kpiCriticos">-</div>
+                <div class="kpi-tile-sub">3+ chamados no mes</div>
+            </div>
+            <div class="kpi-tile ac-yellow">
+                <div class="kpi-row-top">
+                    <span class="kpi-tile-label">Em Atencao</span>
+                    <span class="kpi-tile-icon yellow">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="kpi-tile-value" id="kpiAtencao">-</div>
+                <div class="kpi-tile-sub">2 chamados no mes</div>
+            </div>
+            <div class="kpi-tile ac-blue">
+                <div class="kpi-row-top">
+                    <span class="kpi-tile-label">Chamados Abertos</span>
+                    <span class="kpi-tile-icon blue">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="kpi-tile-value" id="kpiAbertos">-</div>
+                <div class="kpi-tile-sub">status pendente</div>
+            </div>
+            <div class="kpi-tile ac-teal">
+                <div class="kpi-row-top">
+                    <span class="kpi-tile-label">Taxa de Resolucao</span>
+                    <span class="kpi-tile-icon teal">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="kpi-tile-value" id="kpiResolucao">-</div>
+                <div class="kpi-tile-sub">chamados do mes</div>
+            </div>
+            <div class="kpi-tile ac-orange">
+                <div class="kpi-row-top">
+                    <span class="kpi-tile-label">Total no Mes</span>
+                    <span class="kpi-tile-icon orange">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="kpi-tile-value" id="kpiTotalMes">-</div>
+                <div class="kpi-tile-sub" id="kpiMesLabel">chamados</div>
+            </div>
+            <div class="kpi-tile ac-green">
+                <div class="kpi-row-top">
+                    <span class="kpi-tile-label">Clientes OK</span>
+                    <span class="kpi-tile-icon green">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="kpi-tile-value" id="kpiOk">-</div>
+                <div class="kpi-tile-sub">0–1 chamado no mes</div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+
+            <!-- Left Panel -->
+            <div class="left-panel">
+
+                <!-- Alertas -->
+                <div class="mon-card" style="flex: 1; min-height: 200px;">
+                    <div class="mon-card-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <span class="mon-card-title">Alertas do Mes</span>
+                        <span class="table-count" id="alertCount">—</span>
+                    </div>
+                    <div class="mon-card-body">
+                        <div class="alert-feed" id="alertFeed">
+                            <div class="mon-loading">
+                                <div class="mon-spinner"></div>
+                                <span>Aguardando dados...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Planos -->
+                <div class="mon-card" style="flex-shrink: 0;">
+                    <div class="mon-card-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#35CCA3" stroke-width="2.5">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                        </svg>
+                        <span class="mon-card-title">Por Plano</span>
+                    </div>
+                    <div class="mon-card-body" style="padding-bottom: 12px;">
+                        <div class="plans-grid" id="plansGrid">
+                            <div class="plan-empty">Aguardando dados...</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Panel: Table -->
+            <div class="mon-card table-section">
+                <div class="table-controls">
+                    <span class="filter-label">Filtrar:</span>
+                    <div class="table-filter-group">
+                        <button class="filter-btn active-all" id="fAll" onclick="setFilter('todos')">Todos</button>
+                        <button class="filter-btn" id="fCrit" onclick="setFilter('critico')">
+                            <span style="width:6px;height:6px;border-radius:50%;background:#EF4444;display:inline-block;"></span>
+                            Critico
+                        </button>
+                        <button class="filter-btn" id="fWarn" onclick="setFilter('atencao')">
+                            <span style="width:6px;height:6px;border-radius:50%;background:#FB923C;display:inline-block;"></span>
+                            Atencao
+                        </button>
+                        <button class="filter-btn" id="fOk" onclick="setFilter('ok')">
+                            <span style="width:6px;height:6px;border-radius:50%;background:#35CCA3;display:inline-block;"></span>
+                            OK
+                        </button>
+                    </div>
+
+                    <select class="plan-select" id="planFilter" onchange="setPlanFilter(this.value)">
+                        <option value="todos">Todos os planos</option>
+                    </select>
+
+                    <div class="search-wrap">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <input type="text" class="search-input" id="searchInput" placeholder="Buscar cliente..." oninput="onSearch(this.value)">
+                    </div>
+
+                    <span class="table-count" id="tableCount">— clientes</span>
+                </div>
+
+                <div class="table-body">
+                    <table class="crit-table" id="critTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('nome')" id="th-nome">Cliente <i class="sort-arrow">↕</i></th>
+                                <th onclick="sortTable('plano')" id="th-plano">Plano <i class="sort-arrow">↕</i></th>
+                                <th onclick="sortTable('chamadosMes')" id="th-chamadosMes" class="sort-active">Chamados/Mes <i class="sort-arrow">↓</i></th>
+                                <th onclick="sortTable('ultimoChamado')" id="th-ultimoChamado">Ultimo Contato <i class="sort-arrow">↕</i></th>
+                                <th>Status CS</th>
+                                <th onclick="sortTable('especialista')" id="th-especialista">Especialista <i class="sort-arrow">↕</i></th>
+                                <th>Alerta</th>
+                            </tr>
+                        </thead>
+                        <tbody id="critTableBody">
+                            <tr><td colspan="7" class="table-empty">
+                                <div class="mon-loading"><div class="mon-spinner"></div><span>Aguardando dados...</span></div>
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let suporteRows = [];      // Parsed suporte rows (all time)
+let relRows = [];          // Parsed relacionamento rows
+let relHeaders = [];
+
+let suporteListenerOn = false;
+let relListenerOn = false;
+let suporteChecksum = '';
+let relChecksum = '';
+
+let _tableFilter = 'todos';
+let _planFilter  = 'todos';
+let _searchQuery = '';
+let _sortCol     = 'chamadosMes';
+let _sortDir     = -1; // -1 desc, 1 asc
+
+let _clientData = []; // computed list, source of truth for renders
+
+// Current month key "YYYY-MM"
+const _now = new Date();
+const _currMonthKey = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}`;
+const _currMonthLabel = _now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function normalizeStr(s) {
+    return String(s || '').trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ');
+}
+
+function normalizeStatus(s) {
+    const n = normalizeStr(s);
+    if (n.includes('resolv')) return 'resolvido';
+    if (n.includes('pend') || n.includes('aberto') || n.includes('andamento') || n.includes('em aberto')) return 'pendente';
+    if (n.includes('cancel')) return 'cancelado';
+    return n || 'pendente';
+}
+
+function extractMonth(diaMes) {
+    if (!diaMes) return null;
+    const parts = String(diaMes).trim().split('/');
+    if (parts.length >= 2) {
+        const d = parseInt(parts[0]), m = parseInt(parts[1]);
+        if (d >= 1 && d <= 31 && m >= 1 && m <= 12) return m;
+    }
+    return null;
+}
+
+function extractYear(diaMes) {
+    if (!diaMes) return null;
+    const parts = String(diaMes).trim().split('/');
+    if (parts.length >= 3) {
+        let y = parseInt(parts[2]);
+        if (y >= 1 && y <= 99) y += 2000;
+        if (y >= 2000 && y <= 2100) return y;
+    }
+    return null;
+}
+
+function getCol(obj, ...names) {
+    for (const name of names) {
+        for (const k of Object.keys(obj)) {
+            if (normalizeStr(k) === normalizeStr(name)) return obj[k];
+        }
+    }
+    return '';
+}
+
+function normalizeHealth(h) {
+    const n = normalizeStr(h);
+    if (n.includes('em dia') || n.includes('saudavel') || n.includes('ok') || n.includes('bom')) return { cls: 'em-dia', label: 'Em Dia' };
+    if (n.includes('perigo') || n.includes('atencao') || n.includes('atenção') || n.includes('risco medio')) return { cls: 'perigo', label: 'Perigo' };
+    if (n.includes('risco') || n.includes('critico') || n.includes('iminente')) return { cls: 'risco', label: 'Risco' };
+    if (h && h.trim()) return { cls: 'neutro', label: h.trim() };
+    return { cls: 'neutro', label: '—' };
+}
+
+function dateSortValue(diaMes) {
+    if (!diaMes) return 0;
+    const parts = String(diaMes).trim().split('/');
+    if (parts.length >= 3) return parseInt(parts[2]) * 10000 + parseInt(parts[1]) * 100 + parseInt(parts[0]);
+    if (parts.length >= 2) {
+        const y = _now.getFullYear();
+        return y * 10000 + parseInt(parts[1]) * 100 + parseInt(parts[0]);
+    }
+    return 0;
+}
+
+// ============================================================
+// PARSE SUPORTE FROM FIREBASE
+// ============================================================
+function parseSuporteFirebase(data) {
+    if (!data || !data.rows || !data.headers) return [];
+    const headers = data.headers;
+    const result = [];
+
+    data.rows.forEach(function(rowArr) {
+        const obj = {};
+        headers.forEach(function(h, i) { obj[h] = rowArr[i] || ''; });
+
+        const razao = getCol(obj, 'Razão Social', 'Razao Social', 'Cliente', 'Empresa') || '';
+        if (!razao) return;
+
+        const plano       = getCol(obj, 'Planos', 'Plano', 'Plano Contratado') || '';
+        const status      = getCol(obj, 'Status', 'Situação', 'Situacao') || '';
+        const colaborador = getCol(obj, 'Colaborador', 'Atendente', 'Responsável', 'Responsavel') || '';
+        const diaMes      = getCol(obj, 'Dia/Mês', 'Dia/Mes', 'Dia', 'Data', 'Date') || '';
+        const modulo      = getCol(obj, 'Módulo', 'Modulo', 'Module') || '';
+
+        const mesNum = extractMonth(diaMes);
+        const anoNum = extractYear(diaMes);
+        let mesAno = null;
+        if (mesNum) {
+            const y = anoNum || _now.getFullYear();
+            mesAno = `${y}-${String(mesNum).padStart(2, '0')}`;
+        }
+
+        result.push({
+            _razaoSocial: razao,
+            _plano:       plano,
+            _status:      status,
+            _nStatus:     normalizeStatus(status),
+            _colaborador: colaborador,
+            _diaMes:      diaMes,
+            _modulo:      modulo,
+            _mesAno:      mesAno,
+            _dateVal:     dateSortValue(diaMes)
+        });
+    });
+
+    return result;
+}
+
+// ============================================================
+// PARSE RELACIONAMENTO FROM FIREBASE
+// ============================================================
+function parseRelFirebase(data) {
+    if (!data || !data.rows || !data.headers) return [];
+    const headers = data.headers;
+    relHeaders = headers;
+
+    return data.rows.map(function(rowArr) {
+        const obj = {};
+        headers.forEach(function(h, i) { obj[h] = rowArr[i] || ''; });
+        return obj;
+    });
+}
+
+function findRelClient(nomeSuporte) {
+    const normNome = normalizeStr(nomeSuporte);
+    if (!normNome) return null;
+    return relRows.find(function(r) {
+        // Try to match by any name-like column
+        const possibleNames = [
+            getCol(r, 'Razão Social', 'Razao Social', 'Cliente', 'Nome', 'Empresa', 'CNPJ')
+        ];
+        return possibleNames.some(function(n) {
+            const normN = normalizeStr(n);
+            return normN && normN === normNome;
+        });
+    }) || null;
+}
+
+// ============================================================
+// MAIN PROCESSING
+// ============================================================
+function processAll() {
+    if (!suporteRows.length && !relRows.length) return;
+
+    // Current month rows
+    const thisMes = suporteRows.filter(r => r._mesAno === _currMonthKey);
+
+    // Group by client for this month
+    const byClient = {};
+    thisMes.forEach(function(row) {
+        const nome = row._razaoSocial;
+        if (!nome) return;
+        if (!byClient[nome]) {
+            byClient[nome] = {
+                nome:         nome,
+                plano:        row._plano || '',
+                chamadosMes:  0,
+                lastDateVal:  0,
+                ultimoChamado:'',
+                colaborador:  row._colaborador || '',
+                pendentes:    0,
+                resolvidos:   0
+            };
+        }
+        const c = byClient[nome];
+        c.chamadosMes++;
+        if (row._dateVal > c.lastDateVal) {
+            c.lastDateVal  = row._dateVal;
+            c.ultimoChamado = row._diaMes;
+        }
+        if (!c.plano && row._plano) c.plano = row._plano;
+        if (!c.colaborador && row._colaborador) c.colaborador = row._colaborador;
+        if (row._nStatus === 'resolvido') c.resolvidos++;
+        else c.pendentes++;
+    });
+
+    // Enrich from relacionamento and set alert level
+    _clientData = Object.values(byClient).map(function(c) {
+        c.alertLevel = c.chamadosMes >= 3 ? 'critico' : c.chamadosMes >= 2 ? 'atencao' : 'ok';
+
+        const relRow = findRelClient(c.nome);
+        if (relRow) {
+            const relPlano = getCol(relRow, 'Plano', 'Planos') || '';
+            const relHealth = getCol(relRow, 'HealthScore', 'Healtscore', 'Health', 'Saúde', 'Saude') || '';
+            const relEsp    = getCol(relRow, 'Especialista', 'Responsável', 'Responsavel') || '';
+            if (!c.plano && relPlano) c.plano = relPlano;
+            c.healthScore = relHealth;
+            c.especialista = relEsp;
+        } else {
+            c.healthScore  = '';
+            c.especialista = c.colaborador || '';
+        }
+
+        return c;
+    });
+
+    // Global suporte KPIs
+    const totalAbertos = suporteRows.filter(r => r._nStatus === 'pendente').length;
+    const totalMes     = thisMes.length;
+    const resolvidos   = thisMes.filter(r => r._nStatus === 'resolvido').length;
+    const taxaStr      = totalMes > 0 ? Math.round(resolvidos / totalMes * 100) + '%' : '—';
+
+    const nCriticos = _clientData.filter(c => c.alertLevel === 'critico').length;
+    const nAtencao  = _clientData.filter(c => c.alertLevel === 'atencao').length;
+    const nOk       = _clientData.filter(c => c.alertLevel === 'ok').length;
+
+    renderKPIs({ totalAbertos, totalMes, taxaStr, nCriticos, nAtencao, nOk });
+    renderAlertFeed(_clientData);
+    renderPlans(thisMes, _clientData);
+    renderTable();
+    updatePlanFilterOptions();
+    updateSubtitle(suporteRows.length, thisMes.length);
+}
+
+// ============================================================
+// RENDER KPIs
+// ============================================================
+function renderKPIs(k) {
+    setText('kpiCriticos', k.nCriticos);
+    setText('kpiAtencao',  k.nAtencao);
+    setText('kpiAbertos',  k.totalAbertos);
+    setText('kpiResolucao', k.taxaStr);
+    setText('kpiTotalMes', k.totalMes);
+    setText('kpiOk',       k.nOk);
+    setText('kpiMesLabel', _currMonthLabel);
+
+    const elCrit = document.getElementById('kpiCriticos');
+    if (elCrit) {
+        elCrit.className = 'kpi-tile-value' + (k.nCriticos > 0 ? ' has-critical' : '');
+    }
+    const elWarn = document.getElementById('kpiAtencao');
+    if (elWarn) {
+        elWarn.className = 'kpi-tile-value' + (k.nAtencao > 0 ? ' has-warning' : '');
+    }
+}
+
+// ============================================================
+// RENDER ALERT FEED
+// ============================================================
+function renderAlertFeed(clients) {
+    const feed = document.getElementById('alertFeed');
+    if (!feed) return;
+
+    // Sort: critical first, then attention, then ok — within each by chamadosMes desc
+    const sorted = clients.slice().sort(function(a, b) {
+        const lvlOrder = { critico: 0, atencao: 1, ok: 2 };
+        const lo = (lvlOrder[a.alertLevel] || 2) - (lvlOrder[b.alertLevel] || 2);
+        if (lo !== 0) return lo;
+        return b.chamadosMes - a.chamadosMes;
+    });
+
+    // Only show clients with 2+ chamados in the alert feed
+    const relevant = sorted.filter(c => c.chamadosMes >= 2);
+
+    const countEl = document.getElementById('alertCount');
+    if (countEl) countEl.textContent = relevant.length + ' clientes';
+
+    if (!relevant.length) {
+        feed.innerHTML = '<div class="alert-empty">Nenhum cliente com 2+ chamados este mes</div>';
+        return;
+    }
+
+    feed.innerHTML = relevant.map(function(c) {
+        const planoStr = c.plano ? c.plano : 'Plano N/D';
+        const health = normalizeHealth(c.healthScore);
+        const healthStr = c.healthScore ? ` · CS: ${health.label}` : '';
+        return `<div class="alert-item ${c.alertLevel}">
+            <span class="alert-dot ${c.alertLevel}"></span>
+            <div class="alert-info">
+                <div class="alert-nome" title="${escHtml(c.nome)}">${escHtml(c.nome)}</div>
+                <div class="alert-meta">${escHtml(planoStr)}${healthStr} · Ultimo: ${c.ultimoChamado || 'N/D'}</div>
+            </div>
+            <span class="alert-count ${c.alertLevel}">${c.chamadosMes} ch.</span>
+        </div>`;
+    }).join('');
+}
+
+// ============================================================
+// RENDER PLANS
+// ============================================================
+function renderPlans(thisMes, clients) {
+    const grid = document.getElementById('plansGrid');
+    if (!grid) return;
+
+    // Count by plan from current month rows
+    const planMap = {};
+    thisMes.forEach(function(row) {
+        const p = row._plano || 'N/D';
+        if (!planMap[p]) planMap[p] = { total: 0, criticos: 0, atencao: 0 };
+        planMap[p].total++;
+    });
+
+    // Count critical/attention clients per plan
+    clients.forEach(function(c) {
+        const p = c.plano || 'N/D';
+        if (!planMap[p]) planMap[p] = { total: 0, criticos: 0, atencao: 0 };
+        if (c.alertLevel === 'critico') planMap[p].criticos++;
+        else if (c.alertLevel === 'atencao') planMap[p].atencao++;
+    });
+
+    const entries = Object.entries(planMap);
+    if (!entries.length) {
+        grid.innerHTML = '<div class="plan-empty">Sem dados de plano</div>';
+        return;
+    }
+
+    const maxTotal = Math.max(...entries.map(e => e[1].total), 1);
+
+    // Color the bar based on whether there are criticals
+    function barClass(info) {
+        if (info.criticos > 0) return 'critico';
+        if (info.atencao  > 0) return 'atencao';
+        return 'ok';
+    }
+
+    grid.innerHTML = entries
+        .sort((a, b) => b[1].total - a[1].total)
+        .map(function([name, info]) {
+            const pct = Math.round(info.total / maxTotal * 100);
+            const critStr = info.criticos > 0 ? `<span style="color:#F87171;font-size:0.75em;font-weight:700;">${info.criticos} critico${info.criticos > 1 ? 's' : ''}</span>` : '';
+            return `<div class="plan-tile">
+                <div class="plan-tile-name">${escHtml(name)}</div>
+                <div class="plan-tile-count">${info.total}</div>
+                <div class="plan-tile-sub">${critStr || 'chamados'}</div>
+                <div class="plan-tile-bar ${barClass(info)}" style="opacity:${0.3 + pct * 0.007};"></div>
+            </div>`;
+        }).join('');
+}
+
+// ============================================================
+// RENDER TABLE
+// ============================================================
+function renderTable() {
+    const tbody = document.getElementById('critTableBody');
+    if (!tbody) return;
+
+    let data = _clientData.slice();
+
+    // Filter by alert level
+    if (_tableFilter !== 'todos') {
+        data = data.filter(c => c.alertLevel === _tableFilter);
+    }
+
+    // Filter by plan
+    if (_planFilter !== 'todos') {
+        data = data.filter(c => normalizeStr(c.plano) === normalizeStr(_planFilter));
+    }
+
+    // Filter by search
+    if (_searchQuery) {
+        const q = normalizeStr(_searchQuery);
+        data = data.filter(c => normalizeStr(c.nome).includes(q) || normalizeStr(c.plano).includes(q) || normalizeStr(c.especialista).includes(q));
+    }
+
+    // Sort
+    data.sort(function(a, b) {
+        let va, vb;
+        if (_sortCol === 'chamadosMes') { va = a.chamadosMes; vb = b.chamadosMes; }
+        else if (_sortCol === 'nome')   { va = normalizeStr(a.nome); vb = normalizeStr(b.nome); }
+        else if (_sortCol === 'plano')  { va = normalizeStr(a.plano); vb = normalizeStr(b.plano); }
+        else if (_sortCol === 'ultimoChamado') { va = a.lastDateVal; vb = b.lastDateVal; }
+        else if (_sortCol === 'especialista')  { va = normalizeStr(a.especialista); vb = normalizeStr(b.especialista); }
+        else { va = a[_sortCol] || 0; vb = b[_sortCol] || 0; }
+
+        if (va < vb) return _sortDir;
+        if (va > vb) return -_sortDir;
+        return 0;
+    });
+
+    const countEl = document.getElementById('tableCount');
+    if (countEl) countEl.textContent = data.length + ' cliente' + (data.length !== 1 ? 's' : '');
+
+    if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Nenhum cliente encontrado para os filtros selecionados</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = data.map(function(c) {
+        const health = normalizeHealth(c.healthScore);
+        const espStr = c.especialista || '—';
+
+        return `<tr class="row-${c.alertLevel}">
+            <td class="td-cliente"><div class="td-cliente-nome" title="${escHtml(c.nome)}">${escHtml(c.nome)}</div></td>
+            <td class="td-plano">${escHtml(c.plano || '—')}</td>
+            <td class="td-count ${c.alertLevel}">${c.chamadosMes}</td>
+            <td class="td-date">${escHtml(c.ultimoChamado || '—')}</td>
+            <td class="td-cs">
+                ${c.healthScore
+                    ? `<span class="badge-health ${health.cls}">${escHtml(health.label)}</span>`
+                    : '<span style="color:#374151;">—</span>'}
+            </td>
+            <td class="td-esp" title="${escHtml(espStr)}">${escHtml(espStr)}</td>
+            <td><span class="badge-alerta ${c.alertLevel}">${c.alertLevel === 'critico' ? 'CRITICO' : c.alertLevel === 'atencao' ? 'ATENÇÃO' : 'OK'}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+// ============================================================
+// FILTERS & SORT
+// ============================================================
+function setFilter(level) {
+    _tableFilter = level;
+    document.querySelectorAll('.filter-btn').forEach(b => b.className = 'filter-btn');
+    const map = { todos: ['fAll', 'active-all'], critico: ['fCrit', 'active-crit'], atencao: ['fWarn', 'active-warn'], ok: ['fOk', 'active-ok'] };
+    const [id, cls] = map[level] || map['todos'];
+    const btn = document.getElementById(id);
+    if (btn) btn.className = 'filter-btn ' + cls;
+    renderTable();
+}
+
+function setPlanFilter(val) {
+    _planFilter = val;
+    renderTable();
+}
+
+function onSearch(val) {
+    _searchQuery = val;
+    renderTable();
+}
+
+function sortTable(col) {
+    if (_sortCol === col) {
+        _sortDir *= -1;
+    } else {
+        _sortCol = col;
+        _sortDir = col === 'chamadosMes' || col === 'ultimoChamado' ? -1 : 1;
+    }
+    // Update header arrows
+    document.querySelectorAll('.crit-table th').forEach(th => {
+        th.classList.remove('sort-active');
+        const arrow = th.querySelector('.sort-arrow');
+        if (arrow) arrow.textContent = '↕';
+    });
+    const thEl = document.getElementById('th-' + col);
+    if (thEl) {
+        thEl.classList.add('sort-active');
+        const arrow = thEl.querySelector('.sort-arrow');
+        if (arrow) arrow.textContent = _sortDir === -1 ? '↓' : '↑';
+    }
+    renderTable();
+}
+
+function updatePlanFilterOptions() {
+    const sel = document.getElementById('planFilter');
+    if (!sel) return;
+    const prev = sel.value;
+    const plans = new Set(_clientData.map(c => c.plano).filter(Boolean));
+    sel.innerHTML = '<option value="todos">Todos os planos</option>';
+    Array.from(plans).sort().forEach(function(p) {
+        sel.innerHTML += `<option value="${escAttr(p)}">${escHtml(p)}</option>`;
+    });
+    if (prev && sel.querySelector(`option[value="${prev}"]`)) sel.value = prev;
+}
+
+// ============================================================
+// RT STATUS
+// ============================================================
+function setRtStatus(online, label) {
+    const badge = document.getElementById('rtBadge');
+    const lbl   = document.getElementById('rtLabel');
+    if (!badge || !lbl) return;
+    badge.className = 'rt-badge' + (online ? '' : ' offline');
+    lbl.textContent = label || (online ? 'Tempo real' : 'Offline');
+}
+
+function updateSubtitle(totalRows, thisMesRows) {
+    const el = document.getElementById('headerSubtitle');
+    if (!el) return;
+    const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    el.textContent = `${thisMesRows} chamados em ${_currMonthLabel} · ${totalRows} total · Atualizado ${time}`;
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+}
+function escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+    return String(s || '').replace(/"/g, '&quot;');
+}
+
+// ============================================================
+// FIREBASE LISTENERS
+// ============================================================
+function startSuporteListener() {
+    if (suporteListenerOn) return;
+    if (typeof database === 'undefined' || !database) return;
+    suporteListenerOn = true;
+
+    database.ref('suporte_live').on('value', function(snap) {
+        if (!snap.exists()) {
+            setRtStatus(false, 'Suporte: sem dados');
+            return;
+        }
+        const data = snap.val();
+        if (!data || !data.rows) return;
+
+        const newCs = data.checksum || String(data.updatedAt || '');
+        if (newCs === suporteChecksum) return;
+        suporteChecksum = newCs;
+
+        suporteRows = parseSuporteFirebase(data);
+        processAll();
+
+        const srcConnected = relListenerOn;
+        setRtStatus(true, 'Tempo real · ' + (srcConnected ? 'Suporte + Relacionamento' : 'Suporte'));
+    });
+}
+
+function startRelacionamentoListener() {
+    if (relListenerOn) return;
+    if (typeof database === 'undefined' || !database) return;
+    relListenerOn = true;
+
+    database.ref('relacionamento_live').on('value', function(snap) {
+        if (!snap.exists()) return;
+        const data = snap.val();
+        if (!data || !data.rows || !data.headers) return;
+        if (data.source !== 'apps_script' && data.source !== 'apps_script_bulk') return;
+
+        const newCs = data.checksum || String(data.updatedAt || '');
+        if (newCs === relChecksum) return;
+        relChecksum = newCs;
+
+        relRows = parseRelFirebase(data);
+        processAll(); // Re-process with enriched data
+        setRtStatus(true, 'Tempo real · Suporte + Relacionamento');
+    });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const sb = document.getElementById('sidebar');
+        if (sb) sb.classList.add('ready');
+    }, 50);
+
+    // Set user name
+    if (typeof hubstromGetUser === 'function') {
+        const user = hubstromGetUser();
+        if (user) setText('userDisplayName', user.displayName || user.email || '');
+    }
+
+    function doInit() {
+        startSuporteListener();
+        startRelacionamentoListener();
+    }
+
+    if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
+        doInit();
+    } else {
+        window.addEventListener('firebaseReady', doInit);
+    }
+});
+</script>
+</body>
+</html>
