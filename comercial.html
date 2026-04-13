@@ -133,9 +133,37 @@
         }
 
         /* Ouro - 1o lugar */
+        @keyframes goldPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0), 0 0 18px rgba(255,215,0,0.18); border-color: rgba(255,215,0,0.35); }
+            50%       { box-shadow: 0 0 0 5px rgba(255,215,0,0.08), 0 0 32px rgba(255,215,0,0.38); border-color: rgba(255,215,0,0.65); }
+        }
+        @keyframes crownFloat {
+            0%, 100% { transform: translateY(0px) rotate(-4deg); }
+            50%       { transform: translateY(-3px) rotate(4deg); }
+        }
+
         .ranking-item.rank-1 {
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.10), rgba(255, 215, 0, 0.02));
-            border-color: rgba(255, 215, 0, 0.25);
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.13), rgba(255, 215, 0, 0.03));
+            border-color: rgba(255, 215, 0, 0.35);
+            animation: goldPulse 2.4s ease-in-out infinite;
+        }
+
+        /* Wrapper do avatar para posicionar a coroa */
+        .rank-avatar-wrap {
+            position: relative;
+            display: inline-flex;
+            flex-shrink: 0;
+        }
+        .rank-crown {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-4deg);
+            font-size: clamp(14px, 1.4vw, 20px);
+            line-height: 1;
+            animation: crownFloat 2s ease-in-out infinite;
+            filter: drop-shadow(0 1px 4px rgba(255,215,0,0.7));
+            pointer-events: none;
         }
         /* Prata - 2o lugar */
         .ranking-item.rank-2 {
@@ -1614,7 +1642,11 @@
                 html += '<div class="rank-pos">' + rank + '</div>';
                 html += '<div class="rank-info">';
                 if (closer.foto) {
-                    html += '<img class="rank-avatar" src="' + closer.foto + '" alt="' + closer.nome + '" onerror="this.style.display=\'none\'">';
+                    if (rank === 1) {
+                        html += '<div class="rank-avatar-wrap"><span class="rank-crown">👑</span><img class="rank-avatar" src="' + closer.foto + '" alt="' + closer.nome + '" onerror="this.style.display=\'none\'"></div>';
+                    } else {
+                        html += '<img class="rank-avatar" src="' + closer.foto + '" alt="' + closer.nome + '" onerror="this.style.display=\'none\'">';
+                    }
                 }
                 html += '<div><div class="rank-name">' + closer.nome + '</div></div>';
                 html += '</div>';
