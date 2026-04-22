@@ -542,6 +542,158 @@ function updateKPIs(summary) {
 
     // Gerar alerta dinâmico baseado nos dados reais
     generateDynamicAlert(summary);
+
+    // Gerar grid de causas reais
+    generateProblemGrid(window.csvData, summary);
+}
+
+// Gera o grid de causas reais lendo a coluna Causa do CSV (cache 24h)
+async function generateProblemGrid(data, summary) {
+    const grid = document.getElementById('problemGrid');
+    const desc = document.getElementById('problemGridDesc');
+    const fonte = document.getElementById('problemGridFonte');
+    if (!grid) return;
+
+    // Coletar textos reais da coluna Causa / Motivo da solicitação
+    const causas = data
+        .map(row => getColumn(row, 'Causa', 'Motivo  da solicitação (ABERTURA *Hubspot)', 'Motivo da solicitação'))
+        .filter(c => c && c.trim().length > 5)
+        .map(c => c.trim().substring(0, 300));
+
+    if (causas.length === 0) {
+        grid.innerHTML = '<p style="color:#64748b;font-style:italic;">Coluna "Causa" não encontrada nos dados.</p>';
+        return;
+    }
+
+    const monthKey = typeof getCurrentMonth === 'function' ? getCurrentMonth() : new Date().toISOString().slice(0, 7);
+    const cacheKey = `hubstrom_problem_grid_${monthKey}`;
+
+    // Verificar cache 24h
+    try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Date.now() - parsed.timestamp < 86400000) {
+                renderProblemGrid(parsed.grupos, parsed.fonte, desc, grid, fonte);
+                return;
+            }
+        }
+    } catch (e) { /* ignora */ }
+
+    // Mostrar loading
+    grid.innerHTML = '<p style="color:#64748b;font-style:italic;">Analisando causas dos cancelamentos...</p>';
+
+    let grupos, fonteTexto;
+
+    if (hasApiKeyConfigured()) {
+        try {
+            grupos = await callClaudeForProblemGroups(causas, summary.total);
+            fonteTexto = `Análise gerada por IA · ${new Date().toLocaleDateString('pt-BR')} · ${causas.length} causas analisadas`;
+        } catch (e) {
+            console.warn('Falha na IA para problem grid:', e.message);
+            grupos = buildLocalProblemGroups(data, summary);
+            fonteTexto = `Agrupamento automático · ${new Date().toLocaleDateString('pt-BR')} · ${causas.length} causas`;
+        }
+    } else {
+        grupos = buildLocalProblemGroups(data, summary);
+        fonteTexto = `Agrupamento automático · ${new Date().toLocaleDateString('pt-BR')} · Configure a API Key para análise com IA`;
+    }
+
+    // Salvar cache
+    try {
+        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), grupos, fonte: fonteTexto }));
+    } catch (e) { /* ignora */ }
+
+    renderProblemGrid(grupos, fonteTexto, desc, grid, fonte);
+}
+
+// Chama Claude para agrupar causas em temas reais
+async function callClaudeForProblemGroups(causas, total) {
+    const amostra = causas.slice(0, 60).map((c, i) => `${i + 1}. ${c}`).join('\n');
+
+    const prompt = `Você é analista de Customer Success. Analise as causas reais de cancelamento abaixo e agrupe em 4 a 6 temas recorrentes.
+
+CAUSAS REAIS (${causas.length} de ${total} cancelamentos):
+${amostra}
+
+Regras:
+- O nome de cada grupo deve refletir EXATAMENTE o que os clientes citam (ex: "Instabilidade no ConnectHub", "Preço acima do esperado", "Falta de integração com ERP")
+- Cada grupo deve ter entre 3 e 6 bullets com reclamações específicas mencionadas
+- Conte quantos registros se encaixam em cada grupo
+- Ordene do maior para o menor número de casos
+
+Responda APENAS com JSON:
+[
+  { "titulo": "Nome do Tema (N casos)", "casos": N, "itens": ["reclamação 1", "reclamação 2", ...] },
+  ...
+]`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': getApiKey(),
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 1200,
+            messages: [{ role: 'user', content: prompt }]
+        })
+    });
+
+    if (!response.ok) throw new Error('API error ' + response.status);
+    const result = await response.json();
+    const text = result.content[0].text;
+    const match = text.match(/\[[\s\S]*\]/);
+    if (match) return JSON.parse(match[0]);
+    throw new Error('JSON não encontrado na resposta');
+}
+
+// Agrupamento local sem IA (por motivo principal)
+function buildLocalProblemGroups(data, summary) {
+    const grupos = [];
+    Object.entries(summary.motivos)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([motivo, count]) => {
+            // Coletar causas deste motivo
+            const itens = new Set();
+            data.forEach(row => {
+                const m = getColumn(row, 'Principal motivo', 'Motivo').trim();
+                if (m.toLowerCase() === motivo.toLowerCase()) {
+                    const causa = getColumn(row, 'Causa', 'Motivo  da solicitação (ABERTURA *Hubspot)', 'Motivo da solicitação').trim();
+                    if (causa.length > 5) itens.add(causa.substring(0, 120));
+                }
+            });
+            grupos.push({
+                titulo: `${motivo} (${count} ${count === 1 ? 'caso' : 'casos'})`,
+                casos: count,
+                itens: [...itens].slice(0, 5)
+            });
+        });
+    return grupos;
+}
+
+// Renderiza os cards no DOM
+function renderProblemGrid(grupos, fonteTexto, desc, grid, fonte) {
+    if (!grupos || grupos.length === 0) {
+        grid.innerHTML = '<p style="color:#64748b;font-style:italic;">Nenhum padrão identificado.</p>';
+        return;
+    }
+
+    if (desc) desc.textContent = `Padrões identificados nas causas reais dos cancelamentos deste mês:`;
+
+    grid.innerHTML = grupos.map(grupo => `
+        <article class="problem-card">
+            <h4>${grupo.titulo}</h4>
+            <ul>
+                ${grupo.itens.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </article>
+    `).join('');
+
+    if (fonte) fonte.textContent = fonteTexto;
 }
 
 // Detecta o padrão mais crítico e gera alerta dinâmico com IA (cache 24h)
