@@ -764,6 +764,14 @@ body::before {
 }
 
 /* ===================================
+   TABLE WRAPPER - Scroll Horizontal Mobile
+   =================================== */
+.table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ===================================
    SECTIONS - PREMIUM DESIGN
    =================================== */
 .section {
@@ -1221,6 +1229,7 @@ body::before {
 
     body {
         padding: var(--spacing-sm);
+        overflow-x: hidden;
     }
 
     /* Header Mobile */
@@ -1255,6 +1264,10 @@ body::before {
         gap: 4px;
     }
 
+    .header-controls .user-display-name {
+        display: none;
+    }
+
     .btn-icon-small {
         width: 32px;
         height: 32px;
@@ -1279,7 +1292,8 @@ body::before {
 
     .kpi-grid .kpi-card:nth-child(5),
     .kpi-grid .kpi-card:nth-child(6),
-    .kpi-grid .kpi-card:nth-child(7) {
+    .kpi-grid .kpi-card:nth-child(7),
+    .kpi-grid .kpi-card:nth-child(8) {
         grid-column: auto;
     }
 

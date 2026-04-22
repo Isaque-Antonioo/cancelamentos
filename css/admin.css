@@ -578,11 +578,13 @@
     .users-table,
     .audit-table {
         font-size: 0.75em;
+        min-width: 600px;
     }
 
     .users-table thead th,
     .audit-table thead th {
         padding: 8px 10px;
+        white-space: nowrap;
     }
 
     .users-table tbody td,
@@ -601,5 +603,9 @@
 
     .table-actions {
         flex-direction: column;
+    }
+
+    .user-display-name {
+        display: none;
     }
 }
