@@ -540,18 +540,148 @@ function updateKPIs(summary) {
         kpiCards[7].querySelector('.kpi-value').textContent = percRevertidos + '%';
     }
 
-    // Atualizar alerta crítico
-    const highlightBox = document.querySelector('.highlight-box p strong');
-    if (highlightBox) {
-        const motivoUsabilidade = summary.motivos['Usabilidade'] || 0;
-        const percUsabilidade = ((motivoUsabilidade / total) * 100).toFixed(0);
-        highlightBox.textContent = `${percUsabilidade}% dos cancelamentos`;
+    // Gerar alerta dinâmico baseado nos dados reais
+    generateDynamicAlert(summary);
+}
 
-        const highlightText = document.querySelector('.highlight-box p');
-        if (highlightText) {
-            highlightText.innerHTML = `<strong>${percUsabilidade}% dos cancelamentos</strong> (${motivoUsabilidade} de ${total}) são por problemas de USABILIDADE.`;
-        }
+// Detecta o padrão mais crítico e gera alerta dinâmico com IA (cache 24h)
+async function generateDynamicAlert(summary) {
+    if (!summary || summary.total === 0) return;
+
+    const motivos = summary.motivos;
+    if (!motivos || Object.keys(motivos).length === 0) return;
+
+    // Encontrar o motivo principal
+    const topEntry = Object.entries(motivos).sort((a, b) => b[1] - a[1])[0];
+    const topMotivo = topEntry[0];
+    const topCount = topEntry[1];
+    const topPerc = ((topCount / summary.total) * 100);
+
+    // Determinar severidade
+    let severidade, icone;
+    if (topPerc >= 40) {
+        severidade = 'ALERTA CRÍTICO';
+        icone = '🚨';
+    } else if (topPerc >= 25) {
+        severidade = 'ALERTA';
+        icone = '⚠️';
+    } else {
+        severidade = 'PADRÃO DETECTADO';
+        icone = '📊';
     }
+
+    const monthKey = typeof getCurrentMonth === 'function' ? getCurrentMonth() : new Date().toISOString().slice(0, 7);
+    const cacheKey = `hubstrom_dynamic_alert_${monthKey}`;
+
+    // Verificar cache (24h)
+    try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            const age = Date.now() - parsed.timestamp;
+            if (age < 86400000) { // 24 horas em ms
+                renderAlert(parsed);
+                return;
+            }
+        }
+    } catch (e) { /* ignora erro de parse */ }
+
+    // Gerar novo alerta
+    let alertData;
+    if (hasApiKeyConfigured()) {
+        try {
+            const aiText = await generateAIAlertText(summary, topMotivo, topPerc, summary.total);
+            alertData = {
+                timestamp: Date.now(),
+                titulo: `${icone} ${severidade}: ${topMotivo.toUpperCase()}`,
+                texto: aiText.linha1 || `${topPerc.toFixed(0)}% dos cancelamentos são por "${topMotivo}" (${topCount} de ${summary.total} casos).`,
+                detalhe: aiText.linha2 || '',
+                fonte: `Análise gerada por IA · ${new Date().toLocaleDateString('pt-BR')} · Dados: ${summary.total} registros`
+            };
+        } catch (e) {
+            console.warn('Falha na IA, usando alerta local:', e.message);
+            alertData = buildLocalAlert(icone, severidade, topMotivo, topCount, topPerc, summary);
+        }
+    } else {
+        alertData = buildLocalAlert(icone, severidade, topMotivo, topCount, topPerc, summary);
+    }
+
+    // Salvar cache
+    try {
+        localStorage.setItem(cacheKey, JSON.stringify(alertData));
+    } catch (e) { /* ignora erro de storage */ }
+
+    renderAlert(alertData);
+}
+
+// Chama a API Claude para gerar texto do alerta (haiku, ~150 tokens)
+async function generateAIAlertText(summary, topMotivo, topPerc, total) {
+    const segundoEntry = Object.entries(summary.motivos).sort((a, b) => b[1] - a[1])[1];
+    const segundoInfo = segundoEntry ? ` O segundo motivo é "${segundoEntry[0]}" (${((segundoEntry[1]/total)*100).toFixed(0)}%).` : '';
+
+    const prompt = `Você é analista de Customer Success. Em 2 frases curtas e diretas em português:
+1ª frase: descreva o impacto do motivo de cancelamento dominante com os números exatos.
+2ª frase: dê UMA ação preventiva prioritária concreta.
+
+Dados: ${total} cancelamentos. Motivo principal: "${topMotivo}" = ${topPerc.toFixed(0)}% dos casos (${summary.motivos[topMotivo]} registros).${segundoInfo}
+
+Responda APENAS com JSON: {"linha1": "...", "linha2": "..."}`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': getApiKey(),
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 200,
+            messages: [{ role: 'user', content: prompt }]
+        })
+    });
+
+    if (!response.ok) throw new Error('API error ' + response.status);
+    const result = await response.json();
+    const text = result.content[0].text;
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) return JSON.parse(match[0]);
+    return { linha1: text, linha2: '' };
+}
+
+// Gera alerta baseado em regras (sem IA)
+function buildLocalAlert(icone, severidade, topMotivo, topCount, topPerc, summary) {
+    const segundoEntry = Object.entries(summary.motivos).sort((a, b) => b[1] - a[1])[1];
+    const detalhe = segundoEntry
+        ? `Segundo motivo mais frequente: "${segundoEntry[0]}" com ${((segundoEntry[1]/summary.total)*100).toFixed(0)}% dos casos. Atenção recomendada para ações corretivas imediatas.`
+        : `Concentração elevada em um único motivo indica problema sistêmico que requer ação corretiva prioritária.`;
+
+    return {
+        timestamp: Date.now(),
+        titulo: `${icone} ${severidade}: ${topMotivo.toUpperCase()}`,
+        texto: `${topPerc.toFixed(0)}% dos cancelamentos (${topCount} de ${summary.total} registros) têm "${topMotivo}" como motivo principal.`,
+        detalhe,
+        fonte: `Análise automática · ${new Date().toLocaleDateString('pt-BR')} · Configure a API Key para insights com IA`
+    };
+}
+
+// Atualiza o DOM com os dados do alerta
+function renderAlert(alertData) {
+    const box = document.getElementById('alertaBox');
+    if (!box) return;
+
+    const titulo = document.getElementById('alertaTitulo');
+    const texto = document.getElementById('alertaTexto');
+    const detalhe = document.getElementById('alertaDetalhe');
+    const fonte = document.getElementById('alertaFonte');
+
+    if (titulo) titulo.textContent = alertData.titulo;
+    if (texto) texto.textContent = alertData.texto;
+    if (detalhe) detalhe.textContent = alertData.detalhe;
+    if (fonte) fonte.textContent = alertData.fonte;
+
+    box.style.display = '';
 }
 
 // Atualizar gráficos
@@ -568,41 +698,47 @@ function updateCharts(summary) {
     const motivoData = Object.values(summary.motivos);
     const total = summary.total;
 
-    // Recriar gráfico de motivos com datalabels
+    // Ordenar motivos do menor para o maior
+    const motivoEntries = Object.entries(summary.motivos).sort((a, b) => b[1] - a[1]);
+    const motivoLabelsSorted = motivoEntries.map(e => e[0]);
+    const motivoDataSorted = motivoEntries.map(e => e[1]);
+    const colors = ['#3b82f6', '#35cca3', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+    // Recriar gráfico de motivos como barras verticais (menor ao maior)
     const motivoCtx = document.getElementById('motivoChart');
     if (motivoCtx) {
         window.hubstromCharts.motivoChart = new Chart(motivoCtx, {
-            type: 'doughnut',
+            type: 'bar',
             data: {
-                labels: motivoLabels.map((label, i) => `${label} (${((motivoData[i] / total) * 100).toFixed(0)}%)`),
+                labels: motivoLabelsSorted,
                 datasets: [{
-                    data: motivoData,
-                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#35cca3'],
-                    borderWidth: 0,
-                    spacing: 4
+                    data: motivoDataSorted,
+                    backgroundColor: motivoLabelsSorted.map((_, i) => colors[i % colors.length]),
+                    borderRadius: 6,
+                    barThickness: 32
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                cutout: '55%',
                 plugins: {
-                    legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 12, usePointStyle: true } },
+                    legend: { display: false },
                     datalabels: {
                         display: true,
-                        color: (context) => {
-                            const bgColor = context.dataset.backgroundColor[context.dataIndex];
-                            const lightColors = ['#f59e0b', '#fbbf24', '#fcd34d'];
-                            return lightColors.includes(bgColor) ? '#1a1a2e' : '#ffffff';
-                        },
+                        color: '#ffffff',
+                        anchor: 'center',
+                        align: 'center',
                         font: { weight: 'bold', size: 14 },
-                        formatter: (value, context) => {
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        formatter: (value) => {
                             const pct = ((value / total) * 100).toFixed(0);
                             return value > 0 ? `${value}\n(${pct}%)` : '';
                         },
                         textAlign: 'center'
                     }
+                },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } }
                 }
             }
         });

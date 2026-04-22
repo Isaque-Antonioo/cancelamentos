@@ -180,16 +180,12 @@
             </div>
         </section>
 
-        <!-- Alerta Crítico -->
-        <div class="highlight-box">
-            <h3>⚠️ ALERTA CRÍTICO: USABILIDADE</h3>
-            <p style="font-size: 1.2em; margin-bottom: 10px;">
-                <strong>48% dos cancelamentos</strong> (32 de 66) são por problemas de USABILIDADE.
-            </p>
-            <p style="color: #ffffff;">
-                Este é o principal motivo e representa quase metade de todos os pedidos de cancelamento.
-                A análise detalhada abaixo explica exatamente o que significa "usabilidade" neste contexto.
-            </p>
+        <!-- Alerta Crítico (dinâmico) -->
+        <div class="highlight-box" id="alertaBox" style="display:none;">
+            <h3 id="alertaTitulo">⚠️ ALERTA CRÍTICO</h3>
+            <p id="alertaTexto" style="font-size: 1.15em; margin-bottom: 10px;"></p>
+            <p id="alertaDetalhe" style="color: #e2e8f0; line-height: 1.6;"></p>
+            <p id="alertaFonte" style="font-size: 0.72em; color: #64748b; margin-top: 10px;"></p>
         </div>
 
         <!-- Todos os 4 Gráficos Juntos -->
