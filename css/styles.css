@@ -179,6 +179,7 @@ body::before {
 
 .header-top {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--spacing-xl);
@@ -186,6 +187,17 @@ body::before {
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     position: relative;
     min-height: 44px;
+}
+
+/* Subtítulo dentro do header-top — desktop: última linha via order */
+#headerSubtitle {
+    width: 100%;
+    order: 100;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: clamp(0.9em, 2.5vw, 1.1em);
+    font-weight: 500;
+    margin-top: var(--spacing-sm);
 }
 
 /* Título Principal Centralizado */
@@ -1240,28 +1252,52 @@ body::before {
     }
 
     .header-top {
-        flex-direction: row;
-        justify-content: space-between;
+        flex-direction: column;
+        flex-wrap: nowrap;
         align-items: center;
-        gap: 8px;
-        margin-bottom: var(--spacing-sm);
+        gap: 6px;
+        margin-bottom: 0;
         padding-bottom: var(--spacing-sm);
+        min-height: 44px;
+    }
+
+    .hamburger-btn {
+        position: absolute;
+        top: var(--spacing-sm);
+        left: var(--spacing-sm);
+        margin-right: 0;
     }
 
     .header-main-title {
-        font-size: 0.9em;
+        font-size: 1.05em;
         position: static;
         transform: none;
         left: auto;
-        flex: 1;
         text-align: center;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        width: 100%;
+        padding: 0 52px;
+        pointer-events: auto;
+    }
+
+    #headerSubtitle {
+        order: 0;
+        font-size: 0.78em;
+        text-align: center;
+        width: 100%;
+        margin: 0;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .header-controls {
-        gap: 4px;
+        width: 100%;
+        gap: 6px;
+        padding-top: 4px;
+        justify-content: center;
+        flex-wrap: wrap;
     }
 
     .header-controls .user-display-name {
@@ -1277,11 +1313,6 @@ body::before {
         padding: 6px 8px;
         min-width: 100px;
         font-size: 0.8em;
-    }
-
-    #headerSubtitle {
-        font-size: 0.75em;
-        text-align: center;
     }
 
     /* KPIs Mobile - 2 colunas */
@@ -1405,11 +1436,10 @@ body::before {
     .header-top {
         gap: 4px;
         padding-bottom: 8px;
-        margin-bottom: 8px;
     }
 
     .header-main-title {
-        font-size: 0.75em;
+        font-size: 0.82em;
     }
 
     .hamburger-btn {
@@ -1419,12 +1449,12 @@ body::before {
     }
 
     .header-controls {
-        gap: 3px;
+        gap: 5px;
     }
 
     .btn-icon-small {
-        width: 28px;
-        height: 28px;
+        width: 30px;
+        height: 30px;
     }
 
     .btn-icon-small svg {
@@ -1433,9 +1463,9 @@ body::before {
     }
 
     .month-selector {
-        padding: 5px 6px;
-        min-width: 85px;
-        font-size: 0.75em;
+        padding: 5px 8px;
+        min-width: 90px;
+        font-size: 0.78em;
     }
 
     #headerSubtitle {
