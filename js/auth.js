@@ -143,8 +143,6 @@
     // Expor funcoes globalmente
     window.hubstromLogout = logout;
 
-    // Credenciais padrão (fallback quando Firebase não está disponível)
-    // username: admin  |  senha: nSHGqbsgqa0@hub
     const FALLBACK_ADMIN = {
         id: 'fallback_admin',
         username_hash: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918',
