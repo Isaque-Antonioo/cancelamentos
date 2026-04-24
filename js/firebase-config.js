@@ -34,6 +34,9 @@ function initFirebase() {
         firebaseReady = true;
         console.log('Firebase inicializado com sucesso!');
 
+        // Autenticação anônima — necessária para as Security Rules funcionarem
+        firebase.auth().signInAnonymously().catch(err => console.warn('[Firebase Auth]', err.message));
+
         // Sincronizar configurações do app do Firebase para localStorage
         syncAppSettingsFromFirebase().then(() => {
             // Escutar mudanças nas configurações em tempo real
