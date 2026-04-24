@@ -31,20 +31,26 @@ function initFirebase() {
         }
 
         database = firebase.database();
-        firebaseReady = true;
-        console.log('Firebase inicializado com sucesso!');
+        console.log('Firebase inicializado, aguardando autenticação anônima...');
 
-        // Autenticação anônima — necessária para as Security Rules funcionarem
-        firebase.auth().signInAnonymously().catch(err => console.warn('[Firebase Auth]', err.message));
+        // Autenticação anônima — dispara firebaseReady só após auth estar pronta
+        firebase.auth().signInAnonymously().then(() => {
+            firebaseReady = true;
+            console.log('Firebase pronto com autenticação anônima.');
 
-        // Sincronizar configurações do app do Firebase para localStorage
-        syncAppSettingsFromFirebase().then(() => {
-            // Escutar mudanças nas configurações em tempo real
-            listenToAppSettings();
+            // Sincronizar configurações do app do Firebase para localStorage
+            syncAppSettingsFromFirebase().then(() => {
+                listenToAppSettings();
+            });
+
+            // Disparar evento customizado para notificar outros scripts
+            window.dispatchEvent(new CustomEvent('firebaseReady'));
+        }).catch(err => {
+            console.warn('[Firebase Auth] Falha na auth anônima, continuando sem auth:', err.message);
+            firebaseReady = true;
+            syncAppSettingsFromFirebase().then(() => listenToAppSettings());
+            window.dispatchEvent(new CustomEvent('firebaseReady'));
         });
-
-        // Disparar evento customizado para notificar outros scripts
-        window.dispatchEvent(new CustomEvent('firebaseReady'));
 
         return true;
     } catch (error) {
