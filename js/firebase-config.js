@@ -33,23 +33,21 @@ function initFirebase() {
         database = firebase.database();
         console.log('Firebase inicializado, aguardando autenticação anônima...');
 
-        // Autenticação anônima — dispara firebaseReady só após auth estar pronta
+        // Autenticação anônima — dispara firebaseReady assim que auth estiver pronta
         firebase.auth().signInAnonymously().then(() => {
             firebaseReady = true;
             console.log('Firebase pronto com autenticação anônima.');
 
-            // Sincronizar configurações do app do Firebase para localStorage
-            syncAppSettingsFromFirebase().then(() => {
-                listenToAppSettings();
-            });
-
-            // Disparar evento customizado para notificar outros scripts
+            // Disparar imediatamente — não espera sync de configurações
             window.dispatchEvent(new CustomEvent('firebaseReady'));
+
+            // Sincronizar configurações em paralelo (não bloqueia o carregamento)
+            syncAppSettingsFromFirebase().then(() => listenToAppSettings());
         }).catch(err => {
             console.warn('[Firebase Auth] Falha na auth anônima, continuando sem auth:', err.message);
             firebaseReady = true;
-            syncAppSettingsFromFirebase().then(() => listenToAppSettings());
             window.dispatchEvent(new CustomEvent('firebaseReady'));
+            syncAppSettingsFromFirebase().then(() => listenToAppSettings());
         });
 
         return true;
