@@ -386,6 +386,7 @@ function prepareDataSummary(data) {
         status: {},
         motivos: {},
         modulos: {},
+        planos: {},
         tempoUso: { '0-3': 0, '3-6': 0, '6-12': 0, '+12': 0 },
         concorrentes: {},
         valorTotal: 0,
@@ -405,6 +406,22 @@ function prepareDataSummary(data) {
         const motivo = getColumn(row, 'Principal motivo', 'Motivo').trim();
         if (motivo) {
             summary.motivos[motivo] = (summary.motivos[motivo] || 0) + 1;
+        }
+
+        // Contagem de planos e valores por plano (solicitado, cancelado, revertido)
+        const plano = getColumn(row, 'Plano', 'plano').trim();
+        if (plano && plano !== '-' && plano !== 'N/A') {
+            summary.planos[plano] = (summary.planos[plano] || 0) + 1;
+            if (!summary.valoresPorPlano) summary.valoresPorPlano = {};
+            if (!summary.valoresPorPlano[plano]) summary.valoresPorPlano[plano] = { solicitado: 0, cancelado: 0, revertido: 0 };
+
+            const valorSolStr = getValueColumn(row, 'Valor / Solicitado');
+            const valorCancStr = getValueColumn(row, 'Valor  cancelado') || getValueColumn(row, 'Valor cancelado');
+            const valorRevStr = getValueColumn(row, 'Valor revertido');
+
+            summary.valoresPorPlano[plano].solicitado += parseMoneyValue(valorSolStr);
+            summary.valoresPorPlano[plano].cancelado  += parseMoneyValue(valorCancStr);
+            summary.valoresPorPlano[plano].revertido  += parseMoneyValue(valorRevStr);
         }
 
         // Módulos envolvidos (várias variações de nome de coluna)
@@ -1081,6 +1098,136 @@ function updateCharts(summary) {
                 scales: {
                     x: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
                     y: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // Recriar gráfico de planos
+    const planoCtx = document.getElementById('planoChart');
+    if (planoCtx) {
+        if (window.hubstromCharts && window.hubstromCharts.planoChart) {
+            window.hubstromCharts.planoChart.destroy();
+        }
+
+        const planoOrder = ['Enterprise', 'Professional', 'Avulso', 'Starter'];
+        const planoColors = { 'Enterprise': '#C19512', 'Professional': '#41B798', 'Starter': '#076A5D', 'Avulso': '#196A84' };
+        const defaultColors = ['#ef4444', '#f59e0b', '#3b82f6', '#35cca3', '#8b5cf6'];
+
+        const allPlanos = Object.keys(summary.planos);
+        const sortedPlanos = [
+            ...planoOrder.filter(p => allPlanos.includes(p)),
+            ...allPlanos.filter(p => !planoOrder.includes(p))
+        ];
+        const planoData = sortedPlanos.map(p => summary.planos[p]);
+        const planoTotal = planoData.reduce((a, b) => a + b, 0);
+        const planoBgColors = sortedPlanos.map((p, i) => planoColors[p] || defaultColors[i % defaultColors.length]);
+
+        window.hubstromCharts.planoChart = new Chart(planoCtx, {
+            type: 'doughnut',
+            data: {
+                labels: sortedPlanos,
+                datasets: [{
+                    data: planoData,
+                    backgroundColor: planoBgColors,
+                    borderWidth: 0,
+                    spacing: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '55%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 12, usePointStyle: true } },
+                    datalabels: {
+                        display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0,
+                        color: '#ffffff',
+                        font: { weight: 'bold', size: 13 },
+                        formatter: (value) => {
+                            const pct = ((value / planoTotal) * 100).toFixed(0);
+                            return `${value}\n(${pct}%)`;
+                        },
+                        textAlign: 'center'
+                    }
+                }
+            }
+        });
+    }
+
+    // Recriar gráfico de valor por plano (agrupado: solicitado / cancelado / revertido)
+    const valorPlanoCtx = document.getElementById('valorPlanoChart');
+    if (valorPlanoCtx && summary.valoresPorPlano) {
+        if (window.hubstromCharts && window.hubstromCharts.valorPlanoChart) {
+            window.hubstromCharts.valorPlanoChart.destroy();
+        }
+
+        const planoOrder = ['Enterprise', 'Professional', 'Avulso', 'Starter'];
+        const allPlanos = Object.keys(summary.valoresPorPlano);
+        const sortedPlanos = [
+            ...planoOrder.filter(p => allPlanos.includes(p)),
+            ...allPlanos.filter(p => !planoOrder.includes(p))
+        ];
+
+        const fmtK = (v) => {
+            if (v <= 0) return '';
+            return v >= 1000 ? 'R$' + (v / 1000).toFixed(1).replace('.', ',') + 'k' : 'R$' + v;
+        };
+
+        window.hubstromCharts.valorPlanoChart = new Chart(valorPlanoCtx, {
+            type: 'bar',
+            data: {
+                labels: sortedPlanos,
+                datasets: [
+                    {
+                        label: 'Solicitado',
+                        data: sortedPlanos.map(p => Math.round(summary.valoresPorPlano[p].solicitado)),
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 5,
+                        maxBarThickness: 28
+                    },
+                    {
+                        label: 'Cancelado',
+                        data: sortedPlanos.map(p => Math.round(summary.valoresPorPlano[p].cancelado)),
+                        backgroundColor: '#ef4444',
+                        borderRadius: 5,
+                        maxBarThickness: 28
+                    },
+                    {
+                        label: 'Revertido',
+                        data: sortedPlanos.map(p => Math.round(summary.valoresPorPlano[p].revertido)),
+                        backgroundColor: '#35cca3',
+                        borderRadius: 5,
+                        maxBarThickness: 28
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                layout: { padding: { top: 24 } },
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#94a3b8', usePointStyle: true, padding: 12 } },
+                    datalabels: {
+                        display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0,
+                        color: '#e2e8f0',
+                        anchor: 'end',
+                        align: 'end',
+                        offset: 2,
+                        font: { weight: 'bold', size: 10 },
+                        formatter: (v) => fmtK(v)
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#94a3b8',
+                            callback: (v) => v >= 1000 ? 'R$' + (v/1000).toFixed(0) + 'k' : 'R$' + v
+                        },
+                        grid: { color: 'rgba(255,255,255,0.06)' }
+                    }
                 }
             }
         });
