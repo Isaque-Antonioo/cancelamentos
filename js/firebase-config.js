@@ -33,19 +33,20 @@ function initFirebase() {
         database = firebase.database();
         console.log('Firebase inicializado, aguardando autenticação anônima...');
 
-        // Autenticação anônima — dispara firebaseReady assim que auth estiver pronta
-        firebase.auth().signInAnonymously().then(() => {
+        // Detectar auth cacheada (instantâneo) ou criar nova sessão anônima (rede)
+        firebase.auth().onAuthStateChanged((user) => {
+            if (firebaseReady) return; // já inicializado
             firebaseReady = true;
-            console.log('Firebase pronto com autenticação anônima.');
 
-            // Disparar imediatamente — não espera sync de configurações
-            window.dispatchEvent(new CustomEvent('firebaseReady'));
+            if (user) {
+                console.log('Firebase pronto (sessão cacheada).');
+            } else {
+                console.log('Firebase pronto (nova sessão anônima).');
+                firebase.auth().signInAnonymously().catch(err =>
+                    console.warn('[Firebase Auth]', err.message)
+                );
+            }
 
-            // Sincronizar configurações em paralelo (não bloqueia o carregamento)
-            syncAppSettingsFromFirebase().then(() => listenToAppSettings());
-        }).catch(err => {
-            console.warn('[Firebase Auth] Falha na auth anônima, continuando sem auth:', err.message);
-            firebaseReady = true;
             window.dispatchEvent(new CustomEvent('firebaseReady'));
             syncAppSettingsFromFirebase().then(() => listenToAppSettings());
         });
@@ -881,16 +882,12 @@ window.hubstromLog = function(action, details) {
 
 // Inicializar quando o DOM carregar
 document.addEventListener('DOMContentLoaded', () => {
-    // Aguardar um momento para garantir que os scripts do Firebase carregaram
-    setTimeout(() => {
-        if (typeof firebase !== 'undefined') {
-            const initialized = initFirebase();
-            // Seed do admin após inicialização
-            if (initialized) {
-                ensureAdminExists();
-            }
-        } else {
-            console.warn('Firebase SDK não carregado. Usando apenas localStorage.');
+    if (typeof firebase !== 'undefined') {
+        const initialized = initFirebase();
+        if (initialized) {
+            ensureAdminExists();
         }
-    }, 100);
+    } else {
+        console.warn('Firebase SDK não carregado. Usando apenas localStorage.');
+    }
 });
