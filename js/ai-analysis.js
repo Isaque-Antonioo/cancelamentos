@@ -387,6 +387,7 @@ function prepareDataSummary(data) {
         motivos: {},
         modulos: {},
         planos: {},
+        valoresPorPlano: {},
         tempoUso: { '0-3': 0, '3-6': 0, '6-12': 0, '+12': 0 },
         concorrentes: {},
         valorTotal: 0,
@@ -412,7 +413,6 @@ function prepareDataSummary(data) {
         const plano = getColumn(row, 'Plano', 'plano').trim();
         if (plano && plano !== '-' && plano !== 'N/A') {
             summary.planos[plano] = (summary.planos[plano] || 0) + 1;
-            if (!summary.valoresPorPlano) summary.valoresPorPlano = {};
             if (!summary.valoresPorPlano[plano]) summary.valoresPorPlano[plano] = { solicitado: 0, cancelado: 0, revertido: 0 };
 
             const valorSolStr = getValueColumn(row, 'Valor / Solicitado');
@@ -855,12 +855,11 @@ function renderAlert(alertData) {
 
 // Atualizar gráficos
 function updateCharts(summary) {
-    // Inicializar objeto global se não existir
-    window.hubstromCharts = window.hubstromCharts || {};
-
-    // Destruir gráficos existentes e recriar
-    const chartInstances = Chart.instances;
-    Object.values(chartInstances).forEach(chart => chart.destroy());
+    // Destruir todos os gráficos existentes e limpar referências
+    try {
+        Object.values(Chart.instances).forEach(chart => { try { chart.destroy(); } catch(e) {} });
+    } catch(e) {}
+    window.hubstromCharts = {};
 
     // Dados para gráfico de motivos
     const motivoLabels = Object.keys(summary.motivos);
@@ -1023,10 +1022,7 @@ function updateCharts(summary) {
     // Recriar gráfico de módulos
     const moduloCtx = document.getElementById('moduloChart');
     if (moduloCtx) {
-        // Destruir gráfico existente
-        if (window.hubstromCharts && window.hubstromCharts.moduloChart) {
-            window.hubstromCharts.moduloChart.destroy();
-        }
+
 
         const moduloLabels = Object.keys(summary.modulos).slice(0, 5);
         const moduloData = moduloLabels.map(m => summary.modulos[m]);
@@ -1106,9 +1102,7 @@ function updateCharts(summary) {
     // Recriar gráfico de planos
     const planoCtx = document.getElementById('planoChart');
     if (planoCtx) {
-        if (window.hubstromCharts && window.hubstromCharts.planoChart) {
-            window.hubstromCharts.planoChart.destroy();
-        }
+
 
         const planoOrder = ['Enterprise', 'Professional', 'Avulso', 'Starter'];
         const planoColors = { 'Enterprise': '#C19512', 'Professional': '#41B798', 'Starter': '#076A5D', 'Avulso': '#196A84' };
@@ -1158,9 +1152,7 @@ function updateCharts(summary) {
     // Recriar gráfico de valor por plano (agrupado: solicitado / cancelado / revertido)
     const valorPlanoCtx = document.getElementById('valorPlanoChart');
     if (valorPlanoCtx && summary.valoresPorPlano) {
-        if (window.hubstromCharts && window.hubstromCharts.valorPlanoChart) {
-            window.hubstromCharts.valorPlanoChart.destroy();
-        }
+
 
         const planoOrder = ['Enterprise', 'Professional', 'Avulso', 'Starter'];
         const allPlanos = Object.keys(summary.valoresPorPlano);
