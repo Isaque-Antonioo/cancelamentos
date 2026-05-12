@@ -1161,8 +1161,10 @@ function updateCharts(summary) {
             ...allPlanos.filter(p => !planoOrder.includes(p))
         ];
 
+        const isMobile = window.innerWidth <= 768;
         const fmtK = (v) => {
             if (v <= 0) return '';
+            if (isMobile) return v >= 1000 ? (v / 1000).toFixed(1).replace('.', ',') + 'k' : String(v);
             return v >= 1000 ? 'R$' + (v / 1000).toFixed(1).replace('.', ',') + 'k' : 'R$' + v;
         };
 
@@ -1176,21 +1178,21 @@ function updateCharts(summary) {
                         data: sortedPlanos.map(p => Math.round(summary.valoresPorPlano[p].solicitado)),
                         backgroundColor: '#3b82f6',
                         borderRadius: 5,
-                        maxBarThickness: 28
+                        maxBarThickness: isMobile ? 16 : 28
                     },
                     {
                         label: 'Cancelado',
                         data: sortedPlanos.map(p => Math.round(summary.valoresPorPlano[p].cancelado)),
                         backgroundColor: '#ef4444',
                         borderRadius: 5,
-                        maxBarThickness: 28
+                        maxBarThickness: isMobile ? 16 : 28
                     },
                     {
                         label: 'Revertido',
                         data: sortedPlanos.map(p => Math.round(summary.valoresPorPlano[p].revertido)),
                         backgroundColor: '#35cca3',
                         borderRadius: 5,
-                        maxBarThickness: 28
+                        maxBarThickness: isMobile ? 16 : 28
                     }
                 ]
             },
@@ -1206,17 +1208,18 @@ function updateCharts(summary) {
                         anchor: 'end',
                         align: 'end',
                         offset: 2,
-                        font: { weight: 'bold', size: 10 },
+                        font: { weight: 'bold', size: isMobile ? 8 : 10 },
                         formatter: (v) => fmtK(v)
                     }
                 },
                 scales: {
-                    x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                    x: { ticks: { color: '#94a3b8', font: { size: isMobile ? 9 : 12 } }, grid: { display: false } },
                     y: {
                         beginAtZero: true,
                         ticks: {
                             color: '#94a3b8',
-                            callback: (v) => v >= 1000 ? 'R$' + (v/1000).toFixed(0) + 'k' : 'R$' + v
+                            font: { size: isMobile ? 9 : 12 },
+                            callback: (v) => v >= 1000 ? (isMobile ? '' : 'R$') + (v/1000).toFixed(0) + 'k' : (isMobile ? '' : 'R$') + v
                         },
                         grid: { color: 'rgba(255,255,255,0.06)' }
                     }

@@ -136,6 +136,7 @@ function parseCSV(text) {
         row._status = getCol(row, 'Status', 'Situação', 'Situacao') || '';
         row._diaMes = getCol(row, 'Dia/Mês', 'Dia/Mes', 'Dia', 'Data', 'Date') || '';
         row._colaborador = getCol(row, 'Colaborador', 'Atendente', 'Responsável', 'Responsavel') || '';
+        row._plano = getCol(row, 'Plano', 'plano', 'Planos', 'planos') || '';
 
         // Extrair mês e ano do campo Dia/Mês (formato dd/mm ou dd/mm/yyyy)
         row._mesNum = extractMonth(row._diaMes);
@@ -404,6 +405,8 @@ function buildSummaryForChart(data) {
         canais: {},
         processos: {},
         colaboradores: {},
+        planos: {},
+        clientes: {},
         ligacoes: { sim: 0, nao: 0 },
         clientesUnicos: new Set(),
         timeline: {}
@@ -425,6 +428,12 @@ function buildSummaryForChart(data) {
         const colaborador = row._nColaborador || normalizeColaborador(row._colaborador);
         if (colaborador) summary.colaboradores[colaborador] = (summary.colaboradores[colaborador] || 0) + 1;
 
+        const plano = row._plano || getCol(row, 'Plano', 'plano', 'Planos', 'planos') || '';
+        const planoTrim = plano.toString().trim();
+        if (planoTrim && planoTrim !== '-' && planoTrim !== 'N/A') {
+            summary.planos[planoTrim] = (summary.planos[planoTrim] || 0) + 1;
+        }
+
         // Ligações
         if (row._nLigacao) {
             summary.ligacoes.sim++;
@@ -434,7 +443,9 @@ function buildSummaryForChart(data) {
 
         // Clientes únicos
         if (row._razaoSocial) {
-            summary.clientesUnicos.add(row._razaoSocial.toLowerCase().replace(/\s+/g, ' ').trim());
+            const clienteKey = row._razaoSocial.trim();
+            summary.clientesUnicos.add(clienteKey.toLowerCase().replace(/\s+/g, ' '));
+            summary.clientes[clienteKey] = (summary.clientes[clienteKey] || 0) + 1;
         }
 
         // Timeline
@@ -534,6 +545,8 @@ function buildSummary(data) {
         canais: {},
         processos: {},
         colaboradores: {},
+        planos: {},
+        clientes: {},
         ligacoes: { sim: 0, nao: 0 },
         clientesUnicos: new Set(),
         timeline: {}
@@ -556,6 +569,12 @@ function buildSummary(data) {
         const colaborador = row._nColaborador || normalizeColaborador(row._colaborador);
         if (colaborador) summary.colaboradores[colaborador] = (summary.colaboradores[colaborador] || 0) + 1;
 
+        const plano = row._plano || getCol(row, 'Plano', 'plano', 'Planos', 'planos') || '';
+        const planoTrim = plano.toString().trim();
+        if (planoTrim && planoTrim !== '-' && planoTrim !== 'N/A') {
+            summary.planos[planoTrim] = (summary.planos[planoTrim] || 0) + 1;
+        }
+
         if (row._nLigacao !== undefined) {
             if (row._nLigacao) summary.ligacoes.sim++;
             else summary.ligacoes.nao++;
@@ -569,7 +588,9 @@ function buildSummary(data) {
         }
 
         if (row._razaoSocial) {
-            summary.clientesUnicos.add(row._razaoSocial.toLowerCase().replace(/\s+/g, ' ').trim());
+            const clienteKey = row._razaoSocial.trim();
+            summary.clientesUnicos.add(clienteKey.toLowerCase().replace(/\s+/g, ' '));
+            summary.clientes[clienteKey] = (summary.clientes[clienteKey] || 0) + 1;
         }
 
         // Timeline
@@ -697,6 +718,169 @@ function updateCharts(summary) {
     createColaboradorChart(summary.colaboradores);
     createProcessoChart(summary.processos);
     createTimelineChart(summary.timeline);
+    createPlanoChart(summary.planos || {});
+    createTopClientesChart(summary.clientes || {});
+}
+
+function normalizePlanName(name) {
+    if (!name) return '';
+    const canonical = { enterprise: 'Enterprise', professional: 'Professional', starter: 'Starter', avulso: 'Avulso' };
+    return canonical[name.trim().toLowerCase()] || name.trim();
+}
+
+function createPlanoChart(planosData) {
+    if (suporteCharts['chartPlano']) suporteCharts['chartPlano'].destroy();
+    const ctx = document.getElementById('chartPlano');
+    if (!ctx) return;
+
+    const planoColors = {
+        'Enterprise': '#C19512',
+        'Professional': '#41B798',
+        'Starter': '#076A5D',
+        'Avulso': '#196A84'
+    };
+
+    // Merge after normalization to eliminate case duplicates
+    const merged = {};
+    Object.entries(planosData).forEach(([k, v]) => {
+        const norm = normalizePlanName(k);
+        merged[norm] = (merged[norm] || 0) + v;
+    });
+
+    const entries = Object.entries(merged).sort((a, b) => b[1] - a[1]);
+    if (entries.length === 0) return;
+
+    const labels = entries.map(e => e[0]);
+    const values = entries.map(e => e[1]);
+    const total = values.reduce((a, b) => a + b, 0);
+    const colors = labels.map((l, i) => planoColors[l] || chartPalette[i % chartPalette.length]);
+
+    suporteCharts['chartPlano'] = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors,
+                borderWidth: 3,
+                borderColor: 'rgba(10, 15, 20, 0.8)',
+                hoverBorderColor: '#ffffff',
+                hoverBorderWidth: 3,
+                hoverOffset: 12,
+                spacing: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label(context) {
+                            const pct = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                            return ` ${context.label}: ${context.parsed.toLocaleString('pt-BR')} chamados (${pct}%)`;
+                        }
+                    }
+                },
+                datalabels: {
+                    color: '#fff',
+                    font: { weight: 'bold', size: 13 },
+                    formatter(value) {
+                        const pct = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
+                        return pct >= 5 ? `${pct}%` : '';
+                    }
+                }
+            }
+        }
+    });
+
+    const legendEl = document.getElementById('chartPlanoLegend');
+    if (legendEl) {
+        legendEl.innerHTML = labels.map((label, i) => `
+            <div class="plano-legend-item">
+                <span class="plano-legend-dot" style="background:${colors[i]}"></span>
+                <span class="plano-legend-label">${label}</span>
+                <span class="plano-legend-count">${values[i].toLocaleString('pt-BR')}</span>
+            </div>
+        `).join('');
+    }
+}
+
+function createTopClientesChart(clientesData) {
+    if (suporteCharts['chartTopClientes']) suporteCharts['chartTopClientes'].destroy();
+    const ctx = document.getElementById('chartTopClientes');
+    if (!ctx) return;
+
+    const entries = Object.entries(clientesData)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+    if (entries.length === 0) return;
+
+    const labels = entries.map(e => e[0]);
+    const values = entries.map(e => e[1]);
+    const maxVal = values[0] || 1;
+
+    suporteCharts['chartTopClientes'] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: labels.map((_, i) => {
+                    const alpha = 1 - (i / labels.length) * 0.45;
+                    return `rgba(53, 204, 163, ${alpha})`;
+                }),
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label(context) {
+                            return ` ${context.parsed.x} chamado${context.parsed.x !== 1 ? 's' : ''}`;
+                        }
+                    }
+                },
+                datalabels: {
+                    anchor: 'end',
+                    align: 'end',
+                    color: '#e2e8f0',
+                    font: { weight: 'bold', size: 12 },
+                    formatter(value) { return value; },
+                    clip: false
+                }
+            },
+            scales: {
+                x: {
+                    display: false,
+                    max: maxVal * 1.18
+                },
+                y: {
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: {
+                        color: '#e2e8f0',
+                        font: { size: 12 },
+                        maxTicksLimit: 10,
+                        callback(value, index) {
+                            const label = this.getLabelForValue(index);
+                            return label.length > 22 ? label.substring(0, 22) + '…' : label;
+                        }
+                    }
+                }
+            },
+            layout: { padding: { right: 30 } }
+        }
+    });
 }
 
 function createDoughnutChart(canvasId, labels, data, colors) {
@@ -2588,6 +2772,7 @@ function convertSuporteFirebaseData(data) {
         row._status = getCol(row, 'Status', 'Situação', 'Situacao') || '';
         row._diaMes = getCol(row, 'Dia/Mês', 'Dia/Mes', 'Dia', 'Data', 'Date') || '';
         row._colaborador = getCol(row, 'Colaborador', 'Atendente', 'Responsável', 'Responsavel') || '';
+        row._plano = getCol(row, 'Plano', 'plano', 'Planos', 'planos') || '';
 
         row._mesNum = extractMonth(row._diaMes);
         row._anoNum = extractYear(row._diaMes);
