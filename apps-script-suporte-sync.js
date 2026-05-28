@@ -1,6 +1,6 @@
 /**
  * =====================================================
- * HUBSTROM - Apps Script Suporte → Firebase
+ * HUBSTROM - Apps Script Suporte + Bugs → Firebase
  * =====================================================
  *
  * COMO INSTALAR:
@@ -13,24 +13,19 @@
  * 7. Aceite as permissões
  *
  * COMO FUNCIONA:
- * - Toda edição na planilha dispara o envio para Firebase
- * - Lê todos os registros válidos (ignora linhas vazias e cabeçalhos repetidos)
- * - Envia os dados para suporte_live.json
- * - O dashboard escuta esse path e atualiza em tempo real
- *
- * FORMATO DOS DADOS:
- * - headers: array com nomes originais das colunas
- * - rows: array de arrays (cada row é um array de valores)
- * - Isso evita problemas com caracteres especiais nas chaves do Firebase
+ * - Toda edição na planilha dispara sincronização de AMBAS as abas:
+ *   → "Dados Atendimento" envia para /suporte_live.json
+ *   → "Bugs" envia para /bugs_live.json
+ * - Abas que não existirem são ignoradas silenciosamente
  */
 
 // ===================== CONFIGURAÇÃO =====================
 var FIREBASE_URL = 'https://relatorio-geral-default-rtdb.firebaseio.com';
 
-// Aba fixa de onde os dados são lidos
+// Aba de suporte
 var SOURCE_SHEET_NAME = 'Dados Atendimento';
 
-// Colunas desejadas (na ordem de exibição) — busca por correspondência parcial, sem acento
+// Colunas desejadas para suporte — busca por correspondência parcial, sem acento
 var DESIRED_COLUMNS = [
   'Razão Social',
   'Módulo',
@@ -41,6 +36,24 @@ var DESIRED_COLUMNS = [
   'Dia/Mês',
   'Colaborador',
   'Planos'
+];
+
+// Aba de bugs
+var BUGS_SHEET_NAME = 'Bugs';
+
+// Colunas desejadas para bugs
+var BUGS_DESIRED_COLUMNS = [
+  'Tipo',
+  'Chave',
+  'Resumo',
+  'Status 1',
+  'Prioridade',
+  'Responsável',
+  'Criado',
+  'Módulos 1',
+  'Funcionalidades',
+  'Razão Social 2',
+  'Relator da Situação 3'
 ];
 
 // Palavras que indicam linha de cabeçalho repetida (não é dado real)
@@ -54,7 +67,6 @@ var HEADER_WORDS = [
 // ===================== TRIGGER SETUP =====================
 
 function setupTrigger() {
-  // Remover triggers antigos
   var triggers = ScriptApp.getProjectTriggers();
   for (var i = 0; i < triggers.length; i++) {
     var handler = triggers[i].getHandlerFunction();
@@ -63,30 +75,40 @@ function setupTrigger() {
     }
   }
 
-  // onChange detecta tudo (edições, fórmulas, importações)
   ScriptApp.newTrigger('onSheetChange')
     .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
     .onChange()
     .create();
 
-  // onEdit para edições diretas do usuário
   ScriptApp.newTrigger('onSheetEdit')
     .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
     .onEdit()
     .create();
 
   Logger.log('Triggers criados com sucesso!');
-  SpreadsheetApp.getUi().alert('Triggers instalados! O dashboard de suporte vai atualizar em tempo real.');
+
+  // Sync inicial das duas abas
+  syncCurrentSheet();
+  syncBugs();
+
+  SpreadsheetApp.getUi().alert(
+    'Triggers instalados!\n\n' +
+    '✓ "Dados Atendimento" → /suporte_live\n' +
+    '✓ "Bugs" → /bugs_live\n\n' +
+    'Ambos os dashboards atualizam em tempo real.'
+  );
 }
 
 // ===================== MAIN FUNCTIONS =====================
 
 function onSheetChange(e) {
   syncCurrentSheet();
+  syncBugs();
 }
 
 function onSheetEdit(e) {
   syncCurrentSheet();
+  syncBugs();
 }
 
 /**
@@ -134,6 +156,46 @@ function syncCurrentSheet() {
   }
 }
 
+/**
+ * Sincroniza a aba "Bugs" com o Firebase → /bugs_live.json
+ */
+function syncBugs() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(BUGS_SHEET_NAME);
+
+    if (!sheet) {
+      Logger.log('Aba "' + BUGS_SHEET_NAME + '" não encontrada — ignorando sync de bugs.');
+      return;
+    }
+
+    var data = readSheetData(sheet, BUGS_DESIRED_COLUMNS);
+
+    if (data.rows.length === 0) {
+      Logger.log('Nenhum dado encontrado em "' + BUGS_SHEET_NAME + '"');
+      return;
+    }
+
+    var payload = {
+      headers:     data.headers,
+      rows:        data.rows,
+      totalRows:   data.rows.length,
+      sheetName:   BUGS_SHEET_NAME,
+      updatedAt:   Date.now(),
+      updatedISO:  new Date().toISOString(),
+      checksum:    generateChecksum(data),
+      dataVersion: 2,
+      source:      'apps_script'
+    };
+
+    sendToFirebase('/bugs_live.json', payload);
+    Logger.log('Bugs enviados! ' + data.rows.length + ' registros');
+
+  } catch (error) {
+    Logger.log('Erro ao sincronizar bugs: ' + error.message);
+  }
+}
+
 // ===================== SYNC MANUAL =====================
 
 /**
@@ -171,7 +233,12 @@ function syncAllSheets() {
 
   sendToFirebase('/suporte_live.json', payload);
 
-  SpreadsheetApp.getUi().alert(data.rows.length + ' registros sincronizados com o dashboard!');
+  syncBugs();
+
+  SpreadsheetApp.getUi().alert(
+    'Suporte: ' + data.rows.length + ' registros sincronizados!\n' +
+    'Bugs: também sincronizados.'
+  );
 }
 
 // ===================== DATA READER =====================
@@ -190,7 +257,8 @@ function syncAllSheets() {
  * - headers: array com nomes originais das colunas (apenas as desejadas, na ordem de DESIRED_COLUMNS)
  * - rows: array de arrays (valores na mesma ordem dos headers filtrados)
  */
-function readSheetData(sheet) {
+function readSheetData(sheet, desiredColumns) {
+  desiredColumns = desiredColumns || DESIRED_COLUMNS;
   var lastRow = sheet.getLastRow();
   var lastCol = sheet.getLastColumn();
 
@@ -205,8 +273,8 @@ function readSheetData(sheet) {
   var colIndexes = [];   // índice real na planilha para cada coluna desejada encontrada
   var colHeaders = [];   // nome original da coluna (como está na planilha)
 
-  for (var d = 0; d < DESIRED_COLUMNS.length; d++) {
-    var desired = stripAccents(DESIRED_COLUMNS[d]).toLowerCase();
+  for (var d = 0; d < desiredColumns.length; d++) {
+    var desired = stripAccents(desiredColumns[d]).toLowerCase();
     var found = -1;
     for (var h = 0; h < allHeaders.length; h++) {
       var headerNorm = stripAccents(allHeaders[h].toString().trim()).toLowerCase();
@@ -221,7 +289,7 @@ function readSheetData(sheet) {
     } else {
       // Coluna desejada não encontrada — inclui com nome canônico e valor vazio
       colIndexes.push(-1);
-      colHeaders.push(DESIRED_COLUMNS[d]);
+      colHeaders.push(desiredColumns[d]);
     }
   }
 
@@ -330,13 +398,19 @@ function sendToFirebase(path, data) {
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Hubstrom Dashboard')
-    .addItem('Sincronizar aba atual', 'manualSync')
-    .addItem('Sincronizar TODAS as abas', 'syncAllSheets')
+    .addItem('Sincronizar Suporte', 'manualSync')
+    .addItem('Sincronizar Bugs', 'manualSyncBugs')
+    .addItem('Sincronizar Tudo', 'syncAllSheets')
     .addItem('Configurar triggers', 'setupTrigger')
     .addToUi();
 }
 
 function manualSync() {
   syncCurrentSheet();
-  SpreadsheetApp.getUi().alert('Aba sincronizada com o dashboard de suporte!');
+  SpreadsheetApp.getUi().alert('Suporte sincronizado com o dashboard!');
+}
+
+function manualSyncBugs() {
+  syncBugs();
+  SpreadsheetApp.getUi().alert('Bugs sincronizados com o dashboard!');
 }

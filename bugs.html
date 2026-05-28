@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Bugs - Dashboard de Acompanhamento">
+    <title>Hubstrom - Bugs</title>
+
+    <!-- Favicon Hubstrom -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M161 85c2.7-1.2 5.6.8 5.6 3.7v50.3c0 1.6-.9 3-2.4 3.7L35.2 199.9c-.9.4-1.9-.3-1.9-1.2v-54.4c0-1.6.9-3 2.4-3.7L161 85z' fill='%2335CCA3'/%3E%3Cpath d='M164.8.1c.9-.4 1.9.3 1.9 1.2v54.4c0 1.6-.9 3-2.4 3.7L39 114.9c-2.7 1.2-5.6-.8-5.6-3.7V61c0-1.6.9-3 2.4-3.7L164.8.1z' fill='%2335CCA3'/%3E%3C/svg%3E">
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/bugs.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+    <!-- Verificacao de autenticacao -->
+    <script src="js/auth.js"></script>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Menu Lateral -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>Dashboards</h3>
+                <button class="sidebar-close" onclick="toggleSidebar()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="sidebar-item">
+                    <a href="index.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 20V10M12 20V4M6 20v-6"/>
+                        </svg>
+                        <span>Cancelamentos</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="comercial.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                        <span>Comercial</span>
+                    </a>
+                </li>
+                <li class="sidebar-item" style="opacity:0.4;pointer-events:none;cursor:not-allowed;">
+                    <a href="javascript:void(0)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                        <span>Análise Comercial <em style="font-size:0.68em;color:#6b7280;font-style:normal">— Em breve</em></span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="relacionamento.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                        <span>Relacionamento</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="suporte.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        <span>Suporte</span>
+                    </a>
+                </li>
+                <li class="sidebar-item active">
+                    <a href="bugs.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="8" y="6" width="8" height="14" rx="4"/>
+                            <path d="M12 6V3M4 10l4 2M20 10l-4 2M4 18l4-2M20 18l-4-2"/>
+                        </svg>
+                        <span>Bugs</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="log-erros.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <span>Log de Erros</span>
+                    </a>
+                </li>
+                <li class="sidebar-item sidebar-admin-only">
+                    <a href="admin.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        <span>Admin</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+        <!-- Header -->
+        <header class="header">
+            <div class="header-top">
+                <button class="hamburger-btn" onclick="toggleSidebar()" title="Menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <h1 class="header-main-title">Bugs</h1>
+                <p id="bugsHeaderSubtitle">Carregando dados...</p>
+                <div class="header-controls">
+                    <select id="bugsMonthFilter" class="month-selector" onchange="handleBugsMonthFilter(this.value)">
+                        <option value="todos">Todos os meses</option>
+                    </select>
+                    <span class="user-display-name" id="userDisplayName"></span>
+                    <button class="btn-icon-small btn-logout" onclick="hubstromLogout()" title="Sair">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- KPIs -->
+        <section class="kpi-grid bugs-kpi-grid">
+            <div class="kpi-card neutral" id="kpiBugsTotal">
+                <div class="kpi-value">-</div>
+                <div class="kpi-label">Total de Bugs</div>
+            </div>
+            <div class="kpi-card success" id="kpiBugsResolvidos">
+                <div class="kpi-value">-</div>
+                <div class="kpi-label">Resolvidos</div>
+            </div>
+            <div class="kpi-card danger" id="kpiBugsAbertos">
+                <div class="kpi-value">-</div>
+                <div class="kpi-label">Em Aberto</div>
+            </div>
+            <div class="kpi-card warning" id="kpiBugsCriticos">
+                <div class="kpi-value">-</div>
+                <div class="kpi-label">P0 + P1 Críticos</div>
+            </div>
+            <div class="kpi-card info" id="kpiBugsMes">
+                <div class="kpi-value">-</div>
+                <div class="kpi-label">Bugs Este Mês</div>
+            </div>
+        </section>
+
+        <!-- Charts -->
+        <section class="bugs-charts-grid">
+
+            <!-- Evolução Mensal - full width -->
+            <div class="chart-card chart-full">
+                <div class="chart-header">
+                    <h3>Evolução de Bugs por Mês</h3>
+                </div>
+                <canvas id="chartBugsTimeline"></canvas>
+            </div>
+
+            <!-- Status -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>Por Status</h3>
+                </div>
+                <canvas id="chartBugsStatus"></canvas>
+            </div>
+
+            <!-- Prioridade -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>Por Prioridade</h3>
+                </div>
+                <canvas id="chartBugsPrioridade"></canvas>
+            </div>
+
+            <!-- Módulo -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>Top 10 Módulos com mais Bugs</h3>
+                </div>
+                <canvas id="chartBugsModulo"></canvas>
+            </div>
+
+            <!-- Responsável -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>Bugs por Responsável</h3>
+                </div>
+                <canvas id="chartBugsResponsavel"></canvas>
+            </div>
+
+            <!-- Top Clientes -->
+            <div class="chart-card chart-full">
+                <div class="chart-header">
+                    <h3>Top 10 Clientes com mais Bugs</h3>
+                </div>
+                <canvas id="chartBugsClientes"></canvas>
+            </div>
+
+        </section>
+
+        <!-- Tabela -->
+        <section class="bugs-table-section">
+            <div class="table-header">
+                <h2>Listagem de Bugs</h2>
+                <div class="table-controls">
+                    <button class="btn-clear-bugs" onclick="clearBugsFilters()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                        Limpar filtros
+                    </button>
+                    <span class="table-count" id="bugsTableCount">0 bugs</span>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="bugs-filters">
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="bugsFilterStatus" onchange="handleBugsFilter('status', this.value)">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Prioridade</label>
+                    <select id="bugsFilterPrioridade" onchange="handleBugsFilter('prioridade', this.value)">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Módulo</label>
+                    <select id="bugsFilterModulo" onchange="handleBugsFilter('modulo', this.value)">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Responsável</label>
+                    <select id="bugsFilterResponsavel" onchange="handleBugsFilter('responsavel', this.value)">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="filter-group filter-search">
+                    <label>Buscar</label>
+                    <input type="text" id="bugsSearch" placeholder="Chave, resumo, cliente..." oninput="debounceBugsSearch()">
+                </div>
+            </div>
+
+            <div class="bugs-table-wrapper">
+                <table class="bugs-table" id="bugsTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortBugsTable('_chave')">Chave <span class="sort-icon"></span></th>
+                            <th onclick="sortBugsTable('_resumo')">Resumo <span class="sort-icon"></span></th>
+                            <th onclick="sortBugsTable('_status')">Status <span class="sort-icon"></span></th>
+                            <th onclick="sortBugsTable('_prioridade')">Prioridade <span class="sort-icon"></span></th>
+                            <th onclick="sortBugsTable('_modulo')">Módulo <span class="sort-icon"></span></th>
+                            <th onclick="sortBugsTable('_responsavel')">Responsável <span class="sort-icon"></span></th>
+                            <th onclick="sortBugsTable('_criado')">Criado <span class="sort-icon"></span></th>
+                            <th onclick="sortBugsTable('_cliente')">Cliente <span class="sort-icon"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="bugsTableBody">
+                        <tr><td colspan="8" class="table-loading">Carregando dados...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+    <!-- Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/bugs.js"></script>
+</body>
+</html>
