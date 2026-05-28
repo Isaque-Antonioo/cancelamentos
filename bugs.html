@@ -120,7 +120,6 @@
                         <line x1="3" y1="18" x2="21" y2="18"></line>
                     </svg>
                 </button>
-                <h1 class="header-main-title">Bugs</h1>
                 <p id="bugsHeaderSubtitle">Carregando dados...</p>
                 <div class="header-controls">
                     <select id="bugsMonthFilter" class="month-selector" onchange="handleBugsMonthFilter(this.value)">
@@ -138,82 +137,106 @@
             </div>
         </header>
 
-        <!-- KPIs -->
-        <section class="kpi-grid bugs-kpi-grid">
-            <div class="kpi-card neutral" id="kpiBugsTotal">
-                <div class="kpi-value">-</div>
-                <div class="kpi-label">Total de Bugs</div>
-            </div>
-            <div class="kpi-card success" id="kpiBugsResolvidos">
-                <div class="kpi-value">-</div>
-                <div class="kpi-label">Resolvidos</div>
-            </div>
-            <div class="kpi-card danger" id="kpiBugsAbertos">
-                <div class="kpi-value">-</div>
-                <div class="kpi-label">Em Aberto</div>
-            </div>
-            <div class="kpi-card warning" id="kpiBugsCriticos">
-                <div class="kpi-value">-</div>
-                <div class="kpi-label">P0 + P1 Críticos</div>
-            </div>
-            <div class="kpi-card info" id="kpiBugsMes">
-                <div class="kpi-value">-</div>
-                <div class="kpi-label">Bugs Este Mês</div>
-            </div>
-        </section>
+        <!-- Layout principal 2 colunas -->
+        <div class="bugs-layout">
 
-        <!-- Charts -->
-        <section class="bugs-charts-grid">
+            <!-- COLUNA ESQUERDA -->
+            <div class="bugs-col-left">
 
-            <!-- Evolução Mensal - full width -->
-            <div class="chart-card chart-full">
-                <div class="chart-header">
-                    <h3>Evolução de Bugs por Mês</h3>
+                <!-- Card: Visão Geral (donut + KPI list) -->
+                <div class="bugs-card bugs-overview-card">
+                    <div class="bugs-card-header">
+                        <div>
+                            <h2 class="bugs-card-title">Visão Geral dos Bugs</h2>
+                            <p class="bugs-card-subtitle">Acompanhe a situação e evolucao dos registros</p>
+                        </div>
+                    </div>
+                    <div class="bugs-overview-body">
+                        <div class="bugs-overview-donut">
+                            <canvas id="chartBugsOverview"></canvas>
+                        </div>
+                        <div class="bugs-kpi-list">
+                            <div class="bugs-kpi-item" id="kpiBugsTotal">
+                                <div class="bugs-kpi-bar" style="background:#6B7485"></div>
+                                <div class="bugs-kpi-body">
+                                    <span class="bugs-kpi-label">Total de Bugs</span>
+                                    <span class="bugs-kpi-desc">Todos os registros</span>
+                                </div>
+                                <strong class="kpi-value">-</strong>
+                            </div>
+                            <div class="bugs-kpi-item" id="kpiBugsResolvidos">
+                                <div class="bugs-kpi-bar" style="background:#35CCA3"></div>
+                                <div class="bugs-kpi-body">
+                                    <span class="bugs-kpi-label">Resolvidos</span>
+                                    <span class="bugs-kpi-desc">Concluidos com sucesso</span>
+                                </div>
+                                <strong class="kpi-value" style="color:#35CCA3">-</strong>
+                            </div>
+                            <div class="bugs-kpi-item" id="kpiBugsAbertos">
+                                <div class="bugs-kpi-bar" style="background:#E05D5D"></div>
+                                <div class="bugs-kpi-body">
+                                    <span class="bugs-kpi-label">Em Aberto</span>
+                                    <span class="bugs-kpi-desc">Aguardando resolucao</span>
+                                </div>
+                                <strong class="kpi-value" style="color:#E05D5D">-</strong>
+                            </div>
+                            <div class="bugs-kpi-item" id="kpiBugsCriticos">
+                                <div class="bugs-kpi-bar" style="background:#FF7E20"></div>
+                                <div class="bugs-kpi-body">
+                                    <span class="bugs-kpi-label">P0 + P1 Criticos</span>
+                                    <span class="bugs-kpi-desc">Prioridade maxima</span>
+                                </div>
+                                <strong class="kpi-value" style="color:#FF7E20">-</strong>
+                            </div>
+                            <div class="bugs-kpi-item" id="kpiBugsMes">
+                                <div class="bugs-kpi-bar" style="background:#0DABCE"></div>
+                                <div class="bugs-kpi-body">
+                                    <span class="bugs-kpi-label">Bugs Este Mes</span>
+                                    <span class="bugs-kpi-desc">Mes corrente</span>
+                                </div>
+                                <strong class="kpi-value" style="color:#0DABCE">-</strong>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <canvas id="chartBugsTimeline"></canvas>
-            </div>
 
-            <!-- Status -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>Por Status</h3>
+                <!-- Card: Timeline -->
+                <div class="bugs-card bugs-timeline-card">
+                    <h3 class="bugs-card-h3">Evolucao de Bugs por Mes</h3>
+                    <canvas id="chartBugsTimeline"></canvas>
                 </div>
-                <canvas id="chartBugsStatus"></canvas>
-            </div>
 
-            <!-- Prioridade -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>Por Prioridade</h3>
+                <!-- Cards: Modulos + Clientes (2 colunas) -->
+                <div class="bugs-bottom-grid">
+                    <div class="bugs-card bugs-bottom-card">
+                        <h3 class="bugs-card-h3">Top 10 Modulos</h3>
+                        <canvas id="chartBugsModulo"></canvas>
+                    </div>
+                    <div class="bugs-card bugs-bottom-card">
+                        <h3 class="bugs-card-h3">Top 10 Clientes</h3>
+                        <canvas id="chartBugsClientes"></canvas>
+                    </div>
                 </div>
-                <canvas id="chartBugsPrioridade"></canvas>
+
             </div>
 
-            <!-- Módulo -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>Top 10 Módulos com mais Bugs</h3>
+            <!-- COLUNA DIREITA: Status, Prioridade, Responsavel -->
+            <div class="bugs-col-right">
+                <div class="bugs-card bugs-side-card">
+                    <h3 class="bugs-card-h3">Por Status</h3>
+                    <canvas id="chartBugsStatus"></canvas>
                 </div>
-                <canvas id="chartBugsModulo"></canvas>
-            </div>
-
-            <!-- Responsável -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>Bugs por Responsável</h3>
+                <div class="bugs-card bugs-side-card">
+                    <h3 class="bugs-card-h3">Por Prioridade</h3>
+                    <canvas id="chartBugsPrioridade"></canvas>
                 </div>
-                <canvas id="chartBugsResponsavel"></canvas>
-            </div>
-
-            <!-- Top Clientes -->
-            <div class="chart-card chart-full">
-                <div class="chart-header">
-                    <h3>Top 10 Clientes com mais Bugs</h3>
+                <div class="bugs-card bugs-side-card">
+                    <h3 class="bugs-card-h3">Por Responsavel</h3>
+                    <canvas id="chartBugsResponsavel"></canvas>
                 </div>
-                <canvas id="chartBugsClientes"></canvas>
             </div>
 
-        </section>
+        </div>
 
         <!-- Tabela -->
         <section class="bugs-table-section">
