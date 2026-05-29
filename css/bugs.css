@@ -1,7 +1,19 @@
 /* ===================================
    Bugs - Dashboard Styles
+   Font: Poppins
    Layout: 2 colunas estilo fiscal
    =================================== */
+
+/* Poppins em todo o dashboard de bugs */
+.bugs-layout,
+.bugs-top-row,
+.bugs-table-section,
+.bugs-timeline-card,
+.bugs-bottom-card,
+.bugs-side-card,
+.bugs-overview-card {
+    font-family: 'Poppins', 'Segoe UI', sans-serif;
+}
 
 /* ── Card base ─────────────────────── */
 .bugs-card {
@@ -14,21 +26,24 @@
 .bugs-card:hover { border-color: #49536A; }
 
 .bugs-card-title {
+    font-family: 'Poppins', sans-serif;
     font-size: 1.05em;
     font-weight: 700;
     color: #E7E7E7;
     margin: 0 0 4px;
 }
 .bugs-card-subtitle {
+    font-family: 'Poppins', sans-serif;
     font-size: 0.78em;
-    color: #6B7485;
+    color: #8C95A3;
     margin: 0;
 }
 .bugs-card-header {
     margin-bottom: 20px;
 }
 .bugs-card-h3 {
-    font-size: 0.9em;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.88em;
     font-weight: 600;
     color: #D3D8DF;
     margin: 0 0 16px;
@@ -62,7 +77,20 @@
     max-height: 200px;
 }
 
-/* ── Overview card (esquerda topo) ── */
+/* ── Linha do topo: 2 cards independentes ── */
+.bugs-top-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.bugs-placeholder-card {
+    min-height: 280px;
+    border: 2px dashed #2B313C;
+    background: rgba(32, 36, 45, 0.4);
+}
+
+/* ── Overview body ── */
 .bugs-overview-body {
     display: flex;
     gap: 28px;
@@ -112,24 +140,28 @@
 }
 
 .bugs-kpi-label {
-    font-size: 0.72em;
-    font-weight: 700;
-    color: #8C95A3;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.70em;
+    font-weight: 600;
+    color: #B9C0CA;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     white-space: nowrap;
 }
 
 .bugs-kpi-desc {
-    font-size: 0.74em;
-    color: #49536A;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.76em;
+    font-weight: 400;
+    color: #8C95A3;
     white-space: nowrap;
 }
 
 .bugs-kpi-item .kpi-value {
+    font-family: 'Poppins', sans-serif;
     font-size: 1.75em;
     font-weight: 700;
-    color: #D3D8DF;
+    color: #E7E7E7;
     white-space: nowrap;
     line-height: 1;
     flex-shrink: 0;
@@ -250,9 +282,10 @@
 }
 
 .bugs-table thead th {
+    font-family: 'Poppins', sans-serif;
     background: rgba(255, 126, 32, 0.07);
-    color: #6B7485;
-    font-weight: 700;
+    color: #8C95A3;
+    font-weight: 600;
     font-size: 0.72em;
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -273,8 +306,9 @@
 .bugs-table tbody tr:hover { background: rgba(255, 126, 32, 0.05); }
 
 .bugs-table tbody td {
+    font-family: 'Poppins', sans-serif;
     padding: 11px 14px;
-    color: #B9C0CA;
+    color: #D3D8DF;
     vertical-align: middle;
 }
 

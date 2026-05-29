@@ -107,9 +107,10 @@ const BUGS_PAGE_SIZE = 100;
 // ===================================
 document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => document.getElementById('sidebar').classList.add('ready'), 50);
+    startSuporteMiniDashListener();
 
     Chart.register(ChartDataLabels);
-    Chart.defaults.font.family = "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif";
+    Chart.defaults.font.family = "'Poppins', 'Segoe UI', -apple-system, sans-serif";
     Chart.defaults.color = bugsColors.textSecondary;
     Chart.defaults.plugins.tooltip.backgroundColor = bugsColors.dark;
     Chart.defaults.plugins.tooltip.titleColor = bugsColors.textPrimary;
@@ -296,6 +297,7 @@ function buildBugsMonthFilter(data) {
 function handleBugsMonthFilter(val) {
     currentBugsMonth = val;
     applyBugsMonthFilter(val);
+    filterAndRenderSuporte(val);
 }
 
 function applyBugsMonthFilter(month) {
@@ -976,3 +978,176 @@ document.addEventListener('keydown', function (e) {
         if (sidebar && sidebar.classList.contains('active')) toggleSidebar();
     }
 });
+
+// ===================================
+// SUPORTE MINI-DASH
+// ===================================
+let allSuporteRows = [];
+
+function startSuporteMiniDashListener() {
+    const init = () => {
+        if (typeof database === 'undefined' || !database) { setTimeout(init, 200); return; }
+
+        database.ref('suporte_live').on('value', snapshot => {
+            const data = snapshot.val();
+            if (!data || !data.rows || !data.headers) return;
+            allSuporteRows = convertSuporteRows(data);
+            filterAndRenderSuporte(currentBugsMonth);
+        });
+    };
+
+    if (typeof firebaseReady !== 'undefined' && firebaseReady) {
+        init();
+    } else {
+        window.addEventListener('firebaseReady', init);
+    }
+}
+
+function convertSuporteRows(data) {
+    const { headers, rows } = data;
+    const normH = headers.map(normStr);
+
+    const iRazao    = resolveHeaderIndex(normH, 'razao social', 'cliente', 'empresa');
+    const iProcesso = resolveHeaderIndex(normH, 'processo', 'process');
+    const iModulo   = resolveHeaderIndex(normH, 'modulo', 'module');
+    const iStatus   = resolveHeaderIndex(normH, 'status');
+    const iDiaMes   = resolveHeaderIndex(normH, 'dia/mes', 'dia mes', 'data', 'date');
+
+    const get = (arr, idx) => idx >= 0 && arr[idx] != null ? String(arr[idx]).trim() : '';
+
+    return rows
+        .filter(row => row && row.length > 0)
+        .map(row => {
+            const diaMes = get(row, iDiaMes);
+            let mesAno = null;
+            if (diaMes) {
+                const p = diaMes.split('/');
+                if (p.length >= 2) {
+                    const day = parseInt(p[0]), month = parseInt(p[1]);
+                    let year = p[2] ? parseInt(p[2]) : new Date().getFullYear();
+                    if (year < 100) year += 2000;
+                    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+                        mesAno = `${year}-${String(month).padStart(2, '0')}`;
+                    }
+                }
+            }
+            return {
+                _razao:    get(row, iRazao),
+                _processo: get(row, iProcesso),
+                _modulo:   get(row, iModulo),
+                _status:   get(row, iStatus),
+                _mesAno:   mesAno
+            };
+        })
+        .filter(r => r._razao || r._processo || r._modulo || r._status);
+}
+
+function filterAndRenderSuporte(month) {
+    if (!allSuporteRows.length) return;
+    const filtered = month === 'todos'
+        ? allSuporteRows
+        : allSuporteRows.filter(r => r._mesAno === month);
+    renderSuporteMiniDash(buildSuporteSummary(filtered));
+}
+
+function buildSuporteSummary(rows) {
+    let total = 0, resolvidos = 0;
+    const clientes = new Set();
+    const processos = {}, modulos = {};
+
+    for (const r of rows) {
+        total++;
+        if (r._razao)    clientes.add(r._razao.toLowerCase().trim());
+        if (r._processo) processos[r._processo] = (processos[r._processo] || 0) + 1;
+        if (r._modulo)   modulos[r._modulo]     = (modulos[r._modulo]     || 0) + 1;
+        if (isResolvedStatus(r._status)) resolvidos++;
+    }
+
+    const topProcesso = Object.entries(processos).sort((a, b) => b[1] - a[1])[0] || ['N/A', 0];
+    const topModulo   = Object.entries(modulos).sort((a, b) => b[1] - a[1])[0]   || ['N/A', 0];
+
+    return {
+        total,
+        clientesAtendidos: clientes.size,
+        resolvidos,
+        abertos: total - resolvidos,
+        topProcesso: topProcesso[0], topProcessoQtd: topProcesso[1],
+        topModulo:   topModulo[0],   topModuloQtd:   topModulo[1]
+    };
+}
+
+function renderSuporteMiniDash(s) {
+    setSuporteKPI('kpiSupportTotal',    s.total.toLocaleString('pt-BR'),             'Total de chamados');
+    setSuporteKPI('kpiSupportClientes', s.clientesAtendidos.toLocaleString('pt-BR'), 'Contabilidades unicas');
+
+    const motivo = s.topProcesso.length > 30 ? s.topProcesso.substring(0, 30) + '...' : s.topProcesso;
+    setSuporteKPI('kpiSupportMotivo', s.topProcessoQtd.toLocaleString('pt-BR'), motivo);
+
+    const modulo = s.topModulo.length > 30 ? s.topModulo.substring(0, 30) + '...' : s.topModulo;
+    setSuporteKPI('kpiSupportModulo', s.topModuloQtd.toLocaleString('pt-BR'), modulo);
+
+    createSupportOverviewChart(s.resolvidos, s.abertos, s.total);
+}
+
+function setSuporteKPI(id, value, desc) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const v = el.querySelector('.kpi-value');
+    const d = el.querySelector('.bugs-kpi-desc');
+    if (v) v.textContent = value;
+    if (d && desc) d.textContent = desc;
+}
+
+function createSupportOverviewChart(resolvidos, abertos, total) {
+    destroyBugsChart('chartSupportOverview');
+    const ctx = document.getElementById('chartSupportOverview');
+    if (!ctx) return;
+
+    const centerPlugin = {
+        id: 'supportCenter',
+        afterDraw(chart) {
+            const { width, height, ctx: c } = chart;
+            c.save();
+            const cx = width / 2, cy = height / 2;
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.font = `bold ${Math.round(width * 0.14)}px Segoe UI, sans-serif`;
+            c.fillStyle = '#E7E7E7';
+            c.fillText(total.toLocaleString('pt-BR'), cx, cy - 10);
+            c.font = `${Math.round(width * 0.07)}px Segoe UI, sans-serif`;
+            c.fillStyle = '#6B7485';
+            c.fillText('total', cx, cy + 14);
+            c.restore();
+        }
+    };
+
+    bugsCharts['chartSupportOverview'] = new Chart(ctx, {
+        type: 'doughnut',
+        plugins: [centerPlugin],
+        data: {
+            labels: ['Resolvidos', 'Em Aberto'],
+            datasets: [{
+                data: [resolvidos, abertos],
+                backgroundColor: ['#35CCA3', '#FF7E20'],
+                borderWidth: 3,
+                borderColor: '#151922',
+                hoverOffset: 8,
+                spacing: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString('pt-BR')} (${total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0}%)`
+                    }
+                },
+                datalabels: { display: false }
+            }
+        }
+    });
+}

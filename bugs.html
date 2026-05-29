@@ -9,6 +9,11 @@
     <!-- Favicon Hubstrom -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M161 85c2.7-1.2 5.6.8 5.6 3.7v50.3c0 1.6-.9 3-2.4 3.7L35.2 199.9c-.9.4-1.9-.3-1.9-1.2v-54.4c0-1.6.9-3 2.4-3.7L161 85z' fill='%2335CCA3'/%3E%3Cpath d='M164.8.1c.9-.4 1.9.3 1.9 1.2v54.4c0 1.6-.9 3-2.4 3.7L39 114.9c-2.7 1.2-5.6-.8-5.6-3.7V61c0-1.6.9-3 2.4-3.7L164.8.1z' fill='%2335CCA3'/%3E%3C/svg%3E">
 
+    <!-- Poppins Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Estilos -->
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/bugs.css">
@@ -143,66 +148,116 @@
             <!-- COLUNA ESQUERDA -->
             <div class="bugs-col-left">
 
-                <!-- Card: Visão Geral (donut + KPI list) -->
-                <div class="bugs-card bugs-overview-card">
-                    <div class="bugs-card-header">
-                        <div>
+                <!-- Linha do topo: 2 cards independentes lado a lado -->
+                <div class="bugs-top-row">
+
+                    <!-- Card esquerdo: Visão Geral -->
+                    <div class="bugs-card bugs-overview-card">
+                        <div class="bugs-card-header">
                             <h2 class="bugs-card-title">Visão Geral dos Bugs</h2>
-                            <p class="bugs-card-subtitle">Acompanhe a situação e evolucao dos registros</p>
+                            <p class="bugs-card-subtitle">Situacao e evolucao dos registros</p>
+                        </div>
+                        <div class="bugs-overview-body">
+                            <div class="bugs-overview-donut">
+                                <canvas id="chartBugsOverview"></canvas>
+                            </div>
+                            <div class="bugs-kpi-list">
+                                <div class="bugs-kpi-item" id="kpiBugsTotal">
+                                    <div class="bugs-kpi-bar" style="background:#6B7485"></div>
+                                    <div class="bugs-kpi-body">
+                                        <span class="bugs-kpi-label">Total de Bugs</span>
+                                        <span class="bugs-kpi-desc">Todos os registros</span>
+                                    </div>
+                                    <strong class="kpi-value">-</strong>
+                                </div>
+                                <div class="bugs-kpi-item" id="kpiBugsResolvidos">
+                                    <div class="bugs-kpi-bar" style="background:#35CCA3"></div>
+                                    <div class="bugs-kpi-body">
+                                        <span class="bugs-kpi-label">Resolvidos</span>
+                                        <span class="bugs-kpi-desc">Concluidos com sucesso</span>
+                                    </div>
+                                    <strong class="kpi-value" style="color:#35CCA3">-</strong>
+                                </div>
+                                <div class="bugs-kpi-item" id="kpiBugsAbertos">
+                                    <div class="bugs-kpi-bar" style="background:#E05D5D"></div>
+                                    <div class="bugs-kpi-body">
+                                        <span class="bugs-kpi-label">Em Aberto</span>
+                                        <span class="bugs-kpi-desc">Aguardando resolucao</span>
+                                    </div>
+                                    <strong class="kpi-value" style="color:#E05D5D">-</strong>
+                                </div>
+                                <div class="bugs-kpi-item" id="kpiBugsCriticos">
+                                    <div class="bugs-kpi-bar" style="background:#FF7E20"></div>
+                                    <div class="bugs-kpi-body">
+                                        <span class="bugs-kpi-label">P0 + P1 Criticos</span>
+                                        <span class="bugs-kpi-desc">Prioridade maxima</span>
+                                    </div>
+                                    <strong class="kpi-value" style="color:#FF7E20">-</strong>
+                                </div>
+                                <div class="bugs-kpi-item" id="kpiBugsMes">
+                                    <div class="bugs-kpi-bar" style="background:#0DABCE"></div>
+                                    <div class="bugs-kpi-body">
+                                        <span class="bugs-kpi-label">Bugs Este Mes</span>
+                                        <span class="bugs-kpi-desc">Mes corrente</span>
+                                    </div>
+                                    <strong class="kpi-value" style="color:#0DABCE">-</strong>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="bugs-overview-body">
-                        <div class="bugs-overview-donut">
-                            <canvas id="chartBugsOverview"></canvas>
+
+                    <!-- Card direito: Suporte mini-dash -->
+                    <div class="bugs-card bugs-overview-card">
+                        <div class="bugs-card-header">
+                            <h2 class="bugs-card-title">Suporte Tecnico</h2>
+                            <p class="bugs-card-subtitle">Resumo dos chamados atendidos</p>
                         </div>
-                        <div class="bugs-kpi-list">
-                            <div class="bugs-kpi-item" id="kpiBugsTotal">
-                                <div class="bugs-kpi-bar" style="background:#6B7485"></div>
-                                <div class="bugs-kpi-body">
-                                    <span class="bugs-kpi-label">Total de Bugs</span>
-                                    <span class="bugs-kpi-desc">Todos os registros</span>
-                                </div>
-                                <strong class="kpi-value">-</strong>
+                        <div class="bugs-overview-body">
+                            <div class="bugs-overview-donut">
+                                <canvas id="chartSupportOverview"></canvas>
                             </div>
-                            <div class="bugs-kpi-item" id="kpiBugsResolvidos">
-                                <div class="bugs-kpi-bar" style="background:#35CCA3"></div>
-                                <div class="bugs-kpi-body">
-                                    <span class="bugs-kpi-label">Resolvidos</span>
-                                    <span class="bugs-kpi-desc">Concluidos com sucesso</span>
+                            <div class="bugs-kpi-list">
+                                <div class="bugs-kpi-item" id="kpiSupportTotal">
+                                    <div class="bugs-kpi-bar" style="background:#6B7485"></div>
+                                    <div class="bugs-kpi-body">
+                                        <span class="bugs-kpi-label">Total de Chamados</span>
+                                        <span class="bugs-kpi-desc">Todos os registros</span>
+                                    </div>
+                                    <strong class="kpi-value">-</strong>
                                 </div>
-                                <strong class="kpi-value" style="color:#35CCA3">-</strong>
-                            </div>
-                            <div class="bugs-kpi-item" id="kpiBugsAbertos">
-                                <div class="bugs-kpi-bar" style="background:#E05D5D"></div>
-                                <div class="bugs-kpi-body">
-                                    <span class="bugs-kpi-label">Em Aberto</span>
-                                    <span class="bugs-kpi-desc">Aguardando resolucao</span>
+                                <div class="bugs-kpi-item" id="kpiSupportClientes">
+                                    <div class="bugs-kpi-bar" style="background:#0DABCE"></div>
+                                    <div class="bugs-kpi-body">
+                                        <span class="bugs-kpi-label">Clientes Atendidos</span>
+                                        <span class="bugs-kpi-desc">Contabilidades unicas</span>
+                                    </div>
+                                    <strong class="kpi-value" style="color:#0DABCE">-</strong>
                                 </div>
-                                <strong class="kpi-value" style="color:#E05D5D">-</strong>
-                            </div>
-                            <div class="bugs-kpi-item" id="kpiBugsCriticos">
-                                <div class="bugs-kpi-bar" style="background:#FF7E20"></div>
-                                <div class="bugs-kpi-body">
-                                    <span class="bugs-kpi-label">P0 + P1 Criticos</span>
-                                    <span class="bugs-kpi-desc">Prioridade maxima</span>
+                                <div class="bugs-kpi-item" id="kpiSupportMotivo">
+                                    <div class="bugs-kpi-bar" style="background:#E8BB34"></div>
+                                    <div class="bugs-kpi-body">
+                                        <span class="bugs-kpi-label">Maior Motivo</span>
+                                        <span class="bugs-kpi-desc">Carregando...</span>
+                                    </div>
+                                    <strong class="kpi-value" style="color:#E8BB34">-</strong>
                                 </div>
-                                <strong class="kpi-value" style="color:#FF7E20">-</strong>
-                            </div>
-                            <div class="bugs-kpi-item" id="kpiBugsMes">
-                                <div class="bugs-kpi-bar" style="background:#0DABCE"></div>
-                                <div class="bugs-kpi-body">
-                                    <span class="bugs-kpi-label">Bugs Este Mes</span>
-                                    <span class="bugs-kpi-desc">Mes corrente</span>
+                                <div class="bugs-kpi-item" id="kpiSupportModulo">
+                                    <div class="bugs-kpi-bar" style="background:#FF7E20"></div>
+                                    <div class="bugs-kpi-body">
+                                        <span class="bugs-kpi-label">Modulo com mais Chamados</span>
+                                        <span class="bugs-kpi-desc">Carregando...</span>
+                                    </div>
+                                    <strong class="kpi-value" style="color:#FF7E20">-</strong>
                                 </div>
-                                <strong class="kpi-value" style="color:#0DABCE">-</strong>
                             </div>
                         </div>
                     </div>
+
                 </div>
 
                 <!-- Card: Timeline -->
                 <div class="bugs-card bugs-timeline-card">
-                    <h3 class="bugs-card-h3">Evolucao de Bugs por Mes</h3>
+                    <h3 class="bugs-card-h3">Evolucão de Bugs por Mes</h3>
                     <canvas id="chartBugsTimeline"></canvas>
                 </div>
 
