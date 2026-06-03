@@ -1548,10 +1548,16 @@
         // ===================================
         // RENDER CHART
         // ===================================
+        var META_BY_MONTH = {
+            '2026-05': 70000,
+            '2026-06': 90000
+        };
+
         function renderChart(kpis) {
             var ctx = document.getElementById('kpiChart').getContext('2d');
 
-            var metaValue = parseMoneyValue(kpis['Meta']);
+            var monthKey = currentViewMode === 'live' ? getCurrentMonthKey() : currentViewMode;
+            var metaValue = parseMoneyValue(kpis['Meta']) || META_BY_MONTH[monthKey] || 0;
 
             var items = [
                 { label: 'Assinados', value: parseMoneyValue(kpis['Assinados']), color: '#35CCA3' },
@@ -1630,6 +1636,7 @@
                         },
                         y: {
                             grace: '15%',
+                            suggestedMax: metaValue ? metaValue * 1.15 : undefined,
                             grid: { color: 'rgba(255,255,255,0.05)' },
                             ticks: {
                                 color: '#8c95a3',
