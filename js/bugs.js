@@ -3,29 +3,16 @@
    Firebase Realtime Database
    =================================== */
 
-const BUGS_REFRESH = 5 * 60 * 1000;
-
 // Paleta Hubstrom
 const bugsColors = {
-    accent:       '#FF7E20',  // Orange Light 600
-    accentLight:  '#FABB8D',  // Orange Light 400
-    danger:       '#E05D5D',  // Red Dark 500
-    dangerLight:  '#F3A1A1',  // Red Dark 700
-    warning:      '#E8BB34',  // Yellow Light 600
-    warningLight: '#F0DC9A',  // Yellow Dark 800
-    success:      '#35CCA3',  // Brand Green 600
-    successLight: '#94DBC6',  // Green Dark 900
-    info:         '#0DABCE',  // Blue Light 600
-    infoLight:    '#8BDAEB',  // Blue Dark 800
-    blue2:        '#196A84',  // Blue Dark 400
-    green2:       '#41B798',  // Green Dark 600
-    green3:       '#2FB490',  // Brand Green 700
-    yellow2:      '#C19512',  // Yellow Light 800
-    slate:        '#6B7485',  // Dark 400
-    dark:         '#20242D',  // Dark 100
-    dark2:        '#2B313C',  // Dark 200
-    textPrimary:  '#E7E7E7',  // Dark 800
-    textSecondary:'#8C95A3'   // Dark 500
+    accent:        '#FF7E20',
+    warning:       '#E8BB34',
+    success:       '#35CCA3',
+    info:          '#0DABCE',
+    slate:         '#6B7485',
+    dark:          '#20242D',
+    textPrimary:   '#E7E7E7',
+    textSecondary: '#8C95A3'
 };
 
 // Paleta de séries para gráficos (ordem de preferência visual)
@@ -46,15 +33,6 @@ const bugsPalette = [
     '#F0DC9A',  // Yellow Dark 800
     '#D1661C',  // Orange Dark 600
 ];
-
-const PRIORITY_ORDER = { 'p0': 0, 'p1': 1, 'p2': 2, 'p3': 3 };
-
-const PRIORITY_COLORS = {
-    'P0 - Imediato': '#E05D5D',  // Red Dark 500
-    'P1 - Crítico':  '#FF7E20',  // Orange 600
-    'P2 - Alto':     '#E8BB34',  // Yellow 600
-    'P3 - Médio':    '#0DABCE'   // Blue 600
-};
 
 // Mapeamento por palavra-chave normalizada (cobre variações da planilha)
 const STATUS_COLOR_MAP = [
@@ -371,20 +349,20 @@ function updateBugsKPIs(summary) {
     const pctAb  = summary.total > 0 ? ((summary.abertos   / summary.total) * 100).toFixed(1) : 0;
     const pctCri = summary.total > 0 ? ((summary.criticos  / summary.total) * 100).toFixed(1) : 0;
 
-    setBugsKPI('kpiBugsTotal',     summary.total.toLocaleString('pt-BR'),      'Todos os registros');
-    setBugsKPI('kpiBugsResolvidos',summary.resolvidos.toLocaleString('pt-BR'), `${pctRes}% do total`);
-    setBugsKPI('kpiBugsAbertos',   summary.abertos.toLocaleString('pt-BR'),    `${pctAb}% em aberto`);
-    setBugsKPI('kpiBugsCriticos',  summary.criticos.toLocaleString('pt-BR'),   `${pctCri}% sao criticos`);
-    setBugsKPI('kpiBugsMes',       summary.estesMes.toLocaleString('pt-BR'),   'Mes corrente');
+    setKPI('kpiBugsTotal',     summary.total.toLocaleString('pt-BR'),      'Todos os registros');
+    setKPI('kpiBugsResolvidos',summary.resolvidos.toLocaleString('pt-BR'), `${pctRes}% do total`);
+    setKPI('kpiBugsAbertos',   summary.abertos.toLocaleString('pt-BR'),    `${pctAb}% em aberto`);
+    setKPI('kpiBugsCriticos',  summary.criticos.toLocaleString('pt-BR'),   `${pctCri}% sao criticos`);
+    setKPI('kpiBugsMes',       summary.estesMes.toLocaleString('pt-BR'),   'Mes corrente');
 }
 
-function setBugsKPI(id, value, descOverride) {
-    const card = document.getElementById(id);
-    if (!card) return;
-    const v = card.querySelector('.kpi-value');
-    const d = card.querySelector('.bugs-kpi-desc');
+function setKPI(id, value, desc) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const v = el.querySelector('.kpi-value');
+    const d = el.querySelector('.bugs-kpi-desc');
     if (v) v.textContent = value;
-    if (descOverride && d) d.textContent = descOverride;
+    if (d && desc) d.textContent = desc;
 }
 
 // ===================================
@@ -392,32 +370,27 @@ function setBugsKPI(id, value, descOverride) {
 // ===================================
 function updateBugsCharts(summary) {
     requestAnimationFrame(() => {
-        createBugsOverviewChart(summary.resolvidos, summary.abertos, summary.total);
+        createOverviewDonut('chartBugsOverview', summary.resolvidos, summary.abertos, summary.total, '#E05D5D', 8);
         createBugsStatusChart(summary.status);
-        requestAnimationFrame(() => {
-            createBugsPrioridadeChart(summary.prioridades);
-            createBugsTimelineChart(summary.timeline);
-            requestAnimationFrame(() => {
-                createBugsModuloChart(summary.modulos);
-                createBugsResponsavelChart(summary.responsaveis);
-                createBugsTopClientesChart(summary.clientes);
-            });
-        });
+        createBugsPrioridadeChart(summary.prioridades);
+        createBugsTimelineChart(summary.timeline);
+        createBugsModuloChart(summary.modulos);
+        createBugsResponsavelChart(summary.responsaveis);
+        createBugsTopClientesChart(summary.clientes);
     });
 }
 
-function createBugsOverviewChart(resolvidos, abertos, total) {
-    destroyBugsChart('chartBugsOverview');
-    const ctx = document.getElementById('chartBugsOverview');
+function createOverviewDonut(chartId, resolvidos, abertos, total, colorAberto, cyOffset) {
+    destroyBugsChart(chartId);
+    const ctx = document.getElementById(chartId);
     if (!ctx) return;
 
-    // Plugin de texto central
-    const centerTextPlugin = {
-        id: 'bugsCenterText',
+    const centerPlugin = {
+        id: chartId + '_center',
         afterDraw(chart) {
             const { width, height, ctx: c } = chart;
             c.save();
-            const cx = width / 2, cy = height / 2 + 8;
+            const cx = width / 2, cy = height / 2 + cyOffset;
             c.textAlign = 'center';
             c.textBaseline = 'middle';
             c.font = `bold ${Math.round(width * 0.14)}px Segoe UI, sans-serif`;
@@ -430,14 +403,14 @@ function createBugsOverviewChart(resolvidos, abertos, total) {
         }
     };
 
-    bugsCharts['chartBugsOverview'] = new Chart(ctx, {
+    bugsCharts[chartId] = new Chart(ctx, {
         type: 'doughnut',
-        plugins: [centerTextPlugin],
+        plugins: [centerPlugin],
         data: {
             labels: ['Resolvidos', 'Em Aberto'],
             datasets: [{
                 data: [resolvidos, abertos],
-                backgroundColor: ['#35CCA3', '#E05D5D'],
+                backgroundColor: ['#35CCA3', colorAberto],
                 borderWidth: 3,
                 borderColor: '#151922',
                 hoverOffset: 8,
@@ -674,7 +647,6 @@ function createBugsResponsavelChart(respData) {
     const labels = entries.map(e => e[0]);
     const values = entries.map(e => e[1]);
     const maxVal = values[0] || 1;
-    const palette = bugsPalette;
 
     bugsCharts['chartBugsResponsavel'] = new Chart(ctx, {
         type: 'bar',
@@ -682,8 +654,8 @@ function createBugsResponsavelChart(respData) {
             labels,
             datasets: [{
                 data: values,
-                backgroundColor: labels.map((_, i) => palette[i % palette.length] + 'aa'),
-                borderColor: labels.map((_, i) => palette[i % palette.length]),
+                backgroundColor: labels.map((_, i) => bugsPalette[i % bugsPalette.length] + 'aa'),
+                borderColor: labels.map((_, i) => bugsPalette[i % bugsPalette.length]),
                 borderWidth: 1,
                 borderRadius: 6, borderSkipped: false
             }]
@@ -1077,77 +1049,15 @@ function buildSuporteSummary(rows) {
 }
 
 function renderSuporteMiniDash(s) {
-    setSuporteKPI('kpiSupportTotal',    s.total.toLocaleString('pt-BR'),             'Total de chamados');
-    setSuporteKPI('kpiSupportClientes', s.clientesAtendidos.toLocaleString('pt-BR'), 'Contabilidades unicas');
+    setKPI('kpiSupportTotal',    s.total.toLocaleString('pt-BR'),             'Total de chamados');
+    setKPI('kpiSupportClientes', s.clientesAtendidos.toLocaleString('pt-BR'), 'Contabilidades unicas');
 
     const motivo = s.topProcesso.length > 30 ? s.topProcesso.substring(0, 30) + '...' : s.topProcesso;
-    setSuporteKPI('kpiSupportMotivo', s.topProcessoQtd.toLocaleString('pt-BR'), motivo);
+    setKPI('kpiSupportMotivo', s.topProcessoQtd.toLocaleString('pt-BR'), motivo);
 
     const modulo = s.topModulo.length > 30 ? s.topModulo.substring(0, 30) + '...' : s.topModulo;
-    setSuporteKPI('kpiSupportModulo', s.topModuloQtd.toLocaleString('pt-BR'), modulo);
+    setKPI('kpiSupportModulo', s.topModuloQtd.toLocaleString('pt-BR'), modulo);
 
-    createSupportOverviewChart(s.resolvidos, s.abertos, s.total);
+    createOverviewDonut('chartSupportOverview', s.resolvidos, s.abertos, s.total, '#FF7E20', 0);
 }
 
-function setSuporteKPI(id, value, desc) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const v = el.querySelector('.kpi-value');
-    const d = el.querySelector('.bugs-kpi-desc');
-    if (v) v.textContent = value;
-    if (d && desc) d.textContent = desc;
-}
-
-function createSupportOverviewChart(resolvidos, abertos, total) {
-    destroyBugsChart('chartSupportOverview');
-    const ctx = document.getElementById('chartSupportOverview');
-    if (!ctx) return;
-
-    const centerPlugin = {
-        id: 'supportCenter',
-        afterDraw(chart) {
-            const { width, height, ctx: c } = chart;
-            c.save();
-            const cx = width / 2, cy = height / 2;
-            c.textAlign = 'center';
-            c.textBaseline = 'middle';
-            c.font = `bold ${Math.round(width * 0.14)}px Segoe UI, sans-serif`;
-            c.fillStyle = '#E7E7E7';
-            c.fillText(total.toLocaleString('pt-BR'), cx, cy - 10);
-            c.font = `${Math.round(width * 0.07)}px Segoe UI, sans-serif`;
-            c.fillStyle = '#6B7485';
-            c.fillText('total', cx, cy + 14);
-            c.restore();
-        }
-    };
-
-    bugsCharts['chartSupportOverview'] = new Chart(ctx, {
-        type: 'doughnut',
-        plugins: [centerPlugin],
-        data: {
-            labels: ['Resolvidos', 'Em Aberto'],
-            datasets: [{
-                data: [resolvidos, abertos],
-                backgroundColor: ['#35CCA3', '#FF7E20'],
-                borderWidth: 3,
-                borderColor: '#151922',
-                hoverOffset: 8,
-                spacing: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '72%',
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString('pt-BR')} (${total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0}%)`
-                    }
-                },
-                datalabels: { display: false }
-            }
-        }
-    });
-}
