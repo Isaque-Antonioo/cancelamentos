@@ -149,7 +149,7 @@
         password_hash: '4e8a92f02b906bd1e98f91259b7d66cc77e18c783dc8856852e96c1bf1808abd',
         displayName: 'Administrador',
         role: 'admin',
-        allowedPages: ['index.html', 'comercial.html', 'suporte.html', 'admin.html', 'log-erros.html'],
+        allowedPages: ['index.html', 'comercial.html', 'operacional.html', 'suporte.html', 'admin.html', 'log-erros.html'],
         active: true
     };
 

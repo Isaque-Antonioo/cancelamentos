@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hubstrom - Operacional Health Score</title>
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M161 85c2.7-1.2 5.6.8 5.6 3.7v50.3c0 1.6-.9 3-2.4 3.7L35.2 199.9c-.9.4-1.9-.3-1.9-1.2v-54.4c0-1.6.9-3 2.4-3.7L161 85z' fill='%2335CCA3'/%3E%3Cpath d='M164.8.1c.9-.4 1.9.3 1.9 1.2v54.4c0 1.6-.9 3-2.4 3.7L39 114.9c-2.7 1.2-5.6-.8-5.6-3.7V61c0-1.6.9-3 2.4-3.7L164.8.1z' fill='%2335CCA3'/%3E%3C/svg%3E">
+
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+    <script src="js/auth.js"></script>
+
+    <style>
+        /* =============================================
+           Operacional — Health Score
+           ============================================= */
+        .op-sync-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #35cca3;
+            background: rgba(53, 204, 163, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(53, 204, 163, 0.25);
+        }
+        .op-sync-badge .dot {
+            width: 7px; height: 7px;
+            background: #35cca3;
+            border-radius: 50%;
+            animation: blink 2s infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+        /* KPI grid */
+        .op-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            padding: 0 24px 24px;
+        }
+        .kpi-card.saudavel { border-color: rgba(53,204,163,.3); }
+        .kpi-card.saudavel .kpi-value { color: #35cca3; }
+        .kpi-card.atencao  { border-color: rgba(245,158,11,.3); }
+        .kpi-card.atencao  .kpi-value { color: #f59e0b; }
+        .kpi-card.critico  { border-color: rgba(239,68,68,.3); }
+        .kpi-card.critico  .kpi-value { color: #ef4444; }
+
+        /* Main grid */
+        .op-main-grid {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 20px;
+            padding: 0 24px 24px;
+        }
+        .op-charts-col { display: flex; flex-direction: column; gap: 20px; }
+
+        /* Ranking — estilo comercial */
+        .op-ranking-list { margin-top: 8px; }
+        .op-ranking-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.06);
+            margin-bottom: 10px;
+            transition: background .15s;
+        }
+        .op-ranking-item:hover { background: rgba(255,255,255,.06); }
+        .op-ranking-item.rank-1 {
+            background: rgba(255,215,0,.06);
+            border-color: rgba(255,215,0,.2);
+        }
+
+        /* Badge de posição (círculo) */
+        .op-rank-badge {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 800; flex-shrink: 0;
+            background: rgba(255,255,255,.07); color: #64748b;
+        }
+        .op-rank-badge.gold   { background: rgba(255,215,0,.15); color: #FFD700; border: 1.5px solid rgba(255,215,0,.4); }
+        .op-rank-badge.silver { background: rgba(192,192,192,.12); color: #C0C0C0; border: 1.5px solid rgba(192,192,192,.35); }
+        .op-rank-badge.bronze { background: rgba(205,127,50,.12); color: #CD7F32; border: 1.5px solid rgba(205,127,50,.35); }
+
+        /* Avatar circular */
+        .op-rank-avatar {
+            width: 46px; height: 46px;
+            border-radius: 50%;
+            overflow: hidden; flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,.12);
+            background: #1e293b;
+        }
+        .op-rank-avatar.gold-b   { border-color: rgba(255,215,0,.75); }
+        .op-rank-avatar.silver-b { border-color: rgba(192,192,192,.65); }
+        .op-rank-avatar.bronze-b { border-color: rgba(205,127,50,.65); }
+        .op-rank-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+
+        .op-rank-info { flex:1; min-width:0; }
+        .op-rank-name-text { font-size:15px; font-weight:600; color:#e2e8f0; }
+        .op-rank-meta { font-size:11px; color:#64748b; margin-top:3px; }
+        .op-rank-score-wrap { display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex-shrink:0; }
+        .op-rank-score-val { font-size:22px; font-weight:700; }
+        .op-score-bar { width:90px; height:5px; background:rgba(255,255,255,.08); border-radius:3px; overflow:hidden; }
+        .op-score-bar-fill { height:100%; border-radius:3px; }
+
+        .c-saudavel { color: #35cca3; }
+        .c-atencao  { color: #f59e0b; }
+        .c-critico  { color: #ef4444; }
+        .bg-saudavel { background: #35cca3; }
+        .bg-atencao  { background: #f59e0b; }
+        .bg-critico  { background: #ef4444; }
+
+        /* Donut legend */
+        .op-donut-legend { display:flex; flex-direction:column; gap:9px; margin-top:14px; }
+        .op-donut-legend-row { display:flex; align-items:center; justify-content:space-between; }
+        .op-donut-legend-left { display:flex; align-items:center; gap:8px; }
+        .op-legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+        .op-legend-label { font-size:13px; color:#e2e8f0; }
+        .op-legend-right { font-size:13px; font-weight:600; color:#f8fafc; }
+        .op-legend-pct  { font-size:11px; color:#64748b; margin-left:4px; }
+
+        /* Tabs */
+        .op-tabs { display:flex; gap:4px; margin-bottom:16px; background:rgba(255,255,255,.04); padding:4px; border-radius:10px; width:fit-content; }
+        .op-tab {
+            padding:7px 18px; border-radius:7px; font-size:13px; font-weight:500;
+            color:#64748b; cursor:pointer; border:none; background:none; transition:all .2s;
+        }
+        .op-tab[data-tab="todos"].active   { background:rgba(53,204,163,.15); color:#35cca3; }
+        .op-tab[data-tab="saudavel"].active{ background:rgba(53,204,163,.15); color:#35cca3; }
+        .op-tab[data-tab="atencao"].active { background:rgba(245,158,11,.15);  color:#f59e0b; }
+        .op-tab[data-tab="critico"].active { background:rgba(239,68,68,.15);   color:#ef4444; }
+
+        /* Table section */
+        .op-table-section { padding: 0 24px 32px; }
+        .op-table-filters { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+        .op-table-filters select,
+        .op-table-filters input {
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.1);
+            color: #e2e8f0; border-radius:8px;
+            padding: 8px 14px; font-size:13px; outline:none;
+        }
+        .op-table-filters input { flex:1; min-width:180px; }
+        .op-table-filters select:focus,
+        .op-table-filters input:focus  { border-color: rgba(53,204,163,.5); }
+
+        .op-table-count { font-size:12px; color:#64748b; margin-bottom:10px; }
+        .op-table-wrap  { overflow-x:auto; border-radius:10px; }
+
+        .op-table { width:100%; border-collapse:collapse; font-size:13px; }
+        .op-table thead th {
+            background: rgba(255,255,255,.04);
+            color:#64748b; font-weight:600; font-size:11px;
+            text-transform:uppercase; letter-spacing:.05em;
+            padding:12px 16px; text-align:left; white-space:nowrap;
+            cursor:pointer; user-select:none;
+        }
+        .op-table thead th:hover { color:#94a3b8; }
+        .op-table tbody tr { border-top:1px solid rgba(255,255,255,.04); transition:background .15s; }
+        .op-table tbody tr:hover { background:rgba(255,255,255,.04); }
+        .op-table tbody td { padding:12px 16px; color:#e2e8f0; }
+        .op-table .td-empresa { font-weight:500; }
+
+        .op-score-badge {
+            display:inline-flex; align-items:center; gap:5px;
+            padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600;
+        }
+        .op-score-badge.saudavel { background:rgba(53,204,163,.15); color:#35cca3; }
+        .op-score-badge.atencao  { background:rgba(245,158,11,.15);  color:#f59e0b; }
+        .op-score-badge.critico  { background:rgba(239,68,68,.15);   color:#ef4444; }
+        .op-score-badge.sem-score{ background:rgba(100,116,139,.15); color:#64748b; }
+
+        .op-empty { text-align:center; padding:40px; color:#64748b; }
+
+        @media (max-width:1100px) {
+            .op-main-grid { grid-template-columns:1fr; }
+            .op-kpi-grid  { grid-template-columns:repeat(3,1fr); }
+        }
+        @media (max-width:640px) {
+            .op-kpi-grid { grid-template-columns:repeat(2,1fr); }
+            .op-main-grid, .op-table-section { padding:0 12px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>Dashboards</h3>
+                <button class="sidebar-close" onclick="toggleSidebar()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="sidebar-item">
+                    <a href="index.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                        <span>Cancelamentos</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="comercial.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        <span>Comercial</span>
+                    </a>
+                </li>
+                <li class="sidebar-item active">
+                    <a href="operacional.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        <span>Operacional</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="suporte.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <span>Suporte</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="bugs.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M12 6V3M4 10l4 2M20 10l-4 2M4 18l4-2M20 18l-4-2"/></svg>
+                        <span>Bugs</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="log-erros.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span>Log de Erros</span>
+                    </a>
+                </li>
+                <li class="sidebar-item sidebar-admin-only">
+                    <a href="admin.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <span>Admin</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+        <!-- Header -->
+        <header class="header">
+            <div class="header-top">
+                <button class="hamburger-btn" onclick="toggleSidebar()" title="Menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <h1 class="header-main-title">Operacional — Health Score</h1>
+                <p id="headerSubtitle">Carregando dados...</p>
+                <div class="header-controls">
+                    <span class="op-sync-badge" id="syncBadge" style="display:none">
+                        <span class="dot"></span> Sincronizado
+                    </span>
+                    <span class="user-display-name" id="userDisplayName"></span>
+                    <button class="btn-icon-small btn-logout" onclick="hubstromLogout()" title="Sair">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- KPIs -->
+        <section class="op-kpi-grid">
+            <div class="kpi-card neutral" id="kpiTotal">
+                <div class="kpi-value">—</div>
+                <div class="kpi-label">Total de Clientes</div>
+            </div>
+            <div class="kpi-card info" id="kpiMedia">
+                <div class="kpi-value">—</div>
+                <div class="kpi-label">Score Médio</div>
+            </div>
+            <div class="kpi-card saudavel" id="kpiSaudavel">
+                <div class="kpi-value">—</div>
+                <div class="kpi-label">Saudáveis ≥ 70</div>
+            </div>
+            <div class="kpi-card atencao" id="kpiAtencao">
+                <div class="kpi-value">—</div>
+                <div class="kpi-label">Em Atenção 40–69</div>
+            </div>
+            <div class="kpi-card critico" id="kpiCritico">
+                <div class="kpi-value">—</div>
+                <div class="kpi-label">Críticos &lt; 40</div>
+            </div>
+        </section>
+
+        <!-- Main grid -->
+        <section class="op-main-grid">
+            <!-- Ranking de Especialistas -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>Ranking de Especialistas</h3>
+                    <span class="op-sync-badge" id="rankBadge" style="display:none;font-size:11px">
+                        <span class="dot"></span> Live
+                    </span>
+                </div>
+                <div class="op-ranking-list" id="rankingLista">
+                    <div class="op-empty">Carregando...</div>
+                </div>
+            </div>
+
+            <!-- Right: donut + plan chart -->
+            <div class="op-charts-col">
+                <div class="chart-card">
+                    <div class="chart-header"><h3>Distribuição de Score</h3></div>
+                    <div style="max-width:180px;margin:8px auto 0">
+                        <canvas id="chartDistribuicao"></canvas>
+                    </div>
+                    <div class="op-donut-legend" id="donutLegend"></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header"><h3>Score Médio por Plano</h3></div>
+                    <canvas id="chartPlano" style="max-height:200px"></canvas>
+                </div>
+            </div>
+        </section>
+
+    </div><!-- /container -->
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+
+    <script>
+    /* =====================================================
+       Operacional — Health Score Logic
+       ===================================================== */
+
+    var ESPECIALISTAS = {
+        '80560906': 'Daiana Ozeki',
+        '80650083': 'Thiago Bonetto',
+        '81010479': 'HIA - IA',
+        '82760282': 'Isaque Antonio',
+        '82763839': 'Lucas Marques',
+        '82765513': 'Douglas Rocha',
+        '82768587': 'Bruno Paes',
+        '82770062': 'Amanda Fernandes',
+        '82770097': 'Michelle Queiroga',
+        '82770143': 'Fernanda Luize',
+        '82787893': 'Lucas Gomes',
+        '82820340': 'Isabela Cristina',
+        '82989763': 'Caio Cesar',
+        '82995601': 'Dev Team',
+        '83217272': 'João Pereira',
+        '83546245': 'Lucas Sales',
+        '83547089': 'Gabriel Cassimiro',
+        '83548028': 'Recursos Humanos',
+        '83576717': 'Financeiro SimplesHub',
+        '84498102': 'Paulo Leandro',
+        '85355750': 'Bruno Vinícius',
+        '89220787': 'Henrique Basani',
+        '89226735': 'Marisa Nunes',
+        '89226770': 'Vitoria Katiele',
+        '90743773': 'Luan Silva',
+        '90743905': 'Thiago Ribeiro',
+        '91981696': 'Alax Padela',
+        '91981752': 'Victoria Fernanda',
+        '91981815': 'Beatriz Souza',
+        '92937560': 'Elias Nery',
+        '92937997': 'Isabella Ribeiro',
+        '92938063': 'Júlia Souza',
+        '92938326': 'Léo Torres',
+        '92939482': 'Laiane Sameque',
+        '92939517': 'Pablo Rodrigues'
+    };
+
+    /* UIDs que não são consultores de clientes — excluir do ranking */
+    var IGNORAR_RANKING = {
+        'Dev Team': true, 'Recursos Humanos': true,
+        'Financeiro SimplesHub': true, 'HIA - IA': true,
+        'Isaque Antonio': true
+    };
+
+    var THRESHOLD_SAUDAVEL = 70;
+    var THRESHOLD_ATENCAO  = 40;
+
+    var allRows      = [];
+    var filteredRows = [];
+    var currentTab   = 'todos';
+    var sortCol      = 'score';
+    var sortAsc      = true;
+    var opCharts     = {};
+
+    /* ---- helpers ---- */
+    function parseScore(v) {
+        if (v === null || v === undefined || v === '') return null;
+        var n = parseFloat(v.toString().replace(',', '.'));
+        return isNaN(n) ? null : n;
+    }
+
+    function getZone(score) {
+        if (score === null) return 'sem-score';
+        if (score >= THRESHOLD_SAUDAVEL) return 'saudavel';
+        if (score >= THRESHOLD_ATENCAO)  return 'atencao';
+        return 'critico';
+    }
+
+    function resolveEsp(uid) {
+        var s = uid ? uid.toString().trim() : '';
+        return ESPECIALISTAS[s] || s || '—';
+    }
+
+    function esc(str) {
+        return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function zoneColor(zona) {
+        return { saudavel:'#35cca3', atencao:'#f59e0b', critico:'#ef4444', 'sem-score':'#64748b' }[zona] || '#64748b';
+    }
+
+    /* ---- Firebase ---- */
+    function initOperacional() {
+        firebase.database().ref('operacional_live').on('value', function(snap) {
+            var data = snap.val();
+            if (!data || !data.rows) {
+                document.getElementById('headerSubtitle').textContent = 'Sem dados disponíveis.';
+                return;
+            }
+            buildRows(data);
+        });
+    }
+
+    function buildRows(data) {
+        allRows = [];
+        (data.rows || []).forEach(function(r) {
+            if (!r || !r[0]) return;
+            var empresa  = r[0].toString().trim();
+            var uid      = (r[1] || '').toString().trim();
+            var plano    = (r[2] || '').toString().trim();
+            var score    = parseScore(r[3]);
+            allRows.push({
+                empresa:      empresa,
+                especialista: resolveEsp(uid),
+                plano:        plano,
+                score:        score,
+                zona:         getZone(score)
+            });
+        });
+
+        var ts = data.updatedISO ? new Date(data.updatedISO).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+        document.getElementById('headerSubtitle').textContent = allRows.length + ' clientes · Atualizado ' + ts;
+        document.getElementById('syncBadge').style.display = 'inline-flex';
+
+        renderKPIs();
+        renderRanking();
+        renderDonut();
+        renderPlanoChart();
+        buildFilters();
+        applyFilters();
+    }
+
+    /* ---- KPIs ---- */
+    function renderKPIs() {
+        var saudaveis = 0, atencao = 0, criticos = 0, scoreSum = 0, scoreCount = 0;
+        allRows.forEach(function(r) {
+            if (r.zona === 'saudavel') saudaveis++;
+            else if (r.zona === 'atencao') atencao++;
+            else if (r.zona === 'critico') criticos++;
+            if (r.score !== null) { scoreSum += r.score; scoreCount++; }
+        });
+        var media = scoreCount ? (scoreSum / scoreCount).toFixed(1) : '—';
+
+        setKPIVal('kpiTotal',    allRows.length);
+        setKPIVal('kpiMedia',    media);
+        setKPIVal('kpiSaudavel', saudaveis);
+        setKPIVal('kpiAtencao',  atencao);
+        setKPIVal('kpiCritico',  criticos);
+    }
+
+    function setKPIVal(id, val) {
+        var el = document.getElementById(id);
+        if (el) el.querySelector('.kpi-value').textContent = val;
+    }
+
+    /* ---- Ranking ---- */
+    function renderRanking() {
+        var map = {};
+        allRows.forEach(function(r) {
+            var k = r.especialista;
+            if (!map[k]) map[k] = { total:0, scoreSum:0, scoreCount:0, saudaveis:0 };
+            map[k].total++;
+            if (r.score !== null) { map[k].scoreSum += r.score; map[k].scoreCount++; }
+            if (r.zona === 'saudavel') map[k].saudaveis++;
+        });
+
+        var list = Object.keys(map)
+            .filter(function(k) { return !IGNORAR_RANKING[k] && map[k].total >= 2; })
+            .map(function(k) {
+                var e = map[k];
+                var media = e.scoreCount ? e.scoreSum / e.scoreCount : null;
+                return { nome:k, total:e.total, media:media, saudaveis:e.saudaveis,
+                         zona: getZone(media),
+                         pctSaudavel: Math.round(e.saudaveis / e.total * 100) };
+            })
+            .sort(function(a,b) {
+                var am = a.media !== null ? a.media : -1;
+                var bm = b.media !== null ? b.media : -1;
+                return bm - am;
+            });
+
+        if (!list.length) {
+            document.getElementById('rankingLista').innerHTML = '<div class="op-empty">Sem dados de especialistas</div>';
+            return;
+        }
+
+        /* URLs de fotos por especialista — preencha os links aqui */
+        var FOTOS = {
+            'Daiana Ozeki':       '',
+            'Thiago Bonetto':     '',
+            'Lucas Marques':      '',
+            'Douglas Rocha':      '',
+            'Bruno Paes':         '',
+            'Amanda Fernandes':   '',
+            'Michelle Queiroga':  '',
+            'Fernanda Luize':     '',
+            'Lucas Gomes':        '',
+            'Isabela Cristina':   '',
+            'Caio Cesar':         '',
+            'João Pereira':       '',
+            'Lucas Sales':        '',
+            'Gabriel Cassimiro':  '',
+            'Paulo Leandro':      '',
+            'Bruno Vinícius':     '',
+            'Henrique Basani':    '',
+            'Marisa Nunes':       '',
+            'Vitoria Katiele':    '',
+            'Luan Silva':         '',
+            'Thiago Ribeiro':     '',
+            'Alax Padela':        '',
+            'Victoria Fernanda':  '',
+            'Beatriz Souza':      '',
+            'Elias Nery':         '',
+            'Isabella Ribeiro':   '',
+            'Júlia Souza':        '',
+            'Léo Torres':         '',
+            'Laiane Sameque':     '',
+            'Pablo Rodrigues':    ''
+        };
+
+        var PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%231e293b'/%3E%3Ccircle cx='50' cy='38' r='18' fill='%2364748b'/%3E%3Cellipse cx='50' cy='88' rx='28' ry='22' fill='%2364748b'/%3E%3C/svg%3E";
+
+        var html = list.map(function(e, i) {
+            var tier = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+            var rankClass = i === 0 ? 'rank-1' : '';
+            var foto = FOTOS[e.nome] || PLACEHOLDER;
+            var scoreDisp = e.media !== null ? e.media.toFixed(1) : '—';
+            var barW = e.media !== null ? Math.min(100, e.media).toFixed(0) : '0';
+            return '<div class="op-ranking-item ' + rankClass + '">' +
+                '<div class="op-rank-badge ' + tier + '">' + (i+1) + '</div>' +
+                '<div class="op-rank-avatar ' + (tier ? tier+'-b' : '') + '">' +
+                    '<img src="' + foto + '" onerror="this.src=\'' + PLACEHOLDER + '\'">' +
+                '</div>' +
+                '<div class="op-rank-info">' +
+                    '<div class="op-rank-name-text">' + esc(e.nome) + '</div>' +
+                    '<div class="op-rank-meta">' + e.total + ' clientes · ' + e.pctSaudavel + '% saudáveis</div>' +
+                '</div>' +
+                '<div class="op-rank-score-wrap">' +
+                    '<div class="op-rank-score-val c-' + e.zona + '">' + scoreDisp + '</div>' +
+                    '<div class="op-score-bar"><div class="op-score-bar-fill bg-' + e.zona + '" style="width:' + barW + '%"></div></div>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+
+        document.getElementById('rankingLista').innerHTML = html;
+        document.getElementById('rankBadge').style.display = 'inline-flex';
+    }
+
+    /* ---- Donut ---- */
+    function renderDonut() {
+        var counts = { saudavel:0, atencao:0, critico:0 };
+        allRows.forEach(function(r) { if (counts[r.zona] !== undefined) counts[r.zona]++; });
+        var total = allRows.length;
+
+        var ctx = document.getElementById('chartDistribuicao');
+        if (!ctx) return;
+        if (opCharts.donut) opCharts.donut.destroy();
+
+        opCharts.donut = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Saudáveis','Em Atenção','Críticos'],
+                datasets: [{
+                    data: [counts.saudavel, counts.atencao, counts.critico],
+                    backgroundColor: ['#35cca3','#f59e0b','#ef4444'],
+                    borderWidth: 0, spacing: 3
+                }]
+            },
+            options: {
+                cutout: '68%',
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: { display: false },
+                    tooltip: { callbacks: { label: function(c) {
+                        var pct = total ? ((c.raw/total)*100).toFixed(1) : '0';
+                        return ' ' + c.raw + ' (' + pct + '%)';
+                    }}}
+                }
+            }
+        });
+
+        var items = [
+            { label:'Saudáveis', color:'#35cca3', count:counts.saudavel },
+            { label:'Em Atenção', color:'#f59e0b', count:counts.atencao },
+            { label:'Críticos',   color:'#ef4444', count:counts.critico }
+        ];
+        document.getElementById('donutLegend').innerHTML = items.map(function(it) {
+            var pct = total ? ((it.count/total)*100).toFixed(0) : '0';
+            return '<div class="op-donut-legend-row">' +
+                '<div class="op-donut-legend-left">' +
+                    '<span class="op-legend-dot" style="background:' + it.color + '"></span>' +
+                    '<span class="op-legend-label">' + it.label + '</span>' +
+                '</div>' +
+                '<div><span class="op-legend-right">' + it.count + '</span>' +
+                    '<span class="op-legend-pct">(' + pct + '%)</span></div>' +
+            '</div>';
+        }).join('');
+    }
+
+    /* ---- Plano chart ---- */
+    function renderPlanoChart() {
+        var map = {};
+        allRows.forEach(function(r) {
+            var p = r.plano || 'Sem plano';
+            if (!map[p]) map[p] = [];
+            if (r.score !== null) map[p].push(r.score);
+        });
+
+        var planos = Object.keys(map).filter(function(p) { return map[p].length > 0; });
+        planos.sort(function(a,b) {
+            var ma = map[a].reduce(function(s,v){return s+v;},0)/map[a].length;
+            var mb = map[b].reduce(function(s,v){return s+v;},0)/map[b].length;
+            return mb - ma;
+        });
+
+        var labels = planos.map(function(p){ return p.length>22?p.slice(0,20)+'…':p; });
+        var medias = planos.map(function(p){
+            var arr = map[p];
+            return parseFloat((arr.reduce(function(s,v){return s+v;},0)/arr.length).toFixed(1));
+        });
+        var colors = medias.map(function(m){ return zoneColor(getZone(m)); });
+
+        var ctx = document.getElementById('chartPlano');
+        if (!ctx) return;
+        if (opCharts.plano) opCharts.plano.destroy();
+
+        opCharts.plano = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: labels, datasets: [{
+                data: medias, backgroundColor: colors,
+                borderRadius: 6, borderSkipped: false, barThickness: 22
+            }]},
+            options: {
+                indexAxis: 'y', responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: { display: false },
+                    tooltip: { callbacks: {
+                        title: function(c){ return planos[c[0].dataIndex]; },
+                        label: function(c){ return ' Score médio: ' + c.raw; }
+                    }}
+                },
+                scales: {
+                    x: { beginAtZero:true, max:100,
+                         ticks:{color:'#64748b',font:{size:10}},
+                         grid:{color:'rgba(255,255,255,.05)'} },
+                    y: { ticks:{color:'#94a3b8',font:{size:11}}, grid:{display:false} }
+                }
+            }
+        });
+    }
+
+    /* ---- Filters ---- */
+    function buildFilters() {
+        var esps = {}, planos = {};
+        allRows.forEach(function(r) {
+            if (r.especialista) esps[r.especialista] = true;
+            if (r.plano) planos[r.plano] = true;
+        });
+
+        fillSelect('filterEsp',   Object.keys(esps).sort(),   'Todos os especialistas');
+        fillSelect('filterPlano', Object.keys(planos).sort(), 'Todos os planos');
+    }
+
+    function fillSelect(id, options, placeholder) {
+        var sel = document.getElementById(id);
+        var cur = sel.value;
+        sel.innerHTML = '<option value="">' + placeholder + '</option>';
+        options.forEach(function(o) {
+            var opt = document.createElement('option');
+            opt.value = o; opt.textContent = o;
+            if (o === cur) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    }
+
+    function setTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.op-tab').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+        applyFilters();
+    }
+
+    function applyFilters() {
+        var search = document.getElementById('tableSearch').value.toLowerCase();
+        var esp    = document.getElementById('filterEsp').value;
+        var plano  = document.getElementById('filterPlano').value;
+
+        filteredRows = allRows.filter(function(r) {
+            if (currentTab !== 'todos' && r.zona !== currentTab) return false;
+            if (esp   && r.especialista !== esp)   return false;
+            if (plano && r.plano        !== plano) return false;
+            if (search && r.empresa.toLowerCase().indexOf(search) < 0) return false;
+            return true;
+        });
+
+        filteredRows.sort(function(a,b) {
+            var av = a[sortCol], bv = b[sortCol];
+            if (av === null) av = sortAsc ?  Infinity : -Infinity;
+            if (bv === null) bv = sortAsc ?  Infinity : -Infinity;
+            if (typeof av === 'string') { av = av.toLowerCase(); bv = (bv||'').toLowerCase(); }
+            return av < bv ? (sortAsc?-1:1) : av > bv ? (sortAsc?1:-1) : 0;
+        });
+
+        renderTable();
+    }
+
+    function sortBy(col) {
+        sortAsc = sortCol === col ? !sortAsc : (col !== 'score');
+        sortCol = col;
+        applyFilters();
+    }
+
+    /* ---- Table ---- */
+    function renderTable() {
+        var count = filteredRows.length;
+        document.getElementById('tableCount').textContent = count + ' cliente' + (count !== 1 ? 's' : '');
+
+        if (!count) {
+            document.getElementById('clientesTbody').innerHTML =
+                '<tr><td colspan="5" class="op-empty">Nenhum cliente encontrado</td></tr>';
+            return;
+        }
+
+        var MAX = 300;
+        var rows = filteredRows.slice(0, MAX);
+        var html = rows.map(function(r) {
+            var scoreDisp = r.score !== null ? r.score.toFixed(1) : '—';
+            var zona = r.zona === 'sem-score' ? 'sem-score' : r.zona;
+            var label = { saudavel:'Saudável', atencao:'Atenção', critico:'Crítico', 'sem-score':'—' }[zona];
+            return '<tr>' +
+                '<td class="td-empresa">' + esc(r.empresa) + '</td>' +
+                '<td>' + esc(r.especialista) + '</td>' +
+                '<td>' + esc(r.plano || '—') + '</td>' +
+                '<td><strong style="color:' + zoneColor(zona) + '">' + scoreDisp + '</strong></td>' +
+                '<td><span class="op-score-badge ' + zona + '">' + label + '</span></td>' +
+            '</tr>';
+        }).join('');
+
+        if (count > MAX) {
+            html += '<tr><td colspan="5" style="text-align:center;padding:12px;color:#64748b;font-size:12px">' +
+                'Mostrando ' + MAX + ' de ' + count + ' clientes. Use os filtros para refinar.</td></tr>';
+        }
+
+        document.getElementById('clientesTbody').innerHTML = html;
+    }
+
+    /* ---- Sidebar ---- */
+    function toggleSidebar() {
+        var sidebar = document.getElementById('sidebar');
+        var overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.toggle('active');
+        overlay.classList.toggle('active');
+        document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            var sidebar = document.getElementById('sidebar');
+            if (sidebar.classList.contains('active')) toggleSidebar();
+        }
+    });
+
+    /* ---- Init ---- */
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            var s = document.getElementById('sidebar');
+            if (s) s.classList.add('ready');
+        }, 50);
+
+        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
+            initOperacional();
+        } else {
+            document.addEventListener('hubstromFirebaseReady', initOperacional);
+        }
+    });
+    </script>
+</body>
+</html>
