@@ -44,15 +44,16 @@
         .op-kpi-section {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: stretch;
             gap: 16px;
             padding: 0 24px 28px;
         }
         .op-kpi-main {
-            width: min(380px, 55%);
+            align-self: center;
+            width: 380px;
             text-align: center;
+            padding: 32px 24px;
         }
-        .op-kpi-main .kpi-value { font-size: 48px; }
         .op-kpi-sub-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -60,9 +61,21 @@
             width: 100%;
         }
         .op-kpi-sub-row .kpi-card {
+            width: 380px;
+            justify-self: center;
             text-align: center;
+            padding: 32px 24px;
         }
-        .op-kpi-sub-row .kpi-card .kpi-value { font-size: 38px; }
+        /* Fonte e label idênticos nos 3 cards */
+        .op-kpi-section .kpi-value { font-size: 48px !important; }
+        .op-kpi-section .kpi-label {
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.1em !important;
+            text-transform: uppercase !important;
+            color: #e2e8f0 !important;
+            margin-top: 10px;
+        }
         .kpi-card.saudavel { border-color: rgba(53,204,163,.3); }
         .kpi-card.saudavel .kpi-value { color: #35cca3; }
         .kpi-card.atencao  { border-color: rgba(245,158,11,.3); }
@@ -168,7 +181,7 @@
         .op-rank-avatar.gold-b   { border-color: #FFD700; box-shadow: 0 0 14px rgba(255,215,0,.25); }
         .op-rank-avatar.silver-b { border-color: #C0C0C0; box-shadow: 0 0 12px rgba(192,192,192,.2); }
         .op-rank-avatar.bronze-b { border-color: #CD7F32; box-shadow: 0 0 12px rgba(205,127,50,.2); }
-        .op-rank-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+        .op-rank-avatar img { width:100%; height:100%; object-fit:cover; object-position:top center; display:block; }
 
         /* Header da tabela */
         .op-ranking-header {
@@ -196,11 +209,13 @@
         .op-rank-pct-col { width:110px; text-align:right; flex-shrink:0; }
         .op-rank-pct-val { font-size:18px; font-weight:600; color:#e2e8f0; }
 
-        .c-saudavel { color: #35cca3; }
-        .c-atencao  { color: #f59e0b; }
-        .c-critico  { color: #ef4444; }
+        .c-saudavel  { color: #35cca3; }
+        .c-atencao   { color: #f59e0b; }
+        .c-emrisco   { color: #f97316; }
+        .c-critico   { color: #ef4444; }
         .bg-saudavel { background: #35cca3; }
         .bg-atencao  { background: #f59e0b; }
+        .bg-emrisco  { background: #f97316; }
         .bg-critico  { background: #ef4444; }
 
         /* Donut legend */
@@ -476,8 +491,9 @@
         'Isaque Antonio': true
     };
 
-    var THRESHOLD_SAUDAVEL = 70;
-    var THRESHOLD_ATENCAO  = 40;
+    var THRESHOLD_SAUDAVEL = 80;
+    var THRESHOLD_ATENCAO  = 60;
+    var THRESHOLD_EMRISCO  = 40;
 
     var allRows      = [];
     var filteredRows = [];
@@ -497,6 +513,7 @@
         if (score === null) return 'sem-score';
         if (score >= THRESHOLD_SAUDAVEL) return 'saudavel';
         if (score >= THRESHOLD_ATENCAO)  return 'atencao';
+        if (score >= THRESHOLD_EMRISCO)  return 'emrisco';
         return 'critico';
     }
 
@@ -510,7 +527,7 @@
     }
 
     function zoneColor(zona) {
-        return { saudavel:'#35cca3', atencao:'#f59e0b', critico:'#ef4444', 'sem-score':'#64748b' }[zona] || '#64748b';
+        return { saudavel:'#35cca3', atencao:'#f59e0b', emrisco:'#f97316', critico:'#ef4444', 'sem-score':'#64748b' }[zona] || '#64748b';
     }
 
     /* ---- Firebase ---- */
@@ -568,9 +585,9 @@
             }
         });
 
-        setKPIVal('kpiMedia',      scoreCount    ? (scoreSum    / scoreCount).toFixed(1)    : '—');
-        setKPIVal('kpiEnterprise', entCount      ? (entSum      / entCount).toFixed(1)      : '—');
-        setKPIVal('kpiCarteira',   carteiraCount ? (carteiraSum / carteiraCount).toFixed(1) : '—');
+        setKPIVal('kpiMedia',      scoreCount    ? Math.round(scoreSum    / scoreCount)    : '—');
+        setKPIVal('kpiEnterprise', entCount      ? Math.round(entSum      / entCount)      : '—');
+        setKPIVal('kpiCarteira',   carteiraCount ? Math.round(carteiraSum / carteiraCount) : '—');
     }
 
     function setKPIVal(id, val) {
@@ -770,7 +787,7 @@
         var html = rows.map(function(r) {
             var scoreDisp = r.score !== null ? r.score.toFixed(1) : '—';
             var zona = r.zona === 'sem-score' ? 'sem-score' : r.zona;
-            var label = { saudavel:'Saudável', atencao:'Atenção', critico:'Crítico', 'sem-score':'—' }[zona];
+            var label = { saudavel:'Saudável', atencao:'Atenção', emrisco:'Em risco', critico:'Crítico', 'sem-score':'—' }[zona];
             return '<tr>' +
                 '<td class="td-empresa">' + esc(r.empresa) + '</td>' +
                 '<td>' + esc(r.especialista) + '</td>' +
