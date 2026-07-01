@@ -38,13 +38,29 @@
         }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-        /* KPI grid */
-        .op-kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
+        /* KPI section — pirâmide */
+        .op-kpi-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             gap: 16px;
-            padding: 0 24px 24px;
+            padding: 0 24px 28px;
         }
+        .op-kpi-main {
+            width: min(380px, 55%);
+            text-align: center;
+        }
+        .op-kpi-main .kpi-value { font-size: 48px; }
+        .op-kpi-sub-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+        }
+        .op-kpi-sub-row .kpi-card {
+            text-align: center;
+        }
+        .op-kpi-sub-row .kpi-card .kpi-value { font-size: 38px; }
         .kpi-card.saudavel { border-color: rgba(53,204,163,.3); }
         .kpi-card.saudavel .kpi-value { color: #35cca3; }
         .kpi-card.atencao  { border-color: rgba(245,158,11,.3); }
@@ -60,13 +76,6 @@
             padding: 0 24px 24px;
         }
 
-        /* Linha de gráficos abaixo */
-        .op-charts-row {
-            display: grid;
-            grid-template-columns: 360px 1fr;
-            gap: 20px;
-            padding: 0 24px 24px;
-        }
 
         /* Card placeholder para equipe 2 */
         .op-team2-placeholder {
@@ -86,12 +95,12 @@
         .op-ranking-item {
             display: flex;
             align-items: center;
-            gap: 14px;
-            padding: 14px 16px;
-            border-radius: 12px;
+            gap: 18px;
+            padding: 20px 18px;
+            border-radius: 14px;
             background: rgba(255,255,255,.03);
             border: 1px solid rgba(255,255,255,.06);
-            margin-bottom: 10px;
+            margin-bottom: 14px;
             transition: background .15s;
         }
         .op-ranking-item:hover { background: rgba(255,255,255,.06); }
@@ -102,7 +111,7 @@
 
         /* Badge de posição (círculo) */
         .op-rank-badge {
-            width: 34px; height: 34px;
+            width: 38px; height: 38px;
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-size: 13px; font-weight: 800; flex-shrink: 0;
@@ -114,10 +123,10 @@
 
         /* Avatar circular */
         .op-rank-avatar {
-            width: 46px; height: 46px;
+            width: 84px; height: 84px;
             border-radius: 50%;
             overflow: hidden; flex-shrink: 0;
-            border: 2px solid rgba(255,255,255,.12);
+            border: 3px solid rgba(255,255,255,.12);
             background: #1e293b;
         }
         .op-rank-avatar.gold-b   { border-color: rgba(255,215,0,.75); }
@@ -138,7 +147,7 @@
         .op-rh-pct   { width:110px; text-align:right; font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.05em; }
 
         .op-rank-info { flex:1; min-width:0; }
-        .op-rank-name-text { font-size:15px; font-weight:600; color:#e2e8f0; }
+        .op-rank-name-text { font-size:17px; font-weight:600; color:#e2e8f0; }
 
         /* Coluna de score (centro) */
         .op-rank-score-col { width:130px; text-align:right; flex-shrink:0; }
@@ -222,10 +231,10 @@
 
         @media (max-width:1100px) {
             .op-main-grid { grid-template-columns:1fr; }
-            .op-kpi-grid  { grid-template-columns:repeat(3,1fr); }
         }
         @media (max-width:640px) {
-            .op-kpi-grid { grid-template-columns:repeat(2,1fr); }
+            .op-kpi-sub-row { flex-direction:column; align-items:center; }
+            .op-kpi-sub-row .kpi-card { width:280px; }
             .op-main-grid, .op-table-section { padding:0 12px 20px; }
         }
     </style>
@@ -316,26 +325,20 @@
         </header>
 
         <!-- KPIs -->
-        <section class="op-kpi-grid">
-            <div class="kpi-card neutral" id="kpiTotal">
+        <section class="op-kpi-section">
+            <div class="kpi-card info op-kpi-main" id="kpiMedia">
                 <div class="kpi-value">—</div>
-                <div class="kpi-label">Total de Clientes</div>
+                <div class="kpi-label">Health Score</div>
             </div>
-            <div class="kpi-card info" id="kpiMedia">
-                <div class="kpi-value">—</div>
-                <div class="kpi-label">Score Médio</div>
-            </div>
-            <div class="kpi-card saudavel" id="kpiSaudavel">
-                <div class="kpi-value">—</div>
-                <div class="kpi-label">Saudáveis ≥ 70</div>
-            </div>
-            <div class="kpi-card atencao" id="kpiAtencao">
-                <div class="kpi-value">—</div>
-                <div class="kpi-label">Em Atenção 40–69</div>
-            </div>
-            <div class="kpi-card critico" id="kpiCritico">
-                <div class="kpi-value">—</div>
-                <div class="kpi-label">Críticos &lt; 40</div>
+            <div class="op-kpi-sub-row">
+                <div class="kpi-card saudavel" id="kpiEnterprise">
+                    <div class="kpi-value">—</div>
+                    <div class="kpi-label">Enterprise</div>
+                </div>
+                <div class="kpi-card atencao" id="kpiCarteira">
+                    <div class="kpi-value">—</div>
+                    <div class="kpi-label">Professional</div>
+                </div>
             </div>
         </section>
 
@@ -359,41 +362,25 @@
                 </div>
             </div>
 
-            <!-- Equipe 2 — placeholder -->
+            <!-- Ranking Professional -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <h3>Ranking — Equipe 2</h3>
+                    <h3>Ranking Professional</h3>
+                    <span class="op-sync-badge" id="rankBadgeProf" style="display:none;font-size:11px">
+                        <span class="dot"></span> Live
+                    </span>
                 </div>
                 <div class="op-ranking-header">
                     <span class="op-rh-esp">Especialista</span>
                     <span class="op-rh-score">Score</span>
                     <span class="op-rh-pct">% Saudáveis</span>
                 </div>
-                <div class="op-team2-placeholder">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-                    </svg>
-                    <p>Equipe 2 em breve</p>
+                <div class="op-ranking-list" id="rankingListaProf">
+                    <div class="op-empty">Carregando...</div>
                 </div>
             </div>
         </section>
 
-        <!-- Gráficos -->
-        <section class="op-charts-row">
-            <div class="chart-card">
-                <div class="chart-header"><h3>Distribuição de Score</h3></div>
-                <div style="max-width:180px;margin:8px auto 0">
-                    <canvas id="chartDistribuicao"></canvas>
-                </div>
-                <div class="op-donut-legend" id="donutLegend"></div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-header"><h3>Score Médio por Plano</h3></div>
-                <canvas id="chartPlano" style="max-height:220px"></canvas>
-            </div>
-        </section>
 
     </div><!-- /container -->
 
@@ -525,28 +512,29 @@
 
         renderKPIs();
         renderRanking();
-        renderDonut();
-        renderPlanoChart();
         buildFilters();
         applyFilters();
     }
 
     /* ---- KPIs ---- */
     function renderKPIs() {
-        var saudaveis = 0, atencao = 0, criticos = 0, scoreSum = 0, scoreCount = 0;
-        allRows.forEach(function(r) {
-            if (r.zona === 'saudavel') saudaveis++;
-            else if (r.zona === 'atencao') atencao++;
-            else if (r.zona === 'critico') criticos++;
-            if (r.score !== null) { scoreSum += r.score; scoreCount++; }
-        });
-        var media = scoreCount ? (scoreSum / scoreCount).toFixed(1) : '—';
+        var scoreSum = 0, scoreCount = 0;
+        var entSum = 0, entCount = 0;
+        var carteiraSum = 0, carteiraCount = 0;
 
-        setKPIVal('kpiTotal',    allRows.length);
-        setKPIVal('kpiMedia',    media);
-        setKPIVal('kpiSaudavel', saudaveis);
-        setKPIVal('kpiAtencao',  atencao);
-        setKPIVal('kpiCritico',  criticos);
+        allRows.forEach(function(r) {
+            if (r.score === null) return;
+            var plano = (r.plano || '').toLowerCase();
+            scoreSum += r.score; scoreCount++;
+            if (plano.indexOf('enterprise') !== -1) { entSum += r.score; entCount++; }
+            if (plano.indexOf('professional') !== -1 || plano.indexOf('starter') !== -1 || plano.indexOf('avulso') !== -1) {
+                carteiraSum += r.score; carteiraCount++;
+            }
+        });
+
+        setKPIVal('kpiMedia',      scoreCount    ? (scoreSum    / scoreCount).toFixed(1)    : '—');
+        setKPIVal('kpiEnterprise', entCount      ? (entSum      / entCount).toFixed(1)      : '—');
+        setKPIVal('kpiCarteira',   carteiraCount ? (carteiraSum / carteiraCount).toFixed(1) : '—');
     }
 
     function setKPIVal(id, val) {
@@ -555,18 +543,61 @@
     }
 
     /* ---- Ranking ---- */
-    function renderRanking() {
+    var EQUIPE_ENTERPRISE   = { 'João Pereira':1, 'Vitoria Katiele':1, 'Henrique Basani':1 };
+    var EQUIPE_PROFESSIONAL = { 'Beatriz Souza':1, 'Alax Padela':1, 'Victoria Fernanda':1 };
+
+    var FOTOS = {
+        'Daiana Ozeki':       '',
+        'Thiago Bonetto':     'https://i.postimg.cc/tgZDG5zs/IMG-7782-(1).jpg',
+        'Lucas Marques':      '',
+        'Douglas Rocha':      'https://i.postimg.cc/B6nbcNJw/MG-4012-(1).jpg',
+        'Bruno Paes':         '',
+        'Amanda Fernandes':   '',
+        'Michelle Queiroga':  '',
+        'Fernanda Luize':     '',
+        'Lucas Gomes':        'https://i.postimg.cc/5NnPs25Z/image-(128).png',
+        'Isabela Cristina':   '',
+        'Caio Cesar':         '',
+        'João Pereira':       'https://i.postimg.cc/vmVDsgxm/file-00000000caf071f790dc1157400debaa-(1).png',
+        'Lucas Sales':        '',
+        'Gabriel Cassimiro':  'https://i.postimg.cc/ydKCVZ4D/image-(130).png',
+        'Paulo Leandro':      '',
+        'Bruno Vinícius':     '',
+        'Henrique Basani':    'https://i.postimg.cc/0NB3pjVr/IMG-0930.jpg',
+        'Marisa Nunes':       'https://i.postimg.cc/3wmrqszm/IMG-1058.jpg',
+        'Vitoria Katiele':    'https://i.postimg.cc/FKgGDRFh/IMG-1073-(1).jpg',
+        'Luan Silva':         'https://i.postimg.cc/X7BvFBxH/IMG-1089.jpg',
+        'Thiago Ribeiro':     'https://i.postimg.cc/wBPZ0jz6/IMG-1090.jpg',
+        'Alax Padela':        'https://i.postimg.cc/pdMjqBhJ/IMG-2861.jpg',
+        'Victoria Fernanda':  '',
+        'Beatriz Souza':      'https://i.postimg.cc/3RFM38PN/image-(23).png',
+        'Elias Nery':         '',
+        'Isabella Ribeiro':   '',
+        'Júlia Souza':        '',
+        'Léo Torres':         '',
+        'Laiane Sameque':     '',
+        'Pablo Rodrigues':    ''
+    };
+
+    var PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%231e293b'/%3E%3Ccircle cx='50' cy='38' r='18' fill='%2364748b'/%3E%3Cellipse cx='50' cy='88' rx='28' ry='22' fill='%2364748b'/%3E%3C/svg%3E";
+
+    function buildSpecialistMap(planFilter) {
         var map = {};
         allRows.forEach(function(r) {
+            if (!planFilter(r.plano || '')) return;
             var k = r.especialista;
+            if (!k) return;
             if (!map[k]) map[k] = { total:0, scoreSum:0, scoreCount:0, saudaveis:0 };
             map[k].total++;
             if (r.score !== null) { map[k].scoreSum += r.score; map[k].scoreCount++; }
             if (r.zona === 'saudavel') map[k].saudaveis++;
         });
+        return map;
+    }
 
-        var list = Object.keys(map)
-            .filter(function(k) { return !IGNORAR_RANKING[k] && map[k].total >= 2; })
+    function mapToRankedList(map, equipe) {
+        return Object.keys(map)
+            .filter(function(k) { return equipe[k] && map[k].total >= 1; })
             .map(function(k) {
                 var e = map[k];
                 var media = e.scoreCount ? e.scoreSum / e.scoreCount : null;
@@ -575,59 +606,18 @@
                          pctSaudavel: Math.round(e.saudaveis / e.total * 100) };
             })
             .sort(function(a,b) {
-                var am = a.media !== null ? a.media : -1;
-                var bm = b.media !== null ? b.media : -1;
-                return bm - am;
+                return (b.media !== null ? b.media : -1) - (a.media !== null ? a.media : -1);
             });
+    }
 
-        if (!list.length) {
-            document.getElementById('rankingLista').innerHTML = '<div class="op-empty">Sem dados de especialistas</div>';
-            return;
-        }
-
-        /* URLs de fotos por especialista */
-        var FOTOS = {
-            'Daiana Ozeki':       '',
-            'Thiago Bonetto':     'https://i.postimg.cc/tgZDG5zs/IMG-7782-(1).jpg',
-            'Lucas Marques':      '',
-            'Douglas Rocha':      'https://i.postimg.cc/B6nbcNJw/MG-4012-(1).jpg',
-            'Bruno Paes':         '',
-            'Amanda Fernandes':   '',
-            'Michelle Queiroga':  '',
-            'Fernanda Luize':     '',
-            'Lucas Gomes':        'https://i.postimg.cc/5NnPs25Z/image-(128).png',
-            'Isabela Cristina':   '',
-            'Caio Cesar':         '',
-            'João Pereira':       'https://i.postimg.cc/vmVDsgxm/file-00000000caf071f790dc1157400debaa-(1).png',
-            'Lucas Sales':        '',
-            'Gabriel Cassimiro':  'https://i.postimg.cc/ydKCVZ4D/image-(130).png',
-            'Paulo Leandro':      '',
-            'Bruno Vinícius':     '',
-            'Henrique Basani':    'https://i.postimg.cc/0NB3pjVr/IMG-0930.jpg',
-            'Marisa Nunes':       'https://i.postimg.cc/3wmrqszm/IMG-1058.jpg',
-            'Vitoria Katiele':    'https://i.postimg.cc/FKgGDRFh/IMG-1073-(1).jpg',
-            'Luan Silva':         'https://i.postimg.cc/X7BvFBxH/IMG-1089.jpg',
-            'Thiago Ribeiro':     'https://i.postimg.cc/wBPZ0jz6/IMG-1090.jpg',
-            'Alax Padela':        '',
-            'Victoria Fernanda':  '',
-            'Beatriz Souza':      'https://i.postimg.cc/3RFM38PN/image-(23).png',
-            'Elias Nery':         '',
-            'Isabella Ribeiro':   '',
-            'Júlia Souza':        '',
-            'Léo Torres':         '',
-            'Laiane Sameque':     '',
-            'Pablo Rodrigues':    ''
-        };
-
-        var PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%231e293b'/%3E%3Ccircle cx='50' cy='38' r='18' fill='%2364748b'/%3E%3Cellipse cx='50' cy='88' rx='28' ry='22' fill='%2364748b'/%3E%3C/svg%3E";
-
-        var html = list.map(function(e, i) {
+    function buildRankingHTML(list) {
+        if (!list.length) return '<div class="op-empty">Sem dados</div>';
+        return list.map(function(e, i) {
             var tier = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
             var rankClass = i === 0 ? 'rank-1' : '';
             var foto = FOTOS[e.nome] || PLACEHOLDER;
             var scoreDisp = e.media !== null ? e.media.toFixed(1) : '—';
             var barW = e.media !== null ? Math.min(100, e.media).toFixed(0) : '0';
-            var pctDisp = e.pctSaudavel + '%';
             return '<div class="op-ranking-item ' + rankClass + '">' +
                 '<div class="op-rank-badge ' + tier + '">' + (i+1) + '</div>' +
                 '<div class="op-rank-avatar ' + (tier ? tier+'-b' : '') + '">' +
@@ -642,119 +632,28 @@
                     '<div class="op-score-bar"><div class="op-score-bar-fill bg-' + e.zona + '" style="width:' + barW + '%"></div></div>' +
                 '</div>' +
                 '<div class="op-rank-pct-col">' +
-                    '<div class="op-rank-pct-val">' + pctDisp + '</div>' +
+                    '<div class="op-rank-pct-val">' + e.pctSaudavel + '%</div>' +
                 '</div>' +
             '</div>';
         }).join('');
-
-        document.getElementById('rankingLista').innerHTML = html;
-        document.getElementById('rankBadge').style.display = 'inline-flex';
     }
 
-    /* ---- Donut ---- */
-    function renderDonut() {
-        var counts = { saudavel:0, atencao:0, critico:0 };
-        allRows.forEach(function(r) { if (counts[r.zona] !== undefined) counts[r.zona]++; });
-        var total = allRows.length;
+    function renderRanking() {
+        var isEnt  = function(p) { return p.toLowerCase().indexOf('enterprise') !== -1; };
+        var isProf = function(p) { var l = p.toLowerCase(); return l.indexOf('professional') !== -1 || l.indexOf('starter') !== -1 || l.indexOf('avulso') !== -1; };
 
-        var ctx = document.getElementById('chartDistribuicao');
-        if (!ctx) return;
-        if (opCharts.donut) opCharts.donut.destroy();
+        var mapEnt  = buildSpecialistMap(isEnt);
+        var mapProf = buildSpecialistMap(isProf);
 
-        opCharts.donut = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Saudáveis','Em Atenção','Críticos'],
-                datasets: [{
-                    data: [counts.saudavel, counts.atencao, counts.critico],
-                    backgroundColor: ['#35cca3','#f59e0b','#ef4444'],
-                    borderWidth: 0, spacing: 3
-                }]
-            },
-            options: {
-                cutout: '68%',
-                responsive: true,
-                plugins: {
-                    legend: { display: false },
-                    datalabels: { display: false },
-                    tooltip: { callbacks: { label: function(c) {
-                        var pct = total ? ((c.raw/total)*100).toFixed(1) : '0';
-                        return ' ' + c.raw + ' (' + pct + '%)';
-                    }}}
-                }
-            }
-        });
+        var listEnt  = mapToRankedList(mapEnt,  EQUIPE_ENTERPRISE);
+        var listProf = mapToRankedList(mapProf, EQUIPE_PROFESSIONAL);
 
-        var items = [
-            { label:'Saudáveis', color:'#35cca3', count:counts.saudavel },
-            { label:'Em Atenção', color:'#f59e0b', count:counts.atencao },
-            { label:'Críticos',   color:'#ef4444', count:counts.critico }
-        ];
-        document.getElementById('donutLegend').innerHTML = items.map(function(it) {
-            var pct = total ? ((it.count/total)*100).toFixed(0) : '0';
-            return '<div class="op-donut-legend-row">' +
-                '<div class="op-donut-legend-left">' +
-                    '<span class="op-legend-dot" style="background:' + it.color + '"></span>' +
-                    '<span class="op-legend-label">' + it.label + '</span>' +
-                '</div>' +
-                '<div><span class="op-legend-right">' + it.count + '</span>' +
-                    '<span class="op-legend-pct">(' + pct + '%)</span></div>' +
-            '</div>';
-        }).join('');
+        document.getElementById('rankingLista').innerHTML     = buildRankingHTML(listEnt);
+        document.getElementById('rankingListaProf').innerHTML = buildRankingHTML(listProf);
+        document.getElementById('rankBadge').style.display     = 'inline-flex';
+        document.getElementById('rankBadgeProf').style.display = 'inline-flex';
     }
 
-    /* ---- Plano chart ---- */
-    function renderPlanoChart() {
-        var map = {};
-        allRows.forEach(function(r) {
-            var p = r.plano || 'Sem plano';
-            if (!map[p]) map[p] = [];
-            if (r.score !== null) map[p].push(r.score);
-        });
-
-        var planos = Object.keys(map).filter(function(p) { return map[p].length > 0; });
-        planos.sort(function(a,b) {
-            var ma = map[a].reduce(function(s,v){return s+v;},0)/map[a].length;
-            var mb = map[b].reduce(function(s,v){return s+v;},0)/map[b].length;
-            return mb - ma;
-        });
-
-        var labels = planos.map(function(p){ return p.length>22?p.slice(0,20)+'…':p; });
-        var medias = planos.map(function(p){
-            var arr = map[p];
-            return parseFloat((arr.reduce(function(s,v){return s+v;},0)/arr.length).toFixed(1));
-        });
-        var colors = medias.map(function(m){ return zoneColor(getZone(m)); });
-
-        var ctx = document.getElementById('chartPlano');
-        if (!ctx) return;
-        if (opCharts.plano) opCharts.plano.destroy();
-
-        opCharts.plano = new Chart(ctx, {
-            type: 'bar',
-            data: { labels: labels, datasets: [{
-                data: medias, backgroundColor: colors,
-                borderRadius: 6, borderSkipped: false, barThickness: 22
-            }]},
-            options: {
-                indexAxis: 'y', responsive: true,
-                plugins: {
-                    legend: { display: false },
-                    datalabels: { display: false },
-                    tooltip: { callbacks: {
-                        title: function(c){ return planos[c[0].dataIndex]; },
-                        label: function(c){ return ' Score médio: ' + c.raw; }
-                    }}
-                },
-                scales: {
-                    x: { beginAtZero:true, max:100,
-                         ticks:{color:'#64748b',font:{size:10}},
-                         grid:{color:'rgba(255,255,255,.05)'} },
-                    y: { ticks:{color:'#94a3b8',font:{size:11}}, grid:{display:false} }
-                }
-            }
-        });
-    }
 
     /* ---- Filters ---- */
     function buildFilters() {
