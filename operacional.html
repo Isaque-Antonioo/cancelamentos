@@ -36,7 +36,9 @@
             border-radius: 50%;
             animation: blink 2s infinite;
         }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+        @keyframes blink     { 0%,100%{opacity:1} 50%{opacity:.3} }
+        @keyframes goldPulse { 0%,100%{opacity:.2} 50%{opacity:1} }
+        @keyframes crownFloat { 0%,100%{transform:translateY(0) rotate(-4deg)} 50%{transform:translateY(-3px) rotate(4deg)} }
 
         /* KPI section — pirâmide */
         .op-kpi-section {
@@ -93,6 +95,7 @@
         /* Ranking — estilo comercial */
         .op-ranking-list { margin-top: 8px; }
         .op-ranking-item {
+            position: relative;
             display: flex;
             align-items: center;
             gap: 18px;
@@ -104,9 +107,33 @@
             transition: background .15s;
         }
         .op-ranking-item:hover { background: rgba(255,255,255,.06); }
+
+        /* Ouro */
         .op-ranking-item.rank-1 {
-            background: rgba(255,215,0,.06);
-            border-color: rgba(255,215,0,.2);
+            background: linear-gradient(135deg, rgba(255,215,0,.13), rgba(255,215,0,.03));
+            border-color: rgba(255,215,0,.35);
+        }
+        .op-ranking-item.rank-1::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+            border: 1.5px solid rgba(255,215,0,.8);
+            box-shadow: 0 0 24px rgba(255,215,0,.4), inset 0 0 12px rgba(255,215,0,.06);
+            pointer-events: none;
+            opacity: .2;
+            animation: goldPulse 2.4s ease-in-out infinite;
+            will-change: opacity;
+        }
+        /* Prata */
+        .op-ranking-item.rank-2 {
+            background: linear-gradient(135deg, rgba(192,192,192,.08), rgba(192,192,192,.02));
+            border-color: rgba(192,192,192,.15);
+        }
+        /* Bronze */
+        .op-ranking-item.rank-3 {
+            background: linear-gradient(135deg, rgba(205,127,50,.08), rgba(205,127,50,.02));
+            border-color: rgba(205,127,50,.15);
         }
 
         /* Badge de posição (círculo) */
@@ -117,11 +144,20 @@
             font-size: 13px; font-weight: 800; flex-shrink: 0;
             background: rgba(255,255,255,.07); color: #64748b;
         }
-        .op-rank-badge.gold   { background: rgba(255,215,0,.15); color: #FFD700; border: 1.5px solid rgba(255,215,0,.4); }
-        .op-rank-badge.silver { background: rgba(192,192,192,.12); color: #C0C0C0; border: 1.5px solid rgba(192,192,192,.35); }
-        .op-rank-badge.bronze { background: rgba(205,127,50,.12); color: #CD7F32; border: 1.5px solid rgba(205,127,50,.35); }
+        .op-rank-badge.gold   { background: linear-gradient(135deg,#FFD700,#DAA520); color:#151922; box-shadow:0 0 14px rgba(255,215,0,.35); }
+        .op-rank-badge.silver { background: linear-gradient(135deg,#C0C0C0,#A8A8A8); color:#151922; box-shadow:0 0 12px rgba(192,192,192,.25); }
+        .op-rank-badge.bronze { background: linear-gradient(135deg,#CD7F32,#B8702E); color:#151922; box-shadow:0 0 12px rgba(205,127,50,.25); }
 
         /* Avatar circular */
+        .op-rank-avatar-wrap { position:relative; display:inline-flex; flex-shrink:0; }
+        .op-rank-crown {
+            position: absolute; top: -18px; left: 50%;
+            transform: translateX(-50%) rotate(-4deg);
+            font-size: 18px; line-height: 1;
+            animation: crownFloat 2s ease-in-out infinite;
+            filter: drop-shadow(0 1px 4px rgba(255,215,0,.7));
+            pointer-events: none;
+        }
         .op-rank-avatar {
             width: 84px; height: 84px;
             border-radius: 50%;
@@ -129,9 +165,9 @@
             border: 3px solid rgba(255,255,255,.12);
             background: #1e293b;
         }
-        .op-rank-avatar.gold-b   { border-color: rgba(255,215,0,.75); }
-        .op-rank-avatar.silver-b { border-color: rgba(192,192,192,.65); }
-        .op-rank-avatar.bronze-b { border-color: rgba(205,127,50,.65); }
+        .op-rank-avatar.gold-b   { border-color: #FFD700; box-shadow: 0 0 14px rgba(255,215,0,.25); }
+        .op-rank-avatar.silver-b { border-color: #C0C0C0; box-shadow: 0 0 12px rgba(192,192,192,.2); }
+        .op-rank-avatar.bronze-b { border-color: #CD7F32; box-shadow: 0 0 12px rgba(205,127,50,.2); }
         .op-rank-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
 
         /* Header da tabela */
@@ -614,15 +650,16 @@
         if (!list.length) return '<div class="op-empty">Sem dados</div>';
         return list.map(function(e, i) {
             var tier = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-            var rankClass = i === 0 ? 'rank-1' : '';
+            var rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
             var foto = FOTOS[e.nome] || PLACEHOLDER;
             var scoreDisp = e.media !== null ? e.media.toFixed(1) : '—';
             var barW = e.media !== null ? Math.min(100, e.media).toFixed(0) : '0';
+            var avatarHtml = i === 0
+                ? '<div class="op-rank-avatar-wrap"><span class="op-rank-crown">👑</span><div class="op-rank-avatar gold-b"><img src="' + foto + '" onerror="this.src=\'' + PLACEHOLDER + '\'"></div></div>'
+                : '<div class="op-rank-avatar ' + (tier ? tier+'-b' : '') + '"><img src="' + foto + '" onerror="this.src=\'' + PLACEHOLDER + '\'"></div>';
             return '<div class="op-ranking-item ' + rankClass + '">' +
                 '<div class="op-rank-badge ' + tier + '">' + (i+1) + '</div>' +
-                '<div class="op-rank-avatar ' + (tier ? tier+'-b' : '') + '">' +
-                    '<img src="' + foto + '" onerror="this.src=\'' + PLACEHOLDER + '\'">' +
-                '</div>' +
+                avatarHtml +
                 '<div class="op-rank-info">' +
                     '<div class="op-rank-name-text">' + esc(e.nome) + '</div>' +
                 '</div>' +
