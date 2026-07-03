@@ -12,98 +12,188 @@
     <script src="js/auth.js"></script>
 
     <style>
-        @keyframes blink     { 0%,100%{opacity:1} 50%{opacity:.3} }
-        @keyframes pulseWarn { 0%,100%{opacity:.15} 50%{opacity:.5} }
+        @keyframes smPulse {
+            0%   { box-shadow: 0 0 0 0   rgba(255,71,87,.55); }
+            70%  { box-shadow: 0 0 0 10px rgba(255,71,87,0); }
+            100% { box-shadow: 0 0 0 0   rgba(255,71,87,0); }
+        }
+        @keyframes smBlink { 0%,100%{opacity:1} 50%{opacity:.3} }
+        @keyframes smPulseWarn { 0%,100%{opacity:.15} 50%{opacity:.45} }
 
-        /* Badge Live */
-        .sm-sync-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            font-size: 12px; color: #f97316;
-            background: rgba(249,115,22,.1); padding: 4px 10px;
-            border-radius: 20px; border: 1px solid rgba(249,115,22,.25);
+        /* ---- LIVE BADGE ---- */
+        .sm-live-badge {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 6px 14px; border-radius: 100px; font-size: 11px;
+            font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase;
         }
-        .sm-sync-badge .dot {
-            width:7px; height:7px; background:#f97316;
-            border-radius:50%; animation: blink 2s infinite;
+        .sm-live-badge.crit {
+            background: rgba(255,71,87,.1); border: 1px solid rgba(255,71,87,.35); color: #ff6b7a;
         }
+        .sm-live-badge.ok {
+            background: rgba(53,204,163,.1); border: 1px solid rgba(53,204,163,.3); color: var(--hubstrom-accent);
+        }
+        .sm-live-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+        }
+        .sm-live-badge.crit .sm-live-dot {
+            background: var(--color-danger); animation: smPulse 1.6s infinite;
+        }
+        .sm-live-badge.ok .sm-live-dot { background: var(--hubstrom-accent); }
 
-        /* KPI section */
-        .sm-kpi-row {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            padding: 0 24px 24px;
-        }
-        .sm-kpi-row .kpi-card { text-align: center; padding: 28px 20px; }
-        .sm-kpi-row .kpi-value { font-size: 52px !important; }
-        .sm-kpi-row .kpi-label {
-            font-size: 16px !important; font-weight: 700 !important;
-            text-transform: uppercase !important; letter-spacing: .08em !important;
-            color: #e2e8f0 !important; margin-top: 8px;
-        }
-        .kpi-card.warn  { border-color: rgba(249,115,22,.3); }
-        .kpi-card.warn .kpi-value { color: #f97316; }
-        .kpi-card.alert { border-color: rgba(239,68,68,.3); }
-        .kpi-card.alert .kpi-value { color: #ef4444; }
-        .kpi-card.info2 { border-color: rgba(99,102,241,.3); }
-        .kpi-card.info2 .kpi-value { color: #818cf8; }
-
-        /* Tabela de ocorrências */
-        .sm-table-section { padding: 0 24px 32px; }
-        .sm-table-wrap { overflow-x: auto; border-radius: 12px; }
-
-        .sm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .sm-table thead th {
-            background: rgba(249,115,22,.06);
-            color: #94a3b8; font-weight: 600; font-size: 11px;
-            text-transform: uppercase; letter-spacing: .05em;
-            padding: 12px 16px; text-align: left; white-space: nowrap;
-        }
-        .sm-table tbody tr {
-            border-top: 1px solid rgba(255,255,255,.04);
-            transition: background .15s;
-        }
-        .sm-table tbody tr:hover { background: rgba(249,115,22,.04); }
-        .sm-table tbody td { padding: 14px 16px; color: #e2e8f0; }
-        .sm-table .td-ocorrido { max-width: 380px; }
-        .sm-table .td-modulo {
-            display: inline-flex; align-items: center;
-            background: rgba(249,115,22,.1); color: #f97316;
-            border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600;
-            white-space: nowrap;
-        }
-        .sm-table .td-clientes {
-            font-weight: 700; color: #ef4444;
-        }
-        .sm-table .td-clientes.todos { color: #f97316; }
-        .sm-table .td-data { color: #64748b; white-space: nowrap; font-size: 12px; }
-        .sm-table .td-relator { color: #94a3b8; }
-
-        .sm-empty { text-align:center; padding:60px; color:#64748b; }
-
-        /* Alerta no topo quando há ocorrências hoje */
+        /* ---- ALERT BANNER ---- */
         .sm-alert-banner {
-            margin: 0 24px 20px;
-            padding: 14px 20px;
-            background: linear-gradient(135deg, rgba(239,68,68,.12), rgba(249,115,22,.08));
-            border: 1px solid rgba(239,68,68,.3);
-            border-radius: 12px;
-            display: flex; align-items: center; gap: 12px;
+            display: flex; align-items: center; gap: 16px;
+            padding: 16px 22px; border-radius: var(--radius-md); margin-bottom: 28px;
+            background: linear-gradient(90deg, rgba(255,71,87,.08), transparent);
+            border: 1px solid rgba(255,71,87,.35);
+            border-left: 4px solid var(--color-danger);
             position: relative; overflow: hidden;
         }
         .sm-alert-banner::before {
             content: ''; position: absolute; inset: -1px; border-radius: inherit;
-            border: 1.5px solid rgba(239,68,68,.6); pointer-events: none;
-            opacity: .2; animation: pulseWarn 2.4s ease-in-out infinite;
+            border: 1.5px solid rgba(255,71,87,.55); pointer-events: none;
+            opacity: 0; animation: smPulseWarn 2.4s ease-in-out infinite;
         }
-        .sm-alert-icon { font-size: 24px; flex-shrink: 0; }
-        .sm-alert-text { flex: 1; }
-        .sm-alert-title { font-size: 15px; font-weight: 700; color: #fca5a5; }
-        .sm-alert-sub   { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+        .sm-alert-ico {
+            width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--radius-sm);
+            background: rgba(255,71,87,.12); display: grid; place-items: center;
+            color: var(--color-danger); font-size: 22px;
+        }
+        .sm-alert-title { font-size: 15px; font-weight: 700; color: #fff; }
+        .sm-alert-sub   { font-size: 13px; color: var(--text-secondary); margin-top: 3px; }
 
-        @media (max-width: 768px) {
-            .sm-kpi-row { grid-template-columns: 1fr; }
-            .sm-table-section { padding: 0 12px 24px; }
+        /* ---- KPI SECTION ---- */
+        .sm-kpi-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 16px; margin-bottom: 32px;
+        }
+        .sm-kpi-card {
+            background: var(--surface-card);
+            border: 1px solid rgba(255,255,255,.05); border-radius: var(--radius-lg);
+            padding: 22px 24px; position: relative; overflow: hidden;
+            box-shadow: var(--shadow-card);
+        }
+        .sm-kpi-card::after {
+            content: ''; position: absolute; inset: 0 auto 0 0;
+            width: 4px; background: var(--hubstrom-accent); border-radius: 4px 0 0 4px;
+        }
+        .sm-kpi-card.is-crit::after { background: var(--color-danger); }
+        .sm-kpi-card.is-warn::after { background: var(--color-warning); }
+        .sm-kpi-lbl {
+            font-size: 11px; color: var(--text-muted); text-transform: uppercase;
+            letter-spacing: 1.4px; font-weight: 500;
+        }
+        .sm-kpi-val {
+            font-size: 42px; font-weight: 700; line-height: 1.1;
+            margin-top: 6px; letter-spacing: -1px; color: #fff;
+        }
+        .sm-kpi-card.is-crit .sm-kpi-val { color: #ff6b7a; }
+        .sm-kpi-card.is-warn .sm-kpi-val { color: var(--color-warning); }
+        .sm-kpi-foot { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+
+        /* ---- SECTION TITLE ---- */
+        .sm-section-head {
+            display: flex; align-items: center; gap: 12px; margin: 0 0 16px;
+        }
+        .sm-section-head h2 {
+            font-size: 15px; font-weight: 600; letter-spacing: .3px;
+            color: var(--text-primary); white-space: nowrap;
+        }
+        .sm-section-head .sm-count {
+            font-size: 11px; font-weight: 700; color: var(--hubstrom-accent);
+            background: rgba(53,204,163,.12); padding: 3px 10px; border-radius: 100px;
+            border: 1px solid rgba(53,204,163,.2);
+        }
+        .sm-section-head .sm-rule {
+            flex: 1; height: 1px; background: rgba(255,255,255,.06);
+        }
+
+        /* ---- INCIDENT CARDS ---- */
+        .sm-incidents { display: flex; flex-direction: column; gap: 14px; margin-bottom: 36px; }
+        .sm-inc {
+            display: grid; grid-template-columns: 160px 1fr auto; gap: 24px; align-items: center;
+            background: var(--surface-card); border: 1px solid rgba(255,255,255,.05);
+            border-radius: var(--radius-md); padding: 20px 24px;
+            position: relative; overflow: hidden;
+            box-shadow: var(--shadow-card);
+            transition: transform .2s ease, border-color .2s ease;
+        }
+        .sm-inc:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.12); }
+        .sm-inc::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; border-radius: 4px 0 0 4px; }
+        .sm-inc.crit::before { background: var(--color-danger); }
+        .sm-inc.high::before { background: var(--color-warning); }
+        .sm-inc.crit { border-color: rgba(255,71,87,.15); }
+        .sm-inc.high { border-color: rgba(255,165,2,.12); }
+
+        .sm-inc-sev { display: flex; flex-direction: column; gap: 8px; }
+        .sm-badge {
+            display: inline-flex; align-items: center; gap: 7px; align-self: flex-start;
+            padding: 5px 12px; border-radius: 8px; font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .sm-badge .d { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .sm-inc.crit .sm-badge {
+            background: rgba(255,71,87,.12); color: #ff6b7a; border: 1px solid rgba(255,71,87,.3);
+        }
+        .sm-inc.crit .sm-badge .d { background: var(--color-danger); animation: smPulse 1.6s infinite; }
+        .sm-inc.high .sm-badge {
+            background: rgba(255,165,2,.12); color: var(--color-warning); border: 1px solid rgba(255,165,2,.3);
+        }
+        .sm-inc.high .sm-badge .d { background: var(--color-warning); }
+
+        .sm-inc-mod { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -.2px; }
+
+        .sm-inc-body .sm-occ { font-size: 14px; font-weight: 500; color: #fff; line-height: 1.45; }
+        .sm-inc-meta { display: flex; gap: 24px; margin-top: 10px; flex-wrap: wrap; }
+        .sm-inc-meta-item .k {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);
+        }
+        .sm-inc-meta-item b { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-top: 2px; }
+
+        .sm-inc-impact { text-align: right; min-width: 120px; }
+        .sm-inc-impact .n {
+            font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -1px;
+        }
+        .sm-inc.crit .sm-inc-impact .n { color: #ff6b7a; }
+        .sm-inc.high .sm-inc-impact .n { color: var(--color-warning); }
+        .sm-inc-impact .l {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px;
+            color: var(--text-muted); margin-top: 4px;
+        }
+
+        /* ---- MODULE STATUS ---- */
+        .sm-mods { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+        .sm-mod {
+            background: var(--surface-card); border: 1px solid rgba(255,255,255,.05);
+            border-radius: var(--radius-md); padding: 15px 18px;
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            box-shadow: var(--shadow-card);
+        }
+        .sm-mod .m-name { font-weight: 600; font-size: 14px; color: #fff; }
+        .sm-mod .m-stat {
+            display: flex; align-items: center; gap: 7px;
+            font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px;
+        }
+        .sm-mod .m-stat .d { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .sm-mod.down { border-color: rgba(255,71,87,.25); }
+        .sm-mod.down .m-stat { color: #ff6b7a; }
+        .sm-mod.down .m-stat .d { background: var(--color-danger); animation: smPulse 1.6s infinite; }
+        .sm-mod.deg .m-stat { color: var(--color-warning); }
+        .sm-mod.deg .m-stat .d { background: var(--color-warning); }
+
+        .sm-empty { text-align: center; padding: 50px; color: var(--text-muted); }
+
+        /* ---- PADDING E SPACING ---- */
+        .sm-body { padding: 0 24px 40px; }
+
+        @media (max-width: 900px) {
+            .sm-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .sm-inc { grid-template-columns: 1fr; gap: 14px; }
+            .sm-inc-impact { text-align: left; }
+            .sm-inc-sev { flex-direction: row; align-items: center; }
+        }
+        @media (max-width: 520px) {
+            .sm-kpi-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -121,54 +211,38 @@
                 </button>
             </div>
             <ul class="sidebar-menu">
-                <li class="sidebar-item">
-                    <a href="index.html">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-                        <span>Cancelamentos</span>
-                    </a>
-                </li>
-                <li class="sidebar-item">
-                    <a href="comercial.html">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                        <span>Comercial</span>
-                    </a>
-                </li>
-                <li class="sidebar-item">
-                    <a href="operacional.html">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                        <span>Health Score</span>
-                    </a>
-                </li>
-                <li class="sidebar-item active">
-                    <a href="suporte-massivas.html">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                        <span>Suporte Massivas</span>
-                    </a>
-                </li>
-                <li class="sidebar-item">
-                    <a href="suporte.html">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                        <span>Suporte</span>
-                    </a>
-                </li>
-                <li class="sidebar-item">
-                    <a href="bugs.html">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M12 6V3M4 10l4 2M20 10l-4 2M4 18l4-2M20 18l-4-2"/></svg>
-                        <span>Bugs</span>
-                    </a>
-                </li>
-                <li class="sidebar-item">
-                    <a href="log-erros.html">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                        <span>Log de Erros</span>
-                    </a>
-                </li>
-                <li class="sidebar-item sidebar-admin-only">
-                    <a href="admin.html">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                        <span>Admin</span>
-                    </a>
-                </li>
+                <li class="sidebar-item"><a href="index.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                    <span>Cancelamentos</span>
+                </a></li>
+                <li class="sidebar-item"><a href="comercial.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    <span>Comercial</span>
+                </a></li>
+                <li class="sidebar-item"><a href="operacional.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <span>Health Score</span>
+                </a></li>
+                <li class="sidebar-item active"><a href="suporte-massivas.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span>Suporte Massivas</span>
+                </a></li>
+                <li class="sidebar-item"><a href="suporte.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span>Suporte</span>
+                </a></li>
+                <li class="sidebar-item"><a href="bugs.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M12 6V3M4 10l4 2M20 10l-4 2M4 18l4-2M20 18l-4-2"/></svg>
+                    <span>Bugs</span>
+                </a></li>
+                <li class="sidebar-item"><a href="log-erros.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span>Log de Erros</span>
+                </a></li>
+                <li class="sidebar-item sidebar-admin-only"><a href="admin.html">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <span>Admin</span>
+                </a></li>
             </ul>
         </nav>
         <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
@@ -184,9 +258,7 @@
                 <h1 class="header-main-title">Suporte Massivas</h1>
                 <p id="headerSubtitle">Carregando ocorrências...</p>
                 <div class="header-controls">
-                    <span class="sm-sync-badge" id="syncBadge" style="display:none">
-                        <span class="dot"></span> Sincronizado
-                    </span>
+                    <span id="statusBadge" class="sm-live-badge ok"><span class="sm-live-dot"></span>Sem ocorrências</span>
                     <span class="user-display-name" id="userDisplayName"></span>
                     <button class="btn-icon-small btn-logout" onclick="hubstromLogout()" title="Sair">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -198,60 +270,47 @@
             </div>
         </header>
 
-        <!-- Banner de alerta (visível quando há ocorrências hoje) -->
-        <div class="sm-alert-banner" id="alertBanner" style="display:none">
-            <span class="sm-alert-icon">&#x1F6A8;</span>
-            <div class="sm-alert-text">
-                <div class="sm-alert-title" id="alertTitle">Ocorrências ativas hoje</div>
-                <div class="sm-alert-sub" id="alertSub">Verificando...</div>
+        <!-- Corpo principal -->
+        <div class="sm-body">
+
+            <!-- Banner crítico -->
+            <div class="sm-alert-banner" id="alertBanner" style="display:none">
+                <div class="sm-alert-ico">&#x26A0;</div>
+                <div>
+                    <div class="sm-alert-title" id="alertTitle">Atenção: massiva crítica em andamento</div>
+                    <div class="sm-alert-sub" id="alertSub"></div>
+                </div>
             </div>
+
+            <!-- KPIs -->
+            <div class="sm-kpi-grid" id="kpiGrid">
+                <div class="sm-kpi-card"><div class="sm-kpi-lbl">Massivas ativas</div><div class="sm-kpi-val">—</div><div class="sm-kpi-foot">carregando</div></div>
+                <div class="sm-kpi-card"><div class="sm-kpi-lbl">Impacto máximo</div><div class="sm-kpi-val">—</div><div class="sm-kpi-foot">clientes afetados</div></div>
+                <div class="sm-kpi-card"><div class="sm-kpi-lbl">Módulos instáveis</div><div class="sm-kpi-val">—</div><div class="sm-kpi-foot">—</div></div>
+                <div class="sm-kpi-card"><div class="sm-kpi-lbl">Clientes contabilizados</div><div class="sm-kpi-val">—</div><div class="sm-kpi-foot">em massivas parciais</div></div>
+            </div>
+
+            <!-- Ocorrências ativas -->
+            <div class="sm-section-head">
+                <h2>Ocorrências ativas</h2>
+                <span class="sm-count" id="incCount">0</span>
+                <div class="sm-rule"></div>
+            </div>
+            <div class="sm-incidents" id="incidents">
+                <div class="sm-empty">Carregando...</div>
+            </div>
+
+            <!-- Status dos módulos -->
+            <div class="sm-section-head">
+                <h2>Status dos módulos</h2>
+                <div class="sm-rule"></div>
+            </div>
+            <div class="sm-mods" id="mods">
+                <div class="sm-empty">Carregando...</div>
+            </div>
+
         </div>
-
-        <!-- KPIs -->
-        <section class="sm-kpi-row">
-            <div class="kpi-card warn" id="kpiTotal">
-                <div class="kpi-value">&#x2014;</div>
-                <div class="kpi-label">Ocorrências</div>
-            </div>
-            <div class="kpi-card alert" id="kpiClientes">
-                <div class="kpi-value">&#x2014;</div>
-                <div class="kpi-label">Clientes Afetados</div>
-            </div>
-            <div class="kpi-card info2" id="kpiModulos">
-                <div class="kpi-value">&#x2014;</div>
-                <div class="kpi-label">Módulos Impactados</div>
-            </div>
-        </section>
-
-        <!-- Tabela de ocorrências -->
-        <section class="sm-table-section">
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>Ocorrências Registradas</h3>
-                    <span class="sm-sync-badge" id="tableBadge" style="display:none;font-size:11px">
-                        <span class="dot"></span> Live
-                    </span>
-                </div>
-                <div class="sm-table-wrap">
-                    <table class="sm-table">
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Relator</th>
-                                <th>Ocorrido</th>
-                                <th>Clientes Afetados</th>
-                                <th>Módulo Instável</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabelaOcorrencias">
-                            <tr><td colspan="5" class="sm-empty">Carregando...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-    </div><!-- /container -->
+    </div>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -263,8 +322,6 @@
     <script src="js/carousel.js"></script>
 
     <script>
-    var allRows = [];
-
     function toggleSidebar() {
         var sidebar = document.getElementById('sidebar');
         var overlay = document.getElementById('sidebarOverlay');
@@ -273,99 +330,131 @@
         document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
     }
 
-    function esc(str) {
-        return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    function esc(s) {
+        return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function isCrit(ca) {
+        return (ca || '').toString().trim().toUpperCase() === 'TODOS';
+    }
+
+    function render(rows) {
+        var criticas = rows.filter(function(r){ return isCrit(r.clientesAfetados); });
+        var modulos  = {};
+        var totalNum = 0;
+
+        rows.forEach(function(r) {
+            var mod = (r.moduloInstavel || '').trim();
+            var ca  = (r.clientesAfetados || '').toString().trim();
+            if (mod) {
+                var estado = isCrit(ca) ? 'down' : 'deg';
+                if (!modulos[mod] || estado === 'down') modulos[mod] = estado;
+            }
+            var n = parseInt(ca, 10);
+            if (!isNaN(n)) totalNum += n;
+        });
+
+        var modList = Object.keys(modulos);
+        var hasCrit = criticas.length > 0;
+
+        /* ---- Badge de status no header ---- */
+        var badge = document.getElementById('statusBadge');
+        if (hasCrit) {
+            badge.className = 'sm-live-badge crit';
+            badge.innerHTML = '<span class="sm-live-dot"></span>Incidentes ativos';
+        } else {
+            badge.className = 'sm-live-badge ok';
+            badge.innerHTML = '<span class="sm-live-dot"></span>Sem críticos';
+        }
+
+        /* ---- Subtítulo ---- */
+        document.getElementById('headerSubtitle').textContent =
+            rows.length + ' ocorrência' + (rows.length !== 1 ? 's' : '') + ' registrada' + (rows.length !== 1 ? 's' : '');
+
+        /* ---- Banner ---- */
+        var banner = document.getElementById('alertBanner');
+        if (hasCrit) {
+            banner.style.display = 'flex';
+            document.getElementById('alertTitle').textContent = 'Atenção: massiva crítica em andamento';
+            document.getElementById('alertSub').textContent =
+                'O ' + criticas[0].moduloInstavel + ' está fora do ar e afeta todos os clientes. Priorize a comunicação e o acompanhamento.';
+        } else {
+            banner.style.display = 'none';
+        }
+
+        /* ---- KPIs ---- */
+        var impactoMax = hasCrit ? 'TODOS' : (totalNum > 0 ? totalNum : 0);
+        var kpis = [
+            { lbl:'Massivas ativas',        val: rows.length,   foot: criticas.length + ' crítica(s)',   cls: hasCrit ? 'is-crit' : '' },
+            { lbl:'Impacto máximo',          val: impactoMax,    foot: 'clientes afetados',               cls: hasCrit ? 'is-crit' : '' },
+            { lbl:'Módulos instáveis',       val: modList.length, foot: modList.join(' · ') || '—',       cls: modList.length > 0 ? 'is-warn' : '' },
+            { lbl:'Clientes contabilizados', val: totalNum,      foot: 'em massivas parciais',            cls: '' }
+        ];
+        document.getElementById('kpiGrid').innerHTML = kpis.map(function(k) {
+            return '<div class="sm-kpi-card ' + k.cls + '">' +
+                '<div class="sm-kpi-lbl">' + esc(k.lbl) + '</div>' +
+                '<div class="sm-kpi-val">' + esc(String(k.val)) + '</div>' +
+                '<div class="sm-kpi-foot">' + esc(String(k.foot)) + '</div>' +
+            '</div>';
+        }).join('');
+
+        /* ---- Incidentes ---- */
+        document.getElementById('incCount').textContent = rows.length;
+        if (!rows.length) {
+            document.getElementById('incidents').innerHTML = '<div class="sm-empty">Nenhuma ocorrência registrada.</div>';
+        } else {
+            var sorted = rows.slice().reverse();
+            document.getElementById('incidents').innerHTML = sorted.map(function(r) {
+                var crit   = isCrit(r.clientesAfetados);
+                var sev    = crit ? 'crit' : 'high';
+                var sevLbl = crit ? 'Crítica' : 'Alta';
+                var impN   = crit ? 'TODOS' : (r.clientesAfetados || '—');
+                return '<div class="sm-inc ' + sev + '">' +
+                    '<div class="sm-inc-sev">' +
+                        '<span class="sm-badge"><span class="d"></span>' + esc(sevLbl) + '</span>' +
+                        '<span class="sm-inc-mod">' + esc(r.moduloInstavel || '—') + '</span>' +
+                    '</div>' +
+                    '<div class="sm-inc-body">' +
+                        '<div class="sm-occ">' + esc(r.ocorrido || '—') + '</div>' +
+                        '<div class="sm-inc-meta">' +
+                            '<div class="sm-inc-meta-item"><span class="k">Relator</span><b>' + esc(r.relator || '—') + '</b></div>' +
+                            '<div class="sm-inc-meta-item"><span class="k">Data</span><b>' + esc(r.data || '—') + '</b></div>' +
+                            '<div class="sm-inc-meta-item"><span class="k">Módulo</span><b>' + esc(r.moduloInstavel || '—') + '</b></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="sm-inc-impact">' +
+                        '<div class="n">' + esc(String(impN)) + '</div>' +
+                        '<div class="l">clientes afetados</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        /* ---- Módulos ---- */
+        if (!modList.length) {
+            document.getElementById('mods').innerHTML = '<div class="sm-empty">Nenhum módulo instável no momento.</div>';
+        } else {
+            document.getElementById('mods').innerHTML = modList.map(function(mod) {
+                var cls  = modulos[mod];
+                var stat = cls === 'down' ? 'Fora do ar' : 'Instável';
+                return '<div class="sm-mod ' + cls + '">' +
+                    '<span class="m-name">' + esc(mod) + '</span>' +
+                    '<span class="m-stat"><span class="d"></span>' + stat + '</span>' +
+                '</div>';
+            }).join('');
+        }
     }
 
     function initMassivas() {
         firebase.database().ref('suporte_massivas_live').on('value', function(snap) {
             var data = snap.val();
             if (!data || !data.rows || !data.rows.length) {
+                render([]);
                 document.getElementById('headerSubtitle').textContent = 'Sem ocorrências registradas.';
-                document.getElementById('tabelaOcorrencias').innerHTML =
-                    '<tr><td colspan="5" class="sm-empty">Nenhuma ocorrência registrada.</td></tr>';
-                setVal('kpiTotal',   '0');
-                setVal('kpiClientes','0');
-                setVal('kpiModulos', '0');
                 return;
             }
-            allRows = data.rows;
-            var ts = data.updatedISO
-                ? new Date(data.updatedISO).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
-                : '';
-            document.getElementById('headerSubtitle').textContent =
-                data.total + ' ocorrências · Atualizado ' + ts;
-            document.getElementById('syncBadge').style.display = 'inline-flex';
-            renderKPIs();
-            renderTabela();
+            render(data.rows);
         });
-    }
-
-    function renderKPIs() {
-        var totalClientes = 0;
-        var clientesTodos = false;
-        var modulos = {};
-        var hoje = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric'});
-        var ocorrenciasHoje = 0;
-
-        allRows.forEach(function(r) {
-            var ca = (r.clientesAfetados || '').toString().trim().toUpperCase();
-            if (ca === 'TODOS') {
-                clientesTodos = true;
-            } else {
-                var n = parseInt(ca, 10);
-                if (!isNaN(n)) totalClientes += n;
-            }
-            var mod = (r.moduloInstavel || '').trim();
-            if (mod) modulos[mod] = true;
-            if (r.data && r.data.indexOf(hoje.slice(0,5)) === 0) ocorrenciasHoje++;
-        });
-
-        setVal('kpiTotal',    allRows.length);
-        setVal('kpiClientes', clientesTodos ? 'TODOS' : totalClientes);
-        setVal('kpiModulos',  Object.keys(modulos).length);
-
-        if (ocorrenciasHoje > 0) {
-            var banner = document.getElementById('alertBanner');
-            var modList = Object.keys(modulos).join(', ');
-            document.getElementById('alertTitle').textContent =
-                ocorrenciasHoje + ' ocorrência' + (ocorrenciasHoje > 1 ? 's' : '') + ' registrada' + (ocorrenciasHoje > 1 ? 's' : '') + ' hoje';
-            document.getElementById('alertSub').textContent =
-                'Módulos impactados: ' + (modList || 'N/A');
-            banner.style.display = 'flex';
-        }
-    }
-
-    function setVal(id, val) {
-        var el = document.getElementById(id);
-        if (el) el.querySelector('.kpi-value').textContent = val;
-    }
-
-    function renderTabela() {
-        if (!allRows.length) {
-            document.getElementById('tabelaOcorrencias').innerHTML =
-                '<tr><td colspan="5" class="sm-empty">Nenhuma ocorrência registrada.</td></tr>';
-            return;
-        }
-
-        var sorted = allRows.slice().reverse();
-
-        var html = sorted.map(function(r) {
-            var ca = (r.clientesAfetados || '—').toString().trim();
-            var isTodos = ca.toUpperCase() === 'TODOS';
-            var mod = (r.moduloInstavel || '').trim();
-
-            return '<tr>' +
-                '<td class="td-data">' + esc(r.data || '—') + '</td>' +
-                '<td class="td-relator">' + esc(r.relator || '—') + '</td>' +
-                '<td class="td-ocorrido">' + esc(r.ocorrido || '—') + '</td>' +
-                '<td><span class="td-clientes' + (isTodos ? ' todos' : '') + '">' + esc(ca) + '</span></td>' +
-                '<td>' + (mod ? '<span class="td-modulo">' + esc(mod) + '</span>' : '<span style="color:#475569">—</span>') + '</td>' +
-            '</tr>';
-        }).join('');
-
-        document.getElementById('tabelaOcorrencias').innerHTML = html;
-        document.getElementById('tableBadge').style.display = 'inline-flex';
     }
 
     document.addEventListener('DOMContentLoaded', function() {
