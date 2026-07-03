@@ -184,9 +184,9 @@
         .sm-mod.down { border-color: rgba(255,71,87,.25); }
         .sm-mod.down .m-stat { color: #ff6b7a; }
         .sm-mod.down .m-stat .d { background: var(--color-danger); animation: smPulse 1.6s infinite; }
-        .sm-mod.deg { border-color: rgba(255,165,2,.2); }
-        .sm-mod.deg .m-stat { color: var(--color-warning); }
-        .sm-mod.deg .m-stat .d { background: var(--color-warning); }
+        .sm-mod.deg { border-color: rgba(249,202,36,.2); }
+        .sm-mod.deg .m-stat { color: #f9ca24; }
+        .sm-mod.deg .m-stat .d { background: #f9ca24; }
         .sm-mod.ok .m-stat { color: #2ed573; }
         .sm-mod.ok .m-stat .d { background: #2ed573; }
 
@@ -454,8 +454,10 @@
 
     function statusToClass(status) {
         var s = (status || '').trim().toLowerCase();
+        if (s === 'inoperante')           return 'down';
         if (s === 'fora do ar')           return 'down';
-        if (s === 'apresentando falhas')   return 'deg';
+        if (s === 'em alerta')            return 'deg';
+        if (s === 'apresentando falhas')  return 'deg';
         if (s === 'operante')             return 'ok';
         if (s === 'funcionando')          return 'ok';
         return 'ok';
