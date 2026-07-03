@@ -391,7 +391,6 @@
                 </button>
             </div>
             <div class="op-topbar-right">
-                <span class="op-subtitle" id="headerSubtitle" style="display:none"></span>
                 <span class="op-sync-badge" id="syncBadge" style="display:none">
                     <span class="dot"></span> Sincronizado
                 </span>
@@ -568,10 +567,7 @@
     function initOperacional() {
         firebase.database().ref('operacional_live').on('value', function(snap) {
             var data = snap.val();
-            if (!data || !data.rows) {
-                document.getElementById('headerSubtitle').textContent = 'Sem dados disponíveis.';
-                return;
-            }
+            if (!data || !data.rows) return;
             buildRows(data);
         });
     }
@@ -593,10 +589,6 @@
             });
         });
 
-        var ts = data.updatedISO ? new Date(data.updatedISO).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
-        var sub = document.getElementById('headerSubtitle');
-        sub.textContent = allRows.length + ' clientes · Atualizado ' + ts;
-        sub.style.display = 'inline';
         document.getElementById('syncBadge').style.display = 'inline-flex';
 
         renderKPIs();
