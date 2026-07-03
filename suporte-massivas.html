@@ -75,20 +75,22 @@
         }
         .sm-kpi-card::after {
             content: ''; position: absolute; inset: 0 auto 0 0;
-            width: 4px; background: var(--hubstrom-accent); border-radius: 4px 0 0 4px;
+            width: 4px; background: var(--color-warning); border-radius: 4px 0 0 4px;
         }
-        .sm-kpi-card.is-crit::after { background: var(--color-danger); }
-        .sm-kpi-card.is-warn::after { background: var(--color-warning); }
+        .sm-kpi-card.is-crit::after  { background: var(--color-danger); }
+        .sm-kpi-card.is-warn::after  { background: #f9ca24; }
+        .sm-kpi-card.is-blue::after  { background: #3d9bff; }
         .sm-kpi-lbl {
             font-size: 11px; color: var(--text-muted); text-transform: uppercase;
             letter-spacing: 1.4px; font-weight: 500;
         }
         .sm-kpi-val {
             font-size: 42px; font-weight: 700; line-height: 1.1;
-            margin-top: 6px; letter-spacing: -1px; color: #fff;
+            margin-top: 6px; letter-spacing: -1px; color: var(--color-warning);
         }
         .sm-kpi-card.is-crit .sm-kpi-val { color: #ff6b7a; }
-        .sm-kpi-card.is-warn .sm-kpi-val { color: var(--color-warning); }
+        .sm-kpi-card.is-warn .sm-kpi-val { color: #f9ca24; }
+        .sm-kpi-card.is-blue .sm-kpi-val { color: #3d9bff; }
         .sm-kpi-foot { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
 
         /* ---- SECTION TITLE ---- */
@@ -178,8 +180,11 @@
         .sm-mod.down { border-color: rgba(255,71,87,.25); }
         .sm-mod.down .m-stat { color: #ff6b7a; }
         .sm-mod.down .m-stat .d { background: var(--color-danger); animation: smPulse 1.6s infinite; }
+        .sm-mod.deg { border-color: rgba(255,165,2,.2); }
         .sm-mod.deg .m-stat { color: var(--color-warning); }
         .sm-mod.deg .m-stat .d { background: var(--color-warning); }
+        .sm-mod.ok .m-stat { color: #2ed573; }
+        .sm-mod.ok .m-stat .d { background: #2ed573; }
 
         .sm-empty { text-align: center; padding: 50px; color: var(--text-muted); }
 
@@ -357,23 +362,16 @@
     }
 
     function render(rows) {
-        var criticas = rows.filter(function(r){ return isCrit(r.clientesAfetados); });
-        var modulos  = {};
-        var totalNum = 0;
-
+        var criticas  = rows.filter(function(r){ return isCrit(r.clientesAfetados); });
+        var totalNum  = 0;
         rows.forEach(function(r) {
-            var mod = (r.moduloInstavel || '').trim();
-            var ca  = (r.clientesAfetados || '').toString().trim();
-            if (mod) {
-                var estado = isCrit(ca) ? 'down' : 'deg';
-                if (!modulos[mod] || estado === 'down') modulos[mod] = estado;
-            }
-            var n = parseInt(ca, 10);
+            var n = parseInt((r.clientesAfetados || '').toString().trim(), 10);
             if (!isNaN(n)) totalNum += n;
         });
 
-        var modList = Object.keys(modulos);
-        var hasCrit = criticas.length > 0;
+        var modRows   = window._modRows || [];
+        var instaveis = modRows.filter(function(m){ return statusToClass(m.status) !== 'ok'; });
+        var hasCrit   = criticas.length > 0;
 
         /* ---- Badge de status no header ---- */
         var badge = document.getElementById('statusBadge');
@@ -400,10 +398,10 @@
         /* ---- KPIs ---- */
         var impactoMax = hasCrit ? 'TODOS' : (totalNum > 0 ? totalNum : 0);
         var kpis = [
-            { lbl:'Massivas ativas',        val: rows.length,   foot: criticas.length + ' crítica(s)',   cls: hasCrit ? 'is-crit' : '' },
-            { lbl:'Impacto máximo',          val: impactoMax,    foot: 'clientes afetados',               cls: hasCrit ? 'is-crit' : '' },
-            { lbl:'Módulos instáveis',       val: modList.length, foot: modList.join(' · ') || '—',       cls: modList.length > 0 ? 'is-warn' : '' },
-            { lbl:'Clientes contabilizados', val: totalNum,      foot: 'em massivas parciais',            cls: '' }
+            { lbl:'Massivas ativas',        val: rows.length,      foot: criticas.length + ' crítica(s)',  cls: hasCrit ? 'is-crit' : '' },
+            { lbl:'Impacto máximo',    val: impactoMax,       foot: 'clientes afetados',                   cls: 'is-crit' },
+            { lbl:'Módulos instáveis', val: instaveis.length, foot: instaveis.map(function(m){ return m.nome; }).join(' · ') || 'Todos operacionais', cls: 'is-warn' },
+            { lbl:'Clientes contabilizados', val: totalNum,        foot: 'em massivas parciais',                cls: 'is-blue' }
         ];
         document.getElementById('kpiGrid').innerHTML = kpis.map(function(k) {
             return '<div class="sm-kpi-card ' + k.cls + '">' +
@@ -435,6 +433,7 @@
                             '<div class="sm-inc-meta-item"><span class="k">Relator</span><b>' + esc(r.relator || '—') + '</b></div>' +
                             '<div class="sm-inc-meta-item"><span class="k">Data</span><b>' + esc(r.data || '—') + '</b></div>' +
                             '<div class="sm-inc-meta-item"><span class="k">Módulo</span><b>' + esc(r.moduloInstavel || '—') + '</b></div>' +
+                            (r.funcionalidade ? '<div class="sm-inc-meta-item"><span class="k">Funcionalidade</span><b>' + esc(r.funcionalidade) + '</b></div>' : '') +
                         '</div>' +
                     '</div>' +
                     '<div class="sm-inc-impact">' +
@@ -445,29 +444,57 @@
             }).join('');
         }
 
-        /* ---- Módulos ---- */
-        if (!modList.length) {
-            document.getElementById('mods').innerHTML = '<div class="sm-empty">Nenhum módulo instável no momento.</div>';
-        } else {
-            document.getElementById('mods').innerHTML = modList.map(function(mod) {
-                var cls  = modulos[mod];
-                var stat = cls === 'down' ? 'Fora do ar' : 'Instável';
-                return '<div class="sm-mod ' + cls + '">' +
-                    '<span class="m-name">' + esc(mod) + '</span>' +
-                    '<span class="m-stat"><span class="d"></span>' + stat + '</span>' +
-                '</div>';
-            }).join('');
+        /* ---- Módulos (dados do Firebase modulos_live) ---- */
+        renderModulos(window._modRows || []);
+    }
+
+    function statusToClass(status) {
+        var s = (status || '').trim().toLowerCase();
+        if (s === 'fora do ar')           return 'down';
+        if (s === 'apresentando falhas')   return 'deg';
+        if (s === 'operante')             return 'ok';
+        if (s === 'funcionando')          return 'ok';
+        return 'ok';
+    }
+
+    function renderModulos(modRows) {
+        if (!modRows.length) {
+            document.getElementById('mods').innerHTML = '<div class="sm-empty">Nenhum módulo cadastrado.</div>';
+            return;
+        }
+        document.getElementById('mods').innerHTML = modRows.map(function(m) {
+            var cls  = statusToClass(m.status);
+            var stat = (m.status || 'Desconhecido');
+            return '<div class="sm-mod ' + cls + '">' +
+                '<span class="m-name">' + esc(m.nome) + '</span>' +
+                '<span class="m-stat"><span class="d"></span>' + esc(stat) + '</span>' +
+            '</div>';
+        }).join('');
+
+        /* Atualiza KPI "Módulos instáveis" com base nos dados reais */
+        var instaveis = modRows.filter(function(m){ return statusToClass(m.status) !== 'ok'; });
+        var kpiMod = document.querySelector('#kpiGrid .sm-kpi-card:nth-child(3)');
+        if (kpiMod) {
+            kpiMod.querySelector('.sm-kpi-val').textContent  = instaveis.length;
+            kpiMod.querySelector('.sm-kpi-foot').textContent = instaveis.map(function(m){ return m.nome; }).join(' · ') || 'Todos operacionais';
+            kpiMod.className = 'sm-kpi-card is-warn';
         }
     }
+
+    window._massRows = [];
+    window._modRows  = [];
 
     function initMassivas() {
         firebase.database().ref('suporte_massivas_live').on('value', function(snap) {
             var data = snap.val();
-            if (!data || !data.rows || !data.rows.length) {
-                render([]);
-                return;
-            }
-            render(data.rows);
+            window._massRows = (data && data.rows) ? data.rows : [];
+            render(window._massRows);
+        });
+
+        firebase.database().ref('modulos_live').on('value', function(snap) {
+            var data = snap.val();
+            window._modRows = (data && data.rows) ? data.rows : [];
+            renderModulos(window._modRows);
         });
     }
 

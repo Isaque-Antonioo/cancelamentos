@@ -22,9 +22,11 @@
 var FIREBASE_URL       = 'https://relatorio-geral-default-rtdb.firebaseio.com';
 var FIREBASE_PATH      = '/operacional_live.json';
 var MASSIVAS_PATH      = '/suporte_massivas_live.json';
+var MODULOS_PATH       = '/modulos_live.json';
 var LOG_PATH           = '/sync_log.json';
 var SHEET_NAME         = 'Relacionamento';
 var MASSIVAS_SHEET     = 'Suporte';
+var MODULOS_SHEET      = 'Módulos';
 
 // =================== TRIGGER SETUP ===================
 
@@ -46,17 +48,19 @@ function setupTrigger() {
 
   var r1 = syncOperacional();
   var r2 = syncMassivas();
+  var r3 = syncModulos();
 
   try {
     SpreadsheetApp.getUi().alert(
       'Hubstrom — Setup Completo\n\n' +
       '✓ Triggers instalados (onEdit + onChange)\n' +
       '✓ ' + r1.total + ' registros Operacional sincronizados\n' +
-      '✓ ' + r2.total + ' ocorrências Suporte Massivas sincronizadas\n\n' +
-      'Ambos os dashboards estão atualizados!'
+      '✓ ' + r2.total + ' ocorrências Suporte Massivas sincronizadas\n' +
+      '✓ ' + r3.total + ' módulos sincronizados\n\n' +
+      'Todos os dashboards estão atualizados!'
     );
   } catch (e) {
-    Logger.log('[Setup] Concluído — ' + r1.total + ' operacional, ' + r2.total + ' massivas.');
+    Logger.log('[Setup] Concluído — ' + r1.total + ' operacional, ' + r2.total + ' massivas, ' + r3.total + ' módulos.');
   }
 }
 
@@ -66,6 +70,7 @@ function onEdit_Operacional() {
   try {
     syncOperacional();
     syncMassivas();
+    syncModulos();
   } catch (e) {
     logEntry('error', 'onEdit_Operacional', e.message, e.stack || '');
     Logger.log('[Erro] ' + e.message);
@@ -75,9 +80,11 @@ function onEdit_Operacional() {
 function manualSync() {
   var r1 = syncOperacional();
   var r2 = syncMassivas();
+  var r3 = syncModulos();
   SpreadsheetApp.getUi().alert(
     r1.total + ' registros Operacional sincronizados!\n' +
-    r2.total + ' ocorrências Suporte Massivas sincronizadas!'
+    r2.total + ' ocorrencias Suporte Massivas sincronizadas!\n' +
+    r3.total + ' modulos sincronizados!'
   );
 }
 
@@ -180,6 +187,63 @@ function sendToFirebase(data) {
   throw new Error('Firebase indisponível após 3 tentativas');
 }
 
+// =================== MODULOS ===================
+
+function syncModulos() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  SpreadsheetApp.flush();
+
+  var sheet = ss.getSheetByName(MODULOS_SHEET);
+  if (!sheet) {
+    Logger.log('[Modulos] Aba "' + MODULOS_SHEET + '" nao encontrada.');
+    return { total: 0 };
+  }
+
+  var data = sheet.getDataRange().getDisplayValues();
+  if (data.length <= 1) {
+    Logger.log('[Modulos] Aba sem dados.');
+    return { total: 0 };
+  }
+
+  // Linha 1 e cabecalho — le a partir da linha 2
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var nome = row[0] ? row[0].toString().trim() : '';
+    if (!nome) continue;
+    rows.push({
+      nome:   nome,
+      status: row[1] ? row[1].toString().trim() : 'Desconhecido'
+    });
+  }
+
+  var payload = {
+    rows:       rows,
+    total:      rows.length,
+    updatedAt:  Date.now(),
+    updatedISO: new Date().toISOString(),
+    source:     'apps_script'
+  };
+
+  var url = FIREBASE_URL + MODULOS_PATH;
+  var options = {
+    method: 'put',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+  for (var attempt = 1; attempt <= 3; attempt++) {
+    var response = UrlFetchApp.fetch(url, options);
+    if (response.getResponseCode() === 200) {
+      Logger.log('[Modulos] ' + rows.length + ' modulos enviados.');
+      return { total: rows.length };
+    }
+    if (attempt < 3) Utilities.sleep(1000);
+  }
+  Logger.log('[Modulos] Falha ao enviar para Firebase.');
+  return { total: 0 };
+}
+
 // =================== SUPORTE MASSIVAS ===================
 
 function syncMassivas() {
@@ -210,12 +274,13 @@ function syncMassivas() {
       relator:          row[1] ? row[1].toString().trim() : '',
       ocorrido:         row[2] ? row[2].toString().trim() : '',
       clientesAfetados: row[3] ? row[3].toString().trim() : '',
-      moduloInstavel:   row[4] ? row[4].toString().trim() : ''
+      moduloInstavel:   row[4] ? row[4].toString().trim() : '',
+      funcionalidade:   row[5] ? row[5].toString().trim() : ''
     });
   }
 
   var payload = {
-    headers:    ['data', 'relator', 'ocorrido', 'clientesAfetados', 'moduloInstavel'],
+    headers:    ['data', 'relator', 'ocorrido', 'clientesAfetados', 'moduloInstavel', 'funcionalidade'],
     rows:       rows,
     total:      rows.length,
     updatedAt:  Date.now(),
