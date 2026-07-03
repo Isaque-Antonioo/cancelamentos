@@ -19,10 +19,12 @@
  *     Se não souber, abra a planilha e veja a aba na parte inferior.
  */
 
-var FIREBASE_URL  = 'https://relatorio-geral-default-rtdb.firebaseio.com';
-var FIREBASE_PATH = '/operacional_live.json';
-var LOG_PATH      = '/sync_log.json';
-var SHEET_NAME    = 'Relacionamento';
+var FIREBASE_URL       = 'https://relatorio-geral-default-rtdb.firebaseio.com';
+var FIREBASE_PATH      = '/operacional_live.json';
+var MASSIVAS_PATH      = '/suporte_massivas_live.json';
+var LOG_PATH           = '/sync_log.json';
+var SHEET_NAME         = 'Relacionamento';
+var MASSIVAS_SHEET     = 'Suporte';
 
 // =================== TRIGGER SETUP ===================
 
@@ -42,14 +44,20 @@ function setupTrigger() {
 
   Logger.log('[Setup] ' + removed + ' trigger(s) antigos removidos. 2 novos criados.');
 
-  var resultado = syncOperacional();
+  var r1 = syncOperacional();
+  var r2 = syncMassivas();
 
-  SpreadsheetApp.getUi().alert(
-    'Hubstrom — Dashboard Operacional Setup\n\n' +
-    '✓ Triggers instalados (onEdit + onChange)\n' +
-    '✓ ' + resultado.total + ' registros sincronizados\n\n' +
-    'O dashboard Operacional já está atualizado!'
-  );
+  try {
+    SpreadsheetApp.getUi().alert(
+      'Hubstrom — Setup Completo\n\n' +
+      '✓ Triggers instalados (onEdit + onChange)\n' +
+      '✓ ' + r1.total + ' registros Operacional sincronizados\n' +
+      '✓ ' + r2.total + ' ocorrências Suporte Massivas sincronizadas\n\n' +
+      'Ambos os dashboards estão atualizados!'
+    );
+  } catch (e) {
+    Logger.log('[Setup] Concluído — ' + r1.total + ' operacional, ' + r2.total + ' massivas.');
+  }
 }
 
 // =================== TRIGGERS AUTOMÁTICOS ===================
@@ -57,6 +65,7 @@ function setupTrigger() {
 function onEdit_Operacional() {
   try {
     syncOperacional();
+    syncMassivas();
   } catch (e) {
     logEntry('error', 'onEdit_Operacional', e.message, e.stack || '');
     Logger.log('[Erro] ' + e.message);
@@ -64,14 +73,18 @@ function onEdit_Operacional() {
 }
 
 function manualSync() {
-  var resultado = syncOperacional();
-  SpreadsheetApp.getUi().alert(resultado.total + ' registros sincronizados com o dashboard!');
+  var r1 = syncOperacional();
+  var r2 = syncMassivas();
+  SpreadsheetApp.getUi().alert(
+    r1.total + ' registros Operacional sincronizados!\n' +
+    r2.total + ' ocorrências Suporte Massivas sincronizadas!'
+  );
 }
 
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Hubstrom Operacional')
-    .addItem('Sincronizar agora', 'manualSync')
+    .addItem('Sincronizar tudo', 'manualSync')
     .addItem('Configurar triggers', 'setupTrigger')
     .addToUi();
 }
@@ -165,6 +178,68 @@ function sendToFirebase(data) {
     if (attempt < 3) Utilities.sleep(1000);
   }
   throw new Error('Firebase indisponível após 3 tentativas');
+}
+
+// =================== SUPORTE MASSIVAS ===================
+
+function syncMassivas() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  SpreadsheetApp.flush();
+
+  var sheet = ss.getSheetByName(MASSIVAS_SHEET);
+  if (!sheet) {
+    Logger.log('[Massivas] Aba "' + MASSIVAS_SHEET + '" não encontrada.');
+    return { total: 0 };
+  }
+
+  var data = sheet.getDataRange().getDisplayValues();
+  if (data.length <= 1) {
+    Logger.log('[Massivas] Aba sem dados.');
+    return { total: 0 };
+  }
+
+  // Linha 1 é cabeçalho — lê a partir da linha 2
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var dataVal = row[0] ? row[0].toString().trim() : '';
+    if (!dataVal) continue;
+
+    rows.push({
+      data:             dataVal,
+      relator:          row[1] ? row[1].toString().trim() : '',
+      ocorrido:         row[2] ? row[2].toString().trim() : '',
+      clientesAfetados: row[3] ? row[3].toString().trim() : '',
+      moduloInstavel:   row[4] ? row[4].toString().trim() : ''
+    });
+  }
+
+  var payload = {
+    headers:    ['data', 'relator', 'ocorrido', 'clientesAfetados', 'moduloInstavel'],
+    rows:       rows,
+    total:      rows.length,
+    updatedAt:  Date.now(),
+    updatedISO: new Date().toISOString(),
+    source:     'apps_script'
+  };
+
+  var url = FIREBASE_URL + MASSIVAS_PATH;
+  var options = {
+    method: 'put',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+  for (var attempt = 1; attempt <= 3; attempt++) {
+    var response = UrlFetchApp.fetch(url, options);
+    if (response.getResponseCode() === 200) {
+      Logger.log('[Massivas] ' + rows.length + ' ocorrências enviadas.');
+      return { total: rows.length };
+    }
+    if (attempt < 3) Utilities.sleep(1000);
+  }
+  Logger.log('[Massivas] Falha ao enviar para Firebase.');
+  return { total: 0 };
 }
 
 // =================== LOG ===================

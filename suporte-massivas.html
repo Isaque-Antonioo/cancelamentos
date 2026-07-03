@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hubstrom - Suporte Massivas</title>
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M161 85c2.7-1.2 5.6.8 5.6 3.7v50.3c0 1.6-.9 3-2.4 3.7L35.2 199.9c-.9.4-1.9-.3-1.9-1.2v-54.4c0-1.6.9-3 2.4-3.7L161 85z' fill='%2335CCA3'/%3E%3Cpath d='M164.8.1c.9-.4 1.9.3 1.9 1.2v54.4c0 1.6-.9 3-2.4 3.7L39 114.9c-2.7 1.2-5.6-.8-5.6-3.7V61c0-1.6.9-3 2.4-3.7L164.8.1z' fill='%2335CCA3'/%3E%3C/svg%3E">
+
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/auth.js"></script>
+
+    <style>
+        @keyframes blink     { 0%,100%{opacity:1} 50%{opacity:.3} }
+        @keyframes pulseWarn { 0%,100%{opacity:.15} 50%{opacity:.5} }
+
+        /* Badge Live */
+        .sm-sync-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 12px; color: #f97316;
+            background: rgba(249,115,22,.1); padding: 4px 10px;
+            border-radius: 20px; border: 1px solid rgba(249,115,22,.25);
+        }
+        .sm-sync-badge .dot {
+            width:7px; height:7px; background:#f97316;
+            border-radius:50%; animation: blink 2s infinite;
+        }
+
+        /* KPI section */
+        .sm-kpi-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 0 24px 24px;
+        }
+        .sm-kpi-row .kpi-card { text-align: center; padding: 28px 20px; }
+        .sm-kpi-row .kpi-value { font-size: 52px !important; }
+        .sm-kpi-row .kpi-label {
+            font-size: 16px !important; font-weight: 700 !important;
+            text-transform: uppercase !important; letter-spacing: .08em !important;
+            color: #e2e8f0 !important; margin-top: 8px;
+        }
+        .kpi-card.warn  { border-color: rgba(249,115,22,.3); }
+        .kpi-card.warn .kpi-value { color: #f97316; }
+        .kpi-card.alert { border-color: rgba(239,68,68,.3); }
+        .kpi-card.alert .kpi-value { color: #ef4444; }
+        .kpi-card.info2 { border-color: rgba(99,102,241,.3); }
+        .kpi-card.info2 .kpi-value { color: #818cf8; }
+
+        /* Tabela de ocorrências */
+        .sm-table-section { padding: 0 24px 32px; }
+        .sm-table-wrap { overflow-x: auto; border-radius: 12px; }
+
+        .sm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .sm-table thead th {
+            background: rgba(249,115,22,.06);
+            color: #94a3b8; font-weight: 600; font-size: 11px;
+            text-transform: uppercase; letter-spacing: .05em;
+            padding: 12px 16px; text-align: left; white-space: nowrap;
+        }
+        .sm-table tbody tr {
+            border-top: 1px solid rgba(255,255,255,.04);
+            transition: background .15s;
+        }
+        .sm-table tbody tr:hover { background: rgba(249,115,22,.04); }
+        .sm-table tbody td { padding: 14px 16px; color: #e2e8f0; }
+        .sm-table .td-ocorrido { max-width: 380px; }
+        .sm-table .td-modulo {
+            display: inline-flex; align-items: center;
+            background: rgba(249,115,22,.1); color: #f97316;
+            border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600;
+            white-space: nowrap;
+        }
+        .sm-table .td-clientes {
+            font-weight: 700; color: #ef4444;
+        }
+        .sm-table .td-clientes.todos { color: #f97316; }
+        .sm-table .td-data { color: #64748b; white-space: nowrap; font-size: 12px; }
+        .sm-table .td-relator { color: #94a3b8; }
+
+        .sm-empty { text-align:center; padding:60px; color:#64748b; }
+
+        /* Alerta no topo quando há ocorrências hoje */
+        .sm-alert-banner {
+            margin: 0 24px 20px;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, rgba(239,68,68,.12), rgba(249,115,22,.08));
+            border: 1px solid rgba(239,68,68,.3);
+            border-radius: 12px;
+            display: flex; align-items: center; gap: 12px;
+            position: relative; overflow: hidden;
+        }
+        .sm-alert-banner::before {
+            content: ''; position: absolute; inset: -1px; border-radius: inherit;
+            border: 1.5px solid rgba(239,68,68,.6); pointer-events: none;
+            opacity: .2; animation: pulseWarn 2.4s ease-in-out infinite;
+        }
+        .sm-alert-icon { font-size: 24px; flex-shrink: 0; }
+        .sm-alert-text { flex: 1; }
+        .sm-alert-title { font-size: 15px; font-weight: 700; color: #fca5a5; }
+        .sm-alert-sub   { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+        @media (max-width: 768px) {
+            .sm-kpi-row { grid-template-columns: 1fr; }
+            .sm-table-section { padding: 0 12px 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>Dashboards</h3>
+                <button class="sidebar-close" onclick="toggleSidebar()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="sidebar-item">
+                    <a href="index.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                        <span>Cancelamentos</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="comercial.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        <span>Comercial</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="operacional.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        <span>Health Score</span>
+                    </a>
+                </li>
+                <li class="sidebar-item active">
+                    <a href="suporte-massivas.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span>Suporte Massivas</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="suporte.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <span>Suporte</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="bugs.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M12 6V3M4 10l4 2M20 10l-4 2M4 18l4-2M20 18l-4-2"/></svg>
+                        <span>Bugs</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="log-erros.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span>Log de Erros</span>
+                    </a>
+                </li>
+                <li class="sidebar-item sidebar-admin-only">
+                    <a href="admin.html">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <span>Admin</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+        <!-- Header -->
+        <header class="header">
+            <div class="header-top">
+                <button class="hamburger-btn" onclick="toggleSidebar()" title="Menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <h1 class="header-main-title">Suporte Massivas</h1>
+                <p id="headerSubtitle">Carregando ocorrências...</p>
+                <div class="header-controls">
+                    <span class="sm-sync-badge" id="syncBadge" style="display:none">
+                        <span class="dot"></span> Sincronizado
+                    </span>
+                    <span class="user-display-name" id="userDisplayName"></span>
+                    <button class="btn-icon-small btn-logout" onclick="hubstromLogout()" title="Sair">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Banner de alerta (visível quando há ocorrências hoje) -->
+        <div class="sm-alert-banner" id="alertBanner" style="display:none">
+            <span class="sm-alert-icon">&#x1F6A8;</span>
+            <div class="sm-alert-text">
+                <div class="sm-alert-title" id="alertTitle">Ocorrências ativas hoje</div>
+                <div class="sm-alert-sub" id="alertSub">Verificando...</div>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <section class="sm-kpi-row">
+            <div class="kpi-card warn" id="kpiTotal">
+                <div class="kpi-value">&#x2014;</div>
+                <div class="kpi-label">Ocorrências</div>
+            </div>
+            <div class="kpi-card alert" id="kpiClientes">
+                <div class="kpi-value">&#x2014;</div>
+                <div class="kpi-label">Clientes Afetados</div>
+            </div>
+            <div class="kpi-card info2" id="kpiModulos">
+                <div class="kpi-value">&#x2014;</div>
+                <div class="kpi-label">Módulos Impactados</div>
+            </div>
+        </section>
+
+        <!-- Tabela de ocorrências -->
+        <section class="sm-table-section">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>Ocorrências Registradas</h3>
+                    <span class="sm-sync-badge" id="tableBadge" style="display:none;font-size:11px">
+                        <span class="dot"></span> Live
+                    </span>
+                </div>
+                <div class="sm-table-wrap">
+                    <table class="sm-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Relator</th>
+                                <th>Ocorrido</th>
+                                <th>Clientes Afetados</th>
+                                <th>Módulo Instável</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaOcorrencias">
+                            <tr><td colspan="5" class="sm-empty">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </div><!-- /container -->
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+
+    <script>window.CAROUSEL_PAGE = 'suporte-massivas.html';</script>
+    <script src="js/carousel.js"></script>
+
+    <script>
+    var allRows = [];
+
+    function toggleSidebar() {
+        var sidebar = document.getElementById('sidebar');
+        var overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.toggle('active');
+        overlay.classList.toggle('active');
+        document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+    }
+
+    function esc(str) {
+        return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function initMassivas() {
+        firebase.database().ref('suporte_massivas_live').on('value', function(snap) {
+            var data = snap.val();
+            if (!data || !data.rows || !data.rows.length) {
+                document.getElementById('headerSubtitle').textContent = 'Sem ocorrências registradas.';
+                document.getElementById('tabelaOcorrencias').innerHTML =
+                    '<tr><td colspan="5" class="sm-empty">Nenhuma ocorrência registrada.</td></tr>';
+                setVal('kpiTotal',   '0');
+                setVal('kpiClientes','0');
+                setVal('kpiModulos', '0');
+                return;
+            }
+            allRows = data.rows;
+            var ts = data.updatedISO
+                ? new Date(data.updatedISO).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+                : '';
+            document.getElementById('headerSubtitle').textContent =
+                data.total + ' ocorrências · Atualizado ' + ts;
+            document.getElementById('syncBadge').style.display = 'inline-flex';
+            renderKPIs();
+            renderTabela();
+        });
+    }
+
+    function renderKPIs() {
+        var totalClientes = 0;
+        var clientesTodos = false;
+        var modulos = {};
+        var hoje = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric'});
+        var ocorrenciasHoje = 0;
+
+        allRows.forEach(function(r) {
+            var ca = (r.clientesAfetados || '').toString().trim().toUpperCase();
+            if (ca === 'TODOS') {
+                clientesTodos = true;
+            } else {
+                var n = parseInt(ca, 10);
+                if (!isNaN(n)) totalClientes += n;
+            }
+            var mod = (r.moduloInstavel || '').trim();
+            if (mod) modulos[mod] = true;
+            if (r.data && r.data.indexOf(hoje.slice(0,5)) === 0) ocorrenciasHoje++;
+        });
+
+        setVal('kpiTotal',    allRows.length);
+        setVal('kpiClientes', clientesTodos ? 'TODOS' : totalClientes);
+        setVal('kpiModulos',  Object.keys(modulos).length);
+
+        if (ocorrenciasHoje > 0) {
+            var banner = document.getElementById('alertBanner');
+            var modList = Object.keys(modulos).join(', ');
+            document.getElementById('alertTitle').textContent =
+                ocorrenciasHoje + ' ocorrência' + (ocorrenciasHoje > 1 ? 's' : '') + ' registrada' + (ocorrenciasHoje > 1 ? 's' : '') + ' hoje';
+            document.getElementById('alertSub').textContent =
+                'Módulos impactados: ' + (modList || 'N/A');
+            banner.style.display = 'flex';
+        }
+    }
+
+    function setVal(id, val) {
+        var el = document.getElementById(id);
+        if (el) el.querySelector('.kpi-value').textContent = val;
+    }
+
+    function renderTabela() {
+        if (!allRows.length) {
+            document.getElementById('tabelaOcorrencias').innerHTML =
+                '<tr><td colspan="5" class="sm-empty">Nenhuma ocorrência registrada.</td></tr>';
+            return;
+        }
+
+        var sorted = allRows.slice().reverse();
+
+        var html = sorted.map(function(r) {
+            var ca = (r.clientesAfetados || '—').toString().trim();
+            var isTodos = ca.toUpperCase() === 'TODOS';
+            var mod = (r.moduloInstavel || '').trim();
+
+            return '<tr>' +
+                '<td class="td-data">' + esc(r.data || '—') + '</td>' +
+                '<td class="td-relator">' + esc(r.relator || '—') + '</td>' +
+                '<td class="td-ocorrido">' + esc(r.ocorrido || '—') + '</td>' +
+                '<td><span class="td-clientes' + (isTodos ? ' todos' : '') + '">' + esc(ca) + '</span></td>' +
+                '<td>' + (mod ? '<span class="td-modulo">' + esc(mod) + '</span>' : '<span style="color:#475569">—</span>') + '</td>' +
+            '</tr>';
+        }).join('');
+
+        document.getElementById('tabelaOcorrencias').innerHTML = html;
+        document.getElementById('tableBadge').style.display = 'inline-flex';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        firebase.auth().onAuthStateChanged(function(user) {
+            if (user) initMassivas();
+        });
+    });
+    </script>
+</body>
+</html>
