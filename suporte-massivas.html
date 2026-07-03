@@ -183,6 +183,26 @@
 
         .sm-empty { text-align: center; padding: 50px; color: var(--text-muted); }
 
+        /* ---- TOP BAR MÍNIMA ---- */
+        .sm-topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 24px; gap: 12px;
+        }
+        .sm-topbar-left  { display: flex; align-items: center; gap: 10px; }
+        .sm-topbar-right { display: flex; align-items: center; gap: 10px; }
+        .sm-hamburger {
+            background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+            border-radius: 8px; padding: 8px; cursor: pointer;
+            color: var(--text-secondary); display: flex; transition: all .15s;
+        }
+        .sm-hamburger:hover { background: rgba(255,255,255,.1); color: #fff; }
+        .sm-logout-btn {
+            background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+            border-radius: 8px; padding: 8px; cursor: pointer;
+            color: var(--text-secondary); display: flex; transition: all .15s;
+        }
+        .sm-logout-btn:hover { background: rgba(255,71,87,.1); color: #ff6b7a; border-color: rgba(255,71,87,.25); }
+
         /* ---- PADDING E SPACING ---- */
         .sm-body { padding: 0 24px 40px; }
 
@@ -247,28 +267,26 @@
         </nav>
         <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-        <!-- Header -->
-        <header class="header">
-            <div class="header-top">
-                <button class="hamburger-btn" onclick="toggleSidebar()" title="Menu">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- Top bar mínima -->
+        <div class="sm-topbar">
+            <div class="sm-topbar-left">
+                <button class="sm-hamburger" onclick="toggleSidebar()" title="Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
                     </svg>
                 </button>
-                <h1 class="header-main-title">Suporte Massivas</h1>
-                <p id="headerSubtitle">Carregando ocorrências...</p>
-                <div class="header-controls">
-                    <span id="statusBadge" class="sm-live-badge ok"><span class="sm-live-dot"></span>Sem ocorrências</span>
-                    <span class="user-display-name" id="userDisplayName"></span>
-                    <button class="btn-icon-small btn-logout" onclick="hubstromLogout()" title="Sair">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-                        </svg>
-                    </button>
-                </div>
             </div>
-        </header>
+            <div class="sm-topbar-right">
+                <span id="statusBadge" class="sm-live-badge ok"><span class="sm-live-dot"></span>Sem ocorrências</span>
+                <span class="user-display-name" id="userDisplayName"></span>
+                <button class="sm-logout-btn" onclick="hubstromLogout()" title="Sair">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
 
         <!-- Corpo principal -->
         <div class="sm-body">
@@ -367,9 +385,6 @@
             badge.innerHTML = '<span class="sm-live-dot"></span>Sem críticos';
         }
 
-        /* ---- Subtítulo ---- */
-        document.getElementById('headerSubtitle').textContent =
-            rows.length + ' ocorrência' + (rows.length !== 1 ? 's' : '') + ' registrada' + (rows.length !== 1 ? 's' : '');
 
         /* ---- Banner ---- */
         var banner = document.getElementById('alertBanner');
@@ -450,7 +465,6 @@
             var data = snap.val();
             if (!data || !data.rows || !data.rows.length) {
                 render([]);
-                document.getElementById('headerSubtitle').textContent = 'Sem ocorrências registradas.';
                 return;
             }
             render(data.rows);
