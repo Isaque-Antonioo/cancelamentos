@@ -23,6 +23,7 @@ var FIREBASE_URL       = 'https://relatorio-geral-default-rtdb.firebaseio.com';
 var FIREBASE_PATH      = '/operacional_live.json';
 var MASSIVAS_PATH      = '/suporte_massivas_live.json';
 var MODULOS_PATH       = '/modulos_live.json';
+var HISTORICO_BASE     = '/historico_operacional';
 var LOG_PATH           = '/sync_log.json';
 var SHEET_NAME         = 'Relacionamento';
 var MASSIVAS_SHEET     = 'Suporte';
@@ -155,10 +156,48 @@ function syncOperacional() {
   };
 
   sendToFirebase(payload);
+  saveHistoricoSnapshot(rows);
   logEntry('info', 'syncOperacional', 'Sync OK — ' + rows.length + ' registros', '');
   Logger.log('[Sync] ' + rows.length + ' registros enviados: ' + new Date().toISOString());
 
   return { total: rows.length };
+}
+
+// =================== HISTORICO ===================
+
+function saveHistoricoSnapshot(rows) {
+  if (!rows || rows.length === 0) return;
+
+  var now = new Date();
+  var yyyy = now.getFullYear();
+  var mm   = (now.getMonth() + 1 < 10 ? '0' : '') + (now.getMonth() + 1);
+  var dd   = (now.getDate()    < 10 ? '0' : '') + now.getDate();
+  var dateKey = yyyy + '-' + mm + '-' + dd;
+
+  var payload = {
+    rows:       rows,
+    total:      rows.length,
+    updatedAt:  Date.now(),
+    updatedISO: now.toISOString()
+  };
+
+  var url = FIREBASE_URL + HISTORICO_BASE + '/' + dateKey + '.json';
+  var options = {
+    method: 'put',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  for (var attempt = 1; attempt <= 3; attempt++) {
+    var response = UrlFetchApp.fetch(url, options);
+    if (response.getResponseCode() === 200) {
+      Logger.log('[Historico] Snapshot salvo: ' + dateKey + ' (' + rows.length + ' registros)');
+      return;
+    }
+    if (attempt < 3) Utilities.sleep(500);
+  }
+  Logger.log('[Historico] Falha ao salvar snapshot para ' + dateKey);
 }
 
 // =================== FIREBASE ===================

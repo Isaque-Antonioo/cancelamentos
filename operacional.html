@@ -313,6 +313,67 @@
             .op-kpi-sub-row .kpi-card { width:280px; }
             .op-main-grid, .op-table-section { padding:0 12px 20px; }
         }
+
+        /* ---- Modal Histórico ---- */
+        .hist-overlay {
+            display: none; position: fixed; inset: 0; z-index: 1000;
+            background: rgba(0,0,0,.72);
+            align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .hist-modal {
+            background: var(--surface-card, #1a2332);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 18px;
+            width: 100%; max-width: 760px;
+            box-shadow: 0 24px 64px rgba(0,0,0,.6);
+            overflow: hidden;
+        }
+        .hist-modal-header {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            padding: 22px 24px 16px;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+        }
+        .hist-modal-title {
+            font-size: 18px; font-weight: 700; color: #e2e8f0;
+        }
+        .hist-modal-sub {
+            font-size: 12px; color: var(--text-muted, #64748b); margin-top: 3px;
+            text-transform: uppercase; letter-spacing: .05em;
+        }
+        .hist-close {
+            background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+            color: #94a3b8; border-radius: 8px; width: 32px; height: 32px;
+            cursor: pointer; font-size: 15px; display: flex; align-items: center;
+            justify-content: center; flex-shrink: 0; transition: all .15s;
+        }
+        .hist-close:hover { background: rgba(255,71,87,.15); color: #ff6b7a; border-color: rgba(255,71,87,.25); }
+        .hist-filters {
+            padding: 14px 24px 10px;
+            border-bottom: 1px solid rgba(255,255,255,.05);
+        }
+        .hist-month-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+        .hist-month-btn {
+            background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+            color: #94a3b8; border-radius: 8px; padding: 5px 14px;
+            font-size: 12px; font-weight: 600; cursor: pointer;
+            text-transform: uppercase; letter-spacing: .04em; transition: all .15s;
+        }
+        .hist-month-btn:hover { background: rgba(255,255,255,.1); color: #e2e8f0; }
+        .hist-month-btn.active {
+            background: rgba(53,204,163,.15); border-color: rgba(53,204,163,.35);
+            color: #35cca3;
+        }
+        .hist-chart-wrap {
+            padding: 20px 24px 24px;
+            height: 320px; position: relative;
+        }
+        .hist-no-data {
+            text-align: center; padding: 48px 24px;
+            color: #64748b; font-size: 14px;
+        }
+        .op-ranking-item { cursor: pointer; transition: background .15s; }
+        .op-ranking-item:hover { background: rgba(255,255,255,.04); border-radius: 12px; }
     </style>
 </head>
 <body>
@@ -463,6 +524,28 @@
 
 
     </div><!-- /container -->
+
+    <!-- Modal Histórico Health Score -->
+    <div class="hist-overlay" id="histOverlay" onclick="closeHistoricoModal()">
+        <div class="hist-modal" onclick="event.stopPropagation()">
+            <div class="hist-modal-header">
+                <div>
+                    <div class="hist-modal-title" id="histModalTitle">—</div>
+                    <div class="hist-modal-sub">Evolução do Health Score</div>
+                </div>
+                <button class="hist-close" onclick="closeHistoricoModal()">✕</button>
+            </div>
+            <div class="hist-filters">
+                <div class="hist-month-btns" id="histMonthBtns"></div>
+            </div>
+            <div class="hist-chart-wrap" id="histChartWrap">
+                <canvas id="histChart"></canvas>
+            </div>
+            <div class="hist-no-data" id="histNoData" style="display:none">
+                Sem dados históricos para este especialista.
+            </div>
+        </div>
+    </div>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -702,7 +785,7 @@
             var avatarHtml = i === 0
                 ? '<div class="op-rank-avatar-wrap"><span class="op-rank-crown">👑</span><div class="op-rank-avatar gold-b"><img src="' + foto + '" onerror="this.src=\'' + PLACEHOLDER + '\'"></div></div>'
                 : '<div class="op-rank-avatar ' + (tier ? tier+'-b' : '') + '"><img src="' + foto + '" onerror="this.src=\'' + PLACEHOLDER + '\'"></div>';
-            return '<div class="op-ranking-item ' + rankClass + '">' +
+            return '<div class="op-ranking-item ' + rankClass + '" onclick="openHistoricoModal(\'' + e.nome + '\')" title="Ver evolução do score">' +
                 '<div class="op-rank-badge ' + tier + '">' + (i+1) + '</div>' +
                 avatarHtml +
                 '<div class="op-rank-info">' +
@@ -832,6 +915,180 @@
 
         document.getElementById('clientesTbody').innerHTML = html;
     }
+
+    /* ---- Histórico Health Score ---- */
+    var MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    var _histChart  = null;
+    var _histData   = {};
+    var _histEsp    = '';
+    var _histMonth  = null;
+
+    function openHistoricoModal(nomeEsp) {
+        _histEsp  = nomeEsp;
+        _histMonth = null;
+        document.getElementById('histModalTitle').textContent = nomeEsp;
+        document.getElementById('histOverlay').style.display = 'flex';
+        document.getElementById('histNoData').style.display  = 'none';
+        document.getElementById('histChartWrap').style.display = 'block';
+        document.getElementById('histMonthBtns').innerHTML =
+            '<span style="color:#64748b;font-size:13px">Carregando...</span>';
+
+        firebase.database().ref('historico_operacional').once('value', function(snap) {
+            _histData = snap.val() || {};
+            renderHistoricoModal();
+        });
+    }
+
+    function renderHistoricoModal() {
+        var dates = Object.keys(_histData).sort();
+
+        if (!dates.length) {
+            document.getElementById('histMonthBtns').innerHTML = '';
+            document.getElementById('histChartWrap').style.display = 'none';
+            document.getElementById('histNoData').style.display = 'block';
+            return;
+        }
+
+        var months = {};
+        dates.forEach(function(d) { months[d.substring(0, 7)] = true; });
+        var monthList = Object.keys(months).sort();
+
+        if (!_histMonth || monthList.indexOf(_histMonth) < 0) {
+            _histMonth = monthList[monthList.length - 1];
+        }
+
+        var btnsHtml = monthList.map(function(m) {
+            var parts = m.split('-');
+            var label = MONTH_NAMES[parseInt(parts[1], 10) - 1] + '/' + parts[0].substring(2);
+            return '<button class="hist-month-btn' + (m === _histMonth ? ' active' : '') +
+                '" onclick="selectHistoricoMonth(\'' + m + '\')">' + label + '</button>';
+        }).join('');
+        document.getElementById('histMonthBtns').innerHTML = btnsHtml;
+
+        var filteredDates = dates.filter(function(d) { return d.substring(0, 7) === _histMonth; });
+
+        var scores = filteredDates.map(function(d) {
+            var snap = _histData[d];
+            if (!snap || !snap.rows) return null;
+            var sum = 0, count = 0;
+            (snap.rows || []).forEach(function(r) {
+                if (!r) return;
+                var uid  = r[1] ? r[1].toString().trim() : '';
+                var name = ESPECIALISTAS[uid] || uid;
+                if (name !== _histEsp) return;
+                var s = parseScore(r[3]);
+                if (s !== null) { sum += s; count++; }
+            });
+            return count > 0 ? Math.round(sum / count * 10) / 10 : null;
+        });
+
+        var hasAny = scores.some(function(s) { return s !== null; });
+        if (!hasAny) {
+            document.getElementById('histChartWrap').style.display = 'none';
+            document.getElementById('histNoData').style.display = 'block';
+            if (_histChart) { _histChart.destroy(); _histChart = null; }
+            return;
+        }
+        document.getElementById('histChartWrap').style.display = 'block';
+        document.getElementById('histNoData').style.display = 'none';
+
+        var labels = filteredDates.map(function(d) {
+            var p = d.split('-');
+            return p[2] + '/' + p[1];
+        });
+
+        var pointColors = scores.map(function(s) {
+            if (s === null) return 'transparent';
+            if (s >= THRESHOLD_SAUDAVEL) return '#35cca3';
+            if (s >= THRESHOLD_ATENCAO)  return '#f59e0b';
+            if (s >= THRESHOLD_EMRISCO)  return '#f97316';
+            return '#ef4444';
+        });
+
+        var ctx = document.getElementById('histChart').getContext('2d');
+        if (_histChart) { _histChart.destroy(); _histChart = null; }
+
+        _histChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Health Score',
+                    data: scores,
+                    borderColor: '#35cca3',
+                    backgroundColor: 'rgba(53,204,163,.08)',
+                    borderWidth: 2.5,
+                    pointBackgroundColor: pointColors,
+                    pointBorderColor: pointColors,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    tension: 0.35,
+                    fill: true,
+                    spanGaps: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                        display: true,
+                        align: 'top',
+                        offset: 4,
+                        color: '#e2e8f0',
+                        font: { size: 11, weight: '600' },
+                        formatter: function(v) { return v !== null ? v.toFixed(1) : ''; }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f1724',
+                        titleColor: '#94a3b8',
+                        bodyColor: '#e2e8f0',
+                        borderColor: 'rgba(255,255,255,.1)',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(ctx) {
+                                var v = ctx.parsed.y;
+                                return v !== null ? ' Score: ' + v.toFixed(1) : ' Sem dados';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,.05)' },
+                        ticks: { color: '#64748b', font: { size: 11 } }
+                    },
+                    y: {
+                        min: 0, max: 100,
+                        grid: { color: 'rgba(255,255,255,.05)' },
+                        ticks: { color: '#64748b', font: { size: 11 },
+                            callback: function(v) { return v; }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function selectHistoricoMonth(m) {
+        _histMonth = m;
+        renderHistoricoModal();
+    }
+
+    function closeHistoricoModal() {
+        document.getElementById('histOverlay').style.display = 'none';
+        if (_histChart) { _histChart.destroy(); _histChart = null; }
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            if (document.getElementById('histOverlay').style.display === 'flex') {
+                closeHistoricoModal();
+                return;
+            }
+        }
+    });
 
     /* ---- Sidebar ---- */
     function toggleSidebar() {
