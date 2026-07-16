@@ -160,7 +160,7 @@ function parseCSV(text) {
         row._nCanal = normalizeGeneric(row._canal);
         row._nStatus = normalizeStatus(row._status);
         row._nColaborador = normalizeColaborador(row._colaborador);
-        row._nLigacao = isLigacaoSim(row._ligacao);
+        row._nLigacao = getLigacaoCount(row._ligacao);
         row._day = extractDay(row._diaMes);
         // Pre-computar texto de busca
         row._searchText = [row._razaoSocial, row._modulo, row._processo, row._canal, row._status, row._colaborador, row._diaMes].join(' ').toLowerCase();
@@ -436,7 +436,7 @@ function buildSummaryForChart(data) {
 
         // Ligações
         if (row._nLigacao) {
-            summary.ligacoes.sim++;
+            summary.ligacoes.sim += row._nLigacao;
         } else if (row._ligacao) {
             summary.ligacoes.nao++;
         }
@@ -575,16 +575,10 @@ function buildSummary(data) {
             summary.planos[planoTrim] = (summary.planos[planoTrim] || 0) + 1;
         }
 
-        if (row._nLigacao !== undefined) {
-            if (row._nLigacao) summary.ligacoes.sim++;
-            else summary.ligacoes.nao++;
-        } else {
-            const ligacao = row._ligacao ? row._ligacao.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() : '';
-            if (ligacao === 'sim' || ligacao === 's' || ligacao === 'yes' || ligacao === '1' || ligacao === 'si') {
-                summary.ligacoes.sim++;
-            } else if (ligacao) {
-                summary.ligacoes.nao++;
-            }
+        if (row._nLigacao) {
+            summary.ligacoes.sim += row._nLigacao;
+        } else if (row._ligacao) {
+            summary.ligacoes.nao++;
         }
 
         if (row._razaoSocial) {
@@ -657,6 +651,21 @@ function updateKPIs(summary) {
 
     setKPI('kpiClientes', summary.clientesUnicos.size.toLocaleString('pt-BR'));
     setKPI('kpiLigacoes', summary.ligacoes.sim.toLocaleString('pt-BR'));
+    atualizarBarraLigacoes(summary.ligacoes.sim);
+}
+
+function atualizarBarraLigacoes(valor) {
+    const META = 462;
+    const pct  = Math.min(100, Math.round(valor / META * 100));
+    const fill = document.getElementById('ligacoesBarFill');
+    const label = document.getElementById('ligacoesPct');
+    if (fill) {
+        fill.style.width = pct + '%';
+        fill.classList.toggle('atingido', pct >= 100);
+    }
+    if (label) {
+        label.textContent = pct + '% da meta (' + valor.toLocaleString('pt-BR') + ' / 462)';
+    }
 }
 
 function setKPI(id, value, labelOverride) {
@@ -1776,7 +1785,7 @@ function renderGroupedTable(data, tbody) {
         if (row._nStatus) groups[key].status.add(row._nStatus);
         if (row._nColaborador) groups[key].colaboradores.add(row._nColaborador);
         if (row._diaMes) groups[key].datas.add(row._diaMes);
-        if (row._nLigacao) groups[key].ligacoes++;
+        if (row._nLigacao) groups[key].ligacoes += row._nLigacao;
     });
 
     // Converter para array e ordenar
@@ -2031,10 +2040,19 @@ function getStatusClass(status) {
     return 'status-outro';
 }
 
+function getLigacaoCount(val) {
+    if (!val) return 0;
+    const raw = val.toString().trim();
+    const n = parseFloat(raw.replace(',', '.'));
+    if (!isNaN(n) && n > 0) return n;
+    const v = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    if (v === 'sim' || v === 's' || v === 'yes' || v === 'x' || v === 'ok'
+        || v === 'feita' || v === 'realizada' || v === 'true' || v === 'si') return 1;
+    return 0;
+}
+
 function isLigacaoSim(val) {
-    if (!val) return false;
-    const v = val.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-    return v === 'sim' || v === 's' || v === 'yes' || v === '1' || v === 'si';
+    return getLigacaoCount(val) > 0;
 }
 
 function escapeHTML(str) {
@@ -2794,7 +2812,7 @@ function convertSuporteFirebaseData(data) {
         row._nCanal = normalizeGeneric(row._canal);
         row._nStatus = normalizeStatus(row._status);
         row._nColaborador = normalizeColaborador(row._colaborador);
-        row._nLigacao = isLigacaoSim(row._ligacao);
+        row._nLigacao = getLigacaoCount(row._ligacao);
         row._day = extractDay(row._diaMes);
         row._searchText = [row._razaoSocial, row._modulo, row._processo, row._canal, row._status, row._colaborador, row._diaMes].join(' ').toLowerCase();
 
