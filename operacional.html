@@ -108,10 +108,10 @@
         .kpi-card.critico  { border-color: rgba(239,68,68,.3); }
         .kpi-card.critico  .kpi-value { color: #ef4444; }
 
-        /* Main grid — dois rankings lado a lado */
+        /* Main grid — três rankings lado a lado */
         .op-main-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 20px;
             padding: 0 24px 24px;
         }
@@ -305,7 +305,10 @@
 
         .op-empty { text-align:center; padding:40px; color:#64748b; }
 
-        @media (max-width:1100px) {
+        @media (max-width:1400px) {
+            .op-main-grid { grid-template-columns:1fr 1fr; }
+        }
+        @media (max-width:900px) {
             .op-main-grid { grid-template-columns:1fr; }
         }
         @media (max-width:640px) {
@@ -520,6 +523,24 @@
                     <div class="op-empty">Carregando...</div>
                 </div>
             </div>
+
+            <!-- Ranking Implantadores -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>Ranking Implantadores</h3>
+                    <span class="op-sync-badge" id="rankBadgeImpl" style="display:none;font-size:11px">
+                        <span class="dot"></span> Live
+                    </span>
+                </div>
+                <div class="op-ranking-header">
+                    <span class="op-rh-esp">Implantador</span>
+                    <span class="op-rh-score">Score</span>
+                    <span class="op-rh-pct">% Saudáveis</span>
+                </div>
+                <div class="op-ranking-list" id="rankingListaImpl">
+                    <div class="op-empty">Aguardando dados...</div>
+                </div>
+            </div>
         </section>
 
 
@@ -611,12 +632,13 @@
     var THRESHOLD_ATENCAO  = 60;
     var THRESHOLD_EMRISCO  = 40;
 
-    var allRows      = [];
-    var filteredRows = [];
-    var currentTab   = 'todos';
-    var sortCol      = 'score';
-    var sortAsc      = true;
-    var opCharts     = {};
+    var allRows          = [];
+    var implantacaoRows  = [];
+    var filteredRows     = [];
+    var currentTab       = 'todos';
+    var sortCol          = 'score';
+    var sortAsc          = true;
+    var opCharts         = {};
 
     /* ---- helpers ---- */
     function parseScore(v) {
@@ -653,6 +675,54 @@
             if (!data || !data.rows) return;
             buildRows(data);
         });
+        firebase.database().ref('implantacao_live').on('value', function(snap) {
+            var data = snap.val();
+            if (!data || !data.rows) return;
+            buildImplantacaoRows(data);
+        });
+    }
+
+    function buildImplantacaoRows(data) {
+        implantacaoRows = [];
+        (data.rows || []).forEach(function(r) {
+            if (!r) return;
+            var empresa     = (r[1] || '').toString().trim();
+            var implantador = (r[2] || '').toString().trim();
+            if (!empresa && !implantador) return;
+            var score = parseScore(r[3]);
+            implantacaoRows.push({
+                empresa:     empresa,
+                implantador: implantador,
+                score:       score,
+                zona:        getZone(score)
+            });
+        });
+        renderRankingImplantacao();
+    }
+
+    function renderRankingImplantacao() {
+        var map = {};
+        implantacaoRows.forEach(function(r) {
+            var k = r.implantador;
+            if (!k) return;
+            if (!map[k]) map[k] = { total: 0, scoreSum: 0, scoreCount: 0, saudaveis: 0 };
+            map[k].total++;
+            if (r.score !== null) { map[k].scoreSum += r.score; map[k].scoreCount++; }
+            if (r.zona === 'saudavel') map[k].saudaveis++;
+        });
+
+        var list = Object.keys(map).map(function(k) {
+            var e = map[k];
+            var media = e.scoreCount ? e.scoreSum / e.scoreCount : null;
+            return { nome: k, total: e.total, media: media, saudaveis: e.saudaveis,
+                     zona: getZone(media),
+                     pctSaudavel: Math.round(e.saudaveis / e.total * 100) };
+        }).sort(function(a, b) {
+            return (b.media !== null ? b.media : -1) - (a.media !== null ? a.media : -1);
+        });
+
+        document.getElementById('rankingListaImpl').innerHTML = buildRankingHTML(list);
+        document.getElementById('rankBadgeImpl').style.display = 'inline-flex';
     }
 
     function buildRows(data) {
