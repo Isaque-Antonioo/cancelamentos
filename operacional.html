@@ -65,35 +65,40 @@
         @keyframes goldPulse { 0%,100%{opacity:.2} 50%{opacity:1} }
         @keyframes crownFloat { 0%,100%{transform:translateY(0) rotate(-4deg)} 50%{transform:translateY(-3px) rotate(4deg)} }
 
-        /* KPI section — pirâmide */
-        .op-kpi-section {
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 16px;
-            padding: 0 24px 28px;
+        /* Health Score geral — coluna do meio (Enterprise) */
+        .op-hs-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            padding: 0 24px 16px;
         }
         .op-kpi-main {
-            align-self: center;
-            width: 380px;
+            grid-column: 2;
             text-align: center;
-            padding: 32px 24px;
+            padding: 28px 24px;
         }
-        .op-kpi-sub-row {
+
+        /* KPIs alinhados com as 3 colunas de ranking */
+        .op-kpis-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 20px;
-            width: 100%;
+            padding: 0 24px 20px;
         }
-        .op-kpi-sub-row .kpi-card {
-            width: 380px;
-            justify-self: center;
+        .op-kpis-grid .kpi-card {
             text-align: center;
-            padding: 32px 24px;
+            padding: 24px;
         }
-        /* Fonte e label idênticos nos 3 cards */
-        .op-kpi-section .kpi-value { font-size: 48px !important; }
-        .op-kpi-section .kpi-label {
+
+        /* Implantação KPI */
+        .op-kpi-impl { border-color: rgba(139,92,246,.3); }
+        .op-kpi-impl .kpi-value { color: #8b5cf6; }
+
+        /* Fonte e label nos KPIs */
+        .op-hs-row .kpi-value,
+        .op-kpis-grid .kpi-value { font-size: 48px !important; }
+        .op-hs-row .kpi-label,
+        .op-kpis-grid .kpi-label {
             font-size: 18px !important;
             font-weight: 700 !important;
             letter-spacing: 0.1em !important;
@@ -101,6 +106,7 @@
             color: #e2e8f0 !important;
             margin-top: 10px;
         }
+
         .kpi-card.saudavel { border-color: rgba(53,204,163,.3); }
         .kpi-card.saudavel .kpi-value { color: #35cca3; }
         .kpi-card.atencao  { border-color: rgba(245,158,11,.3); }
@@ -306,9 +312,13 @@
         .op-empty { text-align:center; padding:40px; color:#64748b; }
 
         @media (max-width:1400px) {
+            .op-hs-row    { grid-template-columns:1fr; }
+            .op-kpi-main  { grid-column:1; }
+            .op-kpis-grid { grid-template-columns:1fr 1fr; }
             .op-main-grid { grid-template-columns:1fr 1fr; }
         }
         @media (max-width:900px) {
+            .op-kpis-grid { grid-template-columns:1fr; }
             .op-main-grid { grid-template-columns:1fr; }
         }
         @media (max-width:640px) {
@@ -468,22 +478,29 @@
             </div>
         </div>
 
-        <!-- KPIs -->
-        <section class="op-kpi-section">
+        <!-- Health Score geral acima do Enterprise -->
+        <div class="op-hs-row">
             <div class="kpi-card info op-kpi-main" id="kpiMedia">
                 <div class="kpi-value">—</div>
                 <div class="kpi-label">Health Score</div>
             </div>
-            <div class="op-kpi-sub-row">
-                <div class="kpi-card saudavel" id="kpiEnterprise">
-                    <div class="kpi-value">—</div>
-                    <div class="kpi-label">Enterprise</div>
-                </div>
-                <div class="kpi-card atencao" id="kpiCarteira">
-                    <div class="kpi-value">—</div>
-                    <div class="kpi-label">Professional</div>
-                </div>
+        </div>
+
+        <!-- KPIs alinhados com cada coluna de ranking -->
+        <section class="op-kpis-grid">
+            <div class="kpi-card op-kpi-impl" id="kpiImplantacao">
+                <div class="kpi-value">—</div>
+                <div class="kpi-label">Implantação</div>
             </div>
+            <div class="kpi-card saudavel" id="kpiEnterprise">
+                <div class="kpi-value">—</div>
+                <div class="kpi-label">Enterprise</div>
+            </div>
+            <div class="kpi-card atencao" id="kpiCarteira">
+                <div class="kpi-value">—</div>
+                <div class="kpi-label">Professional</div>
+            </div>
+        </section>
         </section>
 
         <!-- Main grid -->
@@ -723,6 +740,12 @@
 
         document.getElementById('rankingListaImpl').innerHTML = buildRankingHTML(list);
         document.getElementById('rankBadgeImpl').style.display = 'inline-flex';
+
+        var implSum = 0, implCnt = 0;
+        implantacaoRows.forEach(function(r) {
+            if (r.score !== null) { implSum += r.score; implCnt++; }
+        });
+        setKPIVal('kpiImplantacao', implCnt ? Math.round(implSum / implCnt) : '—');
     }
 
     function buildRows(data) {
