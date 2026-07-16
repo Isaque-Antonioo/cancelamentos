@@ -230,9 +230,9 @@
         .op-score-bar { width:90px; height:4px; background:rgba(255,255,255,.08); border-radius:3px; overflow:hidden; margin-top:5px; margin-left:auto; }
         .op-score-bar-fill { height:100%; border-radius:3px; }
 
-        /* Coluna de % saudáveis (direita) */
-        .op-rank-pct-col { width:110px; text-align:right; flex-shrink:0; }
-        .op-rank-pct-val { font-size:18px; font-weight:600; color:#e2e8f0; }
+        /* Coluna de % saudáveis — oculta por ora */
+        .op-rank-pct-col { display:none; }
+        .op-rh-pct       { display:none; }
 
         .c-saudavel  { color: #35cca3; }
         .c-atencao   { color: #f59e0b; }
@@ -488,10 +488,10 @@
 
         <!-- Main grid -->
         <section class="op-main-grid">
-            <!-- Ranking Implantadores -->
+            <!-- Ranking Implantação -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <h3>Ranking Implantadores</h3>
+                    <h3>Ranking Implantação</h3>
                     <span class="op-sync-badge" id="rankBadgeImpl" style="display:none;font-size:11px">
                         <span class="dot"></span> Live
                     </span>
