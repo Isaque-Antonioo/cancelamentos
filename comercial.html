@@ -1323,6 +1323,17 @@
             ultimaVenda: 697721200
         };
 
+        // Fallback de fotos para closers (usado quando a planilha não tem foto preenchida)
+        const FOTOS_CLOSERS = {
+            'Lucas Sales': 'https://i.postimg.cc/FKGVvJZv/Whats-App-Image-2026-08-14-at-11-20-40.jpg',
+            'Lucas':       'https://i.postimg.cc/FKGVvJZv/Whats-App-Image-2026-08-14-at-11-20-40.jpg'
+        };
+
+        function resolveCloserFoto(nome, fotoSheet) {
+            if (fotoSheet) return fotoSheet;
+            return FOTOS_CLOSERS[nome] || '';
+        }
+
         let kpiChart = null;
         let autoRefreshTimer = null;
         let lastTodayValue = 0;
@@ -1481,7 +1492,7 @@
                             nome: cols[0],
                             taxaConversao: cols[1] || '0%',
                             totalVendas: cols[2] || 'R$ 0,00',
-                            foto: cols[3] || '',
+                            foto: resolveCloserFoto(cols[0], cols[3] || ''),
                             pendente: cols[4] || ''
                         });
                     }
@@ -1497,7 +1508,7 @@
                 var ultimaVenda = null;
                 if (vendaLines.length > 1) {
                     var vCols = parseCSVLine(vendaLines[1]);
-                    ultimaVenda = { closer: vCols[0] || '', foto: vCols[1] || '', valor: vCols[2] || '' };
+                    ultimaVenda = { closer: vCols[0] || '', foto: resolveCloserFoto(vCols[0] || '', vCols[1] || ''), valor: vCols[2] || '' };
                 }
 
                 // RENDER
