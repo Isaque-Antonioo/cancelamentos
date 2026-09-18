@@ -94,7 +94,7 @@
 
   /* ---------- palco ---------- */
   .stage{
-    position:relative;flex:1;min-height:430px;margin:0 14px 14px;border-radius:12px;overflow:hidden;
+    position:relative;flex:1;min-height:600px;margin:0 14px 14px;border-radius:12px;overflow:hidden;
     background:
       radial-gradient(58% 42% at 50% 80%, rgba(47,227,166,.16), transparent 70%),
       radial-gradient(90% 65% at 50% 118%, rgba(23,180,126,.18), transparent 70%),
@@ -122,51 +122,88 @@
   .prize.center .disc{width:72px;height:72px;font-size:29px;border-color:rgba(245,201,59,.6);box-shadow:0 0 24px rgba(245,201,59,.22)}
   .prize.center b{color:var(--gold)}
 
-  /* ---------- pódio: colunas, flâmulas, remates e plintos ---------- */
-  .podium{position:absolute;left:0;right:0;bottom:13%;display:flex;justify-content:center;align-items:flex-end;gap:8px;padding:0 4%;z-index:2}
-  .col{display:flex;flex-direction:column;align-items:center;width:28%;max-width:168px}
-  .col.first{width:34%;max-width:198px;z-index:3}
+  /* ---------- pódio: colunas, card-estandarte e plintos ---------- */
+  .podium{position:absolute;left:0;right:0;bottom:12%;display:flex;justify-content:center;align-items:flex-end;gap:18px;padding:0 4%;z-index:2}
+  .col{position:relative;display:flex;flex-direction:column;align-items:center}
 
-  .gem-float{width:14px;height:14px;transform:rotate(45deg);border-radius:3px;margin-bottom:7px;flex:none}
-  .col.first .gem-float{width:19px;height:19px;background:linear-gradient(135deg,#ffe9a3,var(--gold));box-shadow:0 0 18px rgba(245,201,59,.75);margin-bottom:9px}
-  .col.second .gem-float{background:linear-gradient(135deg,#9ff7d7,var(--mint));box-shadow:0 0 14px rgba(47,227,166,.7)}
-  .col.third .gem-float{background:linear-gradient(135deg,#ffc48f,var(--bronze));box-shadow:0 0 14px rgba(232,139,60,.7)}
-
-  .banner{position:relative;width:100%;padding:15px 10px 20px;text-align:center;clip-path:polygon(0 0,100% 0,100% 80%,50% 100%,0 80%);border-radius:8px 8px 0 0}
-  .banner .face{width:58px;height:58px;margin:0 auto 9px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.9)}
-  .banner .face img{width:100%;height:100%;display:block}
-  .banner .who{font-size:13px;font-weight:600;line-height:1.2;word-break:break-word}
-  .banner .score{font-size:11.5px;margin-top:3px;font-weight:500}
-
-  .second .banner{background:linear-gradient(180deg,#1e3b35,#0f1f1c);border:1px solid rgba(47,227,166,.45)}
-  .second .banner .face{border-color:var(--mint)}
-  .second .banner .score{color:var(--mint)}
-  .third .banner{background:linear-gradient(180deg,#3a2118,#1b0f0b);border:1px solid rgba(232,139,60,.45)}
-  .third .banner .face{border-color:var(--bronze)}
-  .third .banner .score{color:var(--bronze)}
-
-  .first .banner{
-    padding:20px 12px 28px;
-    background:linear-gradient(180deg,#1d242b,#0b1015);
-    border-left:4px solid var(--gold);border-right:4px solid var(--gold);border-top:1px solid rgba(245,201,59,.5);
-    clip-path:polygon(0 0,100% 0,100% 82%,50% 100%,0 82%);
-    box-shadow:0 0 44px rgba(245,201,59,.16);
+  /* ===== rc-card: componente "estandarte" (moldura SVG + foto + placa de nome) =====
+     Adaptado do componente enviado — tema por CSS custom properties, sem depender
+     de clip-path. Cada instância recebe ids de gradiente únicos (sufixo por place)
+     pra evitar colisão de <linearGradient id="..."> quando há 3 cards na mesma página. */
+  .rc-card{
+    --rc-body-1:#5157c4; --rc-body-2:#3a41a6; --rc-body-3:#1a2360; --rc-body-4:#0c1240;
+    --rc-inner-glow:#8f93ee;
+    --rc-halo:#1287c9; --rc-halo-hot:#45d6ff;
+    --rc-gem-glow:#ffe79b;
+    --rc-plate-bg-1:rgba(70,96,178,.42); --rc-plate-bg-2:rgba(28,44,104,.42);
+    --rc-plate-br:rgba(158,184,242,.45);
+    --rc-name:#ffffff;
+    position:relative;width:var(--rc-w);aspect-ratio:200/290;flex:0 0 auto;
+    font-family:inherit;-webkit-user-select:none;user-select:none;
   }
-  .first .banner .face{width:80px;height:80px;border:3px solid var(--gold);box-shadow:0 0 22px rgba(245,201,59,.4)}
-  .first .banner .who{font-size:15.5px}
-  .first .banner .score{color:var(--gold);font-size:12.5px}
+  .rc-card .rc-frame{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
+  .rc-card .rc-avatar{
+    position:absolute;left:50%;top:35.9%;width:35.5%;aspect-ratio:1;transform:translate(-50%,-50%);
+    border-radius:50%;object-fit:cover;background:#0b1030;
+    box-shadow:0 0 0 1.5px rgba(10,15,45,.9),0 0 0 2.5px rgba(158,178,240,.35),0 3px 10px rgba(0,0,0,.45),inset 0 0 14px rgba(0,0,0,.35);
+  }
+  .rc-card .rc-badge{
+    position:absolute;left:60.5%;top:44%;width:9.5%;aspect-ratio:1/1.12;transform:translate(-50%,-50%);
+    background:linear-gradient(180deg,#fff2c4 0%,#f6c95c 45%,#d99a26 100%);
+    clip-path:polygon(50% 0,100% 26%,100% 74%,50% 100%,0 74%,0 26%);
+    box-shadow:0 1px 4px rgba(0,0,0,.5);
+  }
+  .rc-card .rc-badge::after{content:"";position:absolute;inset:22%;background:rgba(255,255,255,.45);clip-path:polygon(50% 0,100% 26%,100% 74%,50% 100%,0 74%,0 26%)}
+  .rc-card .rc-name{
+    position:absolute;left:28.2%;width:41.2%;top:55.5%;height:10.3%;
+    display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:0 4%;
+    border-radius:calc(var(--rc-w) * .016);
+    background:linear-gradient(180deg,var(--rc-plate-bg-1),var(--rc-plate-bg-2));
+    border:1px solid var(--rc-plate-br);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 2px 6px rgba(0,0,0,.28);
+    color:var(--rc-name);font-size:calc(var(--rc-w) * .046);font-weight:700;letter-spacing:.3px;line-height:1;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px rgba(0,0,0,.55);
+  }
+  .rc-score{margin-top:8px;font-size:12.5px;font-weight:600;color:var(--mint);text-align:center}
 
-  /* remate ornamental da ponta */
-  .tail{width:86%;margin-top:-13px;display:block;filter:drop-shadow(0 5px 10px rgba(0,0,0,.65))}
-  .first .tail{width:96%;margin-top:-17px}
+  /* 2º lugar — prata */
+  .col.second .rc-card{
+    --rc-body-1:#e8edf2; --rc-body-2:#aab4c0; --rc-body-3:#5a6672; --rc-body-4:#2b333c;
+    --rc-inner-glow:#f2f6fa;
+    --rc-halo:#7c92a8; --rc-halo-hot:#cfe0ee;
+    --rc-plate-bg-1:rgba(140,150,160,.5); --rc-plate-bg-2:rgba(60,68,78,.5);
+    --rc-plate-br:rgba(214,222,230,.55);
+  }
+  .col.second .rc-score{color:var(--silver)}
 
-  /* plinto */
-  .plinth{position:relative;width:92%;height:34px;margin-top:10px}
-  .first .plinth{height:54px;margin-top:12px}
+  /* 3º lugar — bronze/laranja (equivalente ao "red" do componente original, na nossa paleta) */
+  .col.third .rc-card{
+    --rc-body-1:#e08a4a; --rc-body-2:#c06a2c; --rc-body-3:#7d3f16; --rc-body-4:#4a230c;
+    --rc-inner-glow:#ffcfa0;
+    --rc-halo:#c9701e; --rc-halo-hot:#ff9d45;
+    --rc-plate-bg-1:rgba(150,90,45,.92); --rc-plate-bg-2:rgba(92,50,22,.92);
+    --rc-plate-br:rgba(255,206,178,.55);
+  }
+  .col.third .rc-score{color:var(--bronze)}
+
+  /* 1º lugar — dourado (a base do componente vinha em índigo; sobrescrevendo pra ouro) */
+  .col.first .rc-card{
+    --rc-body-1:#fff6cf; --rc-body-2:#f7d271; --rc-body-3:#c9932c; --rc-body-4:#6b4a10;
+    --rc-inner-glow:#fff3c4;
+    --rc-plate-bg-1:rgba(180,140,40,.5); --rc-plate-bg-2:rgba(90,65,15,.5);
+    --rc-plate-br:rgba(255,230,160,.55);
+  }
+  .col.first .rc-score{color:var(--gold);font-size:13.5px}
+
+  /* plinto (base cilíndrica sob cada card) */
+  .plinth{position:relative;width:78%;height:34px;margin-top:12px}
+  .col.first .plinth{width:82%;height:48px;margin-top:14px}
   .plinth .foot{position:absolute;left:-10%;right:-10%;bottom:-10px;height:22px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(47,227,166,.3),transparent 72%)}
   .plinth .body{position:absolute;left:5%;right:5%;top:10px;bottom:5px;background:linear-gradient(90deg,#081318,#153039 48%,#081318);border-radius:0 0 46% 46%/0 0 22% 22%;border-bottom:1px solid rgba(47,227,166,.25)}
   .plinth .cap{position:absolute;left:0;right:0;top:0;height:20px;border-radius:50%;background:linear-gradient(180deg,#17323a,#0b181e);border:1px solid rgba(47,227,166,.45);box-shadow:0 0 20px rgba(47,227,166,.2), inset 0 2px 9px rgba(47,227,166,.2)}
-  .first .plinth .cap{border-color:rgba(245,201,59,.5);box-shadow:0 0 24px rgba(245,201,59,.2), inset 0 2px 10px rgba(245,201,59,.16)}
+  .col.first .plinth .cap{border-color:rgba(245,201,59,.5);box-shadow:0 0 24px rgba(245,201,59,.2), inset 0 2px 10px rgba(245,201,59,.16)}
+  .col.second .plinth .cap{border-color:rgba(184,196,204,.5);box-shadow:0 0 20px rgba(184,196,204,.2), inset 0 2px 9px rgba(184,196,204,.16)}
+  .col.third .plinth .cap{border-color:rgba(232,139,60,.5);box-shadow:0 0 20px rgba(232,139,60,.2), inset 0 2px 9px rgba(232,139,60,.16)}
 
   /* chão do palco */
   .floor{position:absolute;left:50%;bottom:7%;transform:translateX(-50%);width:80%;height:120px;pointer-events:none;z-index:1}
@@ -429,34 +466,87 @@
     });
   }
 
-  function tailSVG(place){
-    var cor   = place===1 ? "#f5c93b" : place===2 ? "#2fe3a6" : "#e88b3c";
-    var claro = place===1 ? "#ffeaa6" : place===2 ? "#9ff7d7" : "#ffc48f";
-    var id = "tg"+place;
-    return '<svg class="tail" viewBox="0 0 140 68" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
-      '<defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1">'+
-        '<stop offset="0" stop-color="'+claro+'"/><stop offset="1" stop-color="'+cor+'"/></linearGradient></defs>'+
-      '<path d="M2 0 L70 38 L138 0 L138 14 L70 52 L2 14 Z" fill="url(#'+id+')"/>'+
-      (place===1
-        ? '<path d="M20 1 L70 29 L120 1 L120 7 L70 35 L20 7 Z" fill="#0b1015" opacity=".5"/>'+
-          '<path d="M2 0 L10 0 L10 16 L2 12 Z" fill="'+cor+'"/><path d="M138 0 L130 0 L130 16 L138 12 Z" fill="'+cor+'"/>'
-        : '')+
-      '<rect x="63" y="47" width="14" height="14" rx="2" fill="url(#'+id+')" transform="rotate(45 70 54)"/>'+
-      '</svg>';
+  /* Moldura SVG do "estandarte" — as cores vêm de custom properties (--rc-*) definidas
+     via CSS por posição, então o SVG em si é idêntico pra todo mundo. Cada card recebe
+     um sufixo único (uid) nos ids do <defs>, porque url(#id) resolve pelo documento
+     inteiro — sem isso, os 3 cards na mesma página acabariam usando sempre o gradiente
+     do primeiro (bug clássico de reusar defs com o mesmo id em múltiplas instâncias). */
+  function rcFrameSVG(uid){
+    function id(base){ return base + uid; }
+    return '<svg class="rc-frame" viewBox="0 0 200 290" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
+      '<defs>'+
+        '<linearGradient id="'+id('rcBody')+'" x1="0" y1="0" x2="0" y2="1">'+
+          '<stop offset="0%" stop-color="var(--rc-body-1)"/><stop offset="35%" stop-color="var(--rc-body-2)"/>'+
+          '<stop offset="68%" stop-color="var(--rc-body-3)"/><stop offset="100%" stop-color="var(--rc-body-4)"/>'+
+        '</linearGradient>'+
+        '<radialGradient id="'+id('rcHalo')+'" cx="50%" cy="30%" r="58%">'+
+          '<stop offset="0%" stop-color="var(--rc-inner-glow)" stop-opacity=".62"/>'+
+          '<stop offset="100%" stop-color="var(--rc-inner-glow)" stop-opacity="0"/>'+
+        '</radialGradient>'+
+        '<linearGradient id="'+id('rcEdge')+'" x1="0" y1="0" x2="0" y2="1">'+
+          '<stop offset="0%" stop-color="#fffdf4" stop-opacity="1"/><stop offset="22%" stop-color="#f4eeda" stop-opacity=".55"/>'+
+          '<stop offset="62%" stop-color="#e8e0c6" stop-opacity=".16"/><stop offset="100%" stop-color="#e8e0c6" stop-opacity=".55"/>'+
+        '</linearGradient>'+
+        '<linearGradient id="'+id('rcGold')+'" x1="0" y1="0" x2="0" y2="1">'+
+          '<stop offset="0%" stop-color="#fff6cf"/><stop offset="35%" stop-color="#f7d271"/>'+
+          '<stop offset="70%" stop-color="#e2a930"/><stop offset="100%" stop-color="#b57c15"/>'+
+        '</linearGradient>'+
+        '<linearGradient id="'+id('rcRibbon')+'" x1="0" y1="0" x2="0" y2="1">'+
+          '<stop offset="0%" stop-color="#ffd3b0"/><stop offset="12%" stop-color="#e8703a"/>'+
+          '<stop offset="55%" stop-color="#b8402a"/><stop offset="100%" stop-color="#7a2418" stop-opacity="0"/>'+
+        '</linearGradient>'+
+        '<linearGradient id="'+id('rcArch')+'" x1="0" y1="0" x2="0" y2="1">'+
+          '<stop offset="0%" stop-color="#fff4dc"/><stop offset="40%" stop-color="#e79a45"/><stop offset="100%" stop-color="#8e3118"/>'+
+        '</linearGradient>'+
+        '<filter id="'+id('rcSoft')+'" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="2.4"/></filter>'+
+        '<filter id="'+id('rcGlow')+'" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="1"/></filter>'+
+        '<clipPath id="'+id('rcBodyClip')+'"><path d="M22,41 L178,41 L174,214 L100,249 L26,214 Z"/></clipPath>'+
+      '</defs>'+
+      '<g><circle cx="100" cy="156" r="99" fill="none" stroke="var(--rc-halo)" stroke-width="8" opacity=".32" filter="url(#'+id('rcSoft')+')"/>'+
+        '<circle cx="100" cy="156" r="99" fill="none" stroke="var(--rc-halo-hot)" stroke-width="2.6" opacity=".8" filter="url(#'+id('rcGlow')+')"/>'+
+        '<circle cx="100" cy="156" r="99" fill="none" stroke="#ddf7ff" stroke-width=".9" opacity=".75"/></g>'+
+      '<g><path d="M14,43 L28,41 L25,150 L20,142 Z" fill="url(#'+id('rcRibbon')+')"/>'+
+        '<path d="M16,43 L21,42.5 L20,118 L17.5,112 Z" fill="#ffd9b8" opacity=".3"/>'+
+        '<path d="M186,43 L172,41 L175,150 L180,142 Z" fill="url(#'+id('rcRibbon')+')"/>'+
+        '<path d="M184,43 L179,42.5 L180,118 L182.5,112 Z" fill="#ffe2c4" opacity=".35"/></g>'+
+      '<path d="M22,41 L178,41 L174,214 L100,249 L26,214 Z" fill="url(#'+id('rcBody')+')"/>'+
+      '<g clip-path="url(#'+id('rcBodyClip')+')"><rect x="22" y="41" width="156" height="150" fill="url(#'+id('rcHalo')+')"/></g>'+
+      '<path d="M22,41 L26,214" fill="none" stroke="url(#'+id('rcEdge')+')" stroke-width="1.2"/>'+
+      '<path d="M178,41 L174,214" fill="none" stroke="url(#'+id('rcEdge')+')" stroke-width="1.2"/>'+
+      '<path d="M22,41 L178,41" stroke="#fffdf2" stroke-width="1.5" stroke-linecap="round"/>'+
+      '<path d="M13,37 L27,41 L22.5,45.5 Z" fill="#fffdf2"/><path d="M187,37 L173,41 L177.5,45.5 Z" fill="#fffdf2"/>'+
+      '<path d="M22,41 L22,49" stroke="#fffdf2" stroke-width="1.2" stroke-linecap="round" opacity=".9"/>'+
+      '<path d="M178,41 L178,49" stroke="#fffdf2" stroke-width="1.2" stroke-linecap="round" opacity=".9"/>'+
+      '<path d="M100,42 L83,37 L90,47 Z" fill="#f4faff" opacity=".95"/><path d="M100,42 L117,37 L110,47 Z" fill="#f4faff" opacity=".95"/>'+
+      '<path d="M94,42 L100,54 L106,42 Z" fill="#0b1130" opacity=".6"/>'+
+      '<path d="M94.5,42 L100,53 L105.5,42" fill="none" stroke="#dcecff" stroke-width=".6" opacity=".5"/>'+
+      '<path d="M26,214 L100,249 L174,214" fill="none" stroke="#fff6e2" stroke-width="1.2" stroke-linejoin="round" opacity=".85"/>'+
+      '<path d="M24,217 C36,224 60,236 100,254 C140,236 164,224 176,217" fill="none" stroke="url(#'+id('rcArch')+')" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>'+
+      '<path d="M24.5,215.5 C36.5,222.5 60,234 100,251.5 C140,234 163.5,222.5 175.5,215.5" fill="none" stroke="#fff6e2" stroke-width=".8" opacity=".75" stroke-linecap="round"/>'+
+      '<g><path d="M100,6 L110,26 L100,45 L90,26 Z" fill="var(--rc-gem-glow)" filter="url(#'+id('rcSoft')+')" opacity=".7"/>'+
+        '<path d="M100,8 L109,26 L100,44 L91,26 Z" fill="url(#'+id('rcGold')+')" stroke="#fff8dd" stroke-width=".5"/>'+
+        '<path d="M100,14 L104.5,26 L100,38 L95.5,26 Z" fill="#fff6cd" opacity=".5"/></g>'+
+      '<g><path d="M100,251 L111,263 L100,275 L89,263 Z" fill="var(--rc-gem-glow)" filter="url(#'+id('rcSoft')+')" opacity=".6"/>'+
+        '<path d="M100,253 L110,263 L100,274 L90,263 Z" fill="url(#'+id('rcGold')+')" stroke="#fff8dd" stroke-width=".5"/>'+
+        '<path d="M100,257 L104,263 L100,269 L96,263 Z" fill="#fff6cd" opacity=".45"/>'+
+        '<path d="M85,260 L90,263 L85,266 Z" fill="url(#'+id('rcGold')+')" opacity=".9"/>'+
+        '<path d="M115,260 L110,263 L115,266 Z" fill="url(#'+id('rcGold')+')" opacity=".9"/></g>'+
+    '</svg>';
   }
 
   function coluna(d, place){
     var cls = place===1 ? "first" : place===2 ? "second" : "third";
+    var w = place===1 ? 230 : 180;
     var linha = mostrarPontos
       ? (porPct ? d.pctLabel+" conversão" : d.valorLabel) : "";
     return '<div class="col '+cls+'">'+
-      '<span class="gem-float" aria-hidden="true"></span>'+
-      '<div class="banner">'+
-        '<div class="face"><img alt="" src="'+d.img+'"></div>'+
-        '<div class="who">'+d.nome+'</div>'+
-        (linha ? '<div class="score">'+linha+'</div>' : '')+
+      '<div class="rc-card" style="--rc-w:'+w+'px">'+
+        rcFrameSVG("-p"+place)+
+        '<img class="rc-avatar" alt="" src="'+d.img+'">'+
+        '<span class="rc-badge"></span>'+
+        '<div class="rc-name">'+d.nome+'</div>'+
       '</div>'+
-      tailSVG(place)+
+      (linha ? '<div class="rc-score">'+linha+'</div>' : '')+
       '<div class="plinth" aria-hidden="true"><span class="foot"></span><span class="body"></span><span class="cap"></span></div>'+
     '</div>';
   }
