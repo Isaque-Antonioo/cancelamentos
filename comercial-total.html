@@ -490,7 +490,7 @@
         }
 
         .contrato-value {
-            font-size: clamp(1.4em, 1.8vw, 3em);
+            font-size: clamp(1.1em, 1.4vw, 2.2em);
             font-weight: 800;
             color: #e7e7e7;
             display: flex;
@@ -501,36 +501,20 @@
 
         .contrato-value svg { color: #35CCA3; }
         .contrato-value.pending svg { color: #E8BB34; }
+        .contrato-value.money { font-size: clamp(0.85em, 1vw, 1.35em); color: #35CCA3; }
 
-        .contratos-vendas-total {
-            display: flex;
-            align-items: center;
-            gap: clamp(8px, 0.8vw, 14px);
-            margin-top: clamp(8px, 1vh, 14px);
-            padding: clamp(8px, 1vh, 14px) clamp(10px, 1vw, 18px);
-            background: rgba(53, 204, 163, 0.06);
-            border-radius: clamp(8px, 0.8vw, 14px);
-            border: 1px solid rgba(53, 204, 163, 0.12);
+        /* Card "Indicadores": unifica o tamanho de todos os valores (contagem, % e R$) */
+        .indicadores-grid .contrato-value,
+        .indicadores-grid .contrato-value.money {
+            font-size: clamp(1em, 1.2vw, 1.7em);
         }
 
-        .contratos-vendas-data {
-            flex: 1;
-            text-align: center;
-        }
+        .contrato-item.c2 { border-color: rgba(13, 171, 206, 0.18); }
+        .contrato-item.c2 .contrato-value { color: #0DABCE; }
+        .contrato-item.c2 .contrato-value.pending { color: #E8BB34; }
+        .contrato-item.c2 .contrato-value svg { color: #0DABCE; }
+        .contrato-item.c2 .contrato-value.pending svg { color: #E8BB34; }
 
-        .contratos-vendas-label {
-            font-size: clamp(0.6em, 0.65vw, 0.85em);
-            color: #8c95a3;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 2px;
-        }
-
-        .contratos-vendas-value {
-            font-size: clamp(1.2em, 1.5vw, 2.2em);
-            font-weight: 800;
-            color: #35CCA3;
-        }
 
         /* ======================== LOADING ======================== */
         .dash-loading {
@@ -633,9 +617,10 @@
             width: 56px; height: 56px; border-radius: 50%;
             background: linear-gradient(135deg, #35CCA3, #2FB490);
             border: none; color: #0F172A; cursor: pointer;
-            z-index: 200; display: flex; align-items: center; justify-content: center;
+            z-index: 200; align-items: center; justify-content: center;
             box-shadow: 0 6px 24px rgba(53, 204, 163, 0.4);
             transition: all 0.3s ease;
+            display: none !important; /* oculto no Comercial Total */
         }
         .comercial-ai-fab:hover { transform: scale(1.1); box-shadow: 0 8px 32px rgba(53, 204, 163, 0.6); }
         .comercial-ai-fab.active { background: linear-gradient(135deg, #e05d5d, #dc2626); box-shadow: 0 6px 24px rgba(224, 93, 93, 0.4); }
@@ -1161,68 +1146,76 @@
                         </div>
                         <div class="contratos-grid">
                             <div class="contrato-item">
-                                <div class="contrato-label">Pagos</div>
+                                <div class="contrato-label">Pagos · C1</div>
                                 <div class="contrato-value" id="contratosPagos">
                                     <span>0</span>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#35CCA3" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#35CCA3" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                </div>
+                            </div>
+                            <div class="contrato-item c2">
+                                <div class="contrato-label">Pagos · C2</div>
+                                <div class="contrato-value" id="contratosPagos2">
+                                    <span>0</span>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0DABCE" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                                 </div>
                             </div>
                             <div class="contrato-item">
-                                <div class="contrato-label">Pendentes</div>
+                                <div class="contrato-label">Pendentes · C1</div>
                                 <div class="contrato-value pending" id="contratosPendentes">
                                     <span>0</span>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                                 </div>
                             </div>
-                        </div>
-                        <div class="contratos-vendas-total">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#35CCA3" stroke-width="2">
-                                <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                            </svg>
-                            <div class="contratos-vendas-data">
-                                <div class="contratos-vendas-label">Vendas do mês (total)</div>
-                                <div class="contratos-vendas-value" id="kpiVendasTotal">R$ 0,00</div>
+                            <div class="contrato-item c2">
+                                <div class="contrato-label">Pendentes · C2</div>
+                                <div class="contrato-value pending" id="contratosPendentes2">
+                                    <span>0</span>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                </div>
+                            </div>
+                            <div class="contrato-item">
+                                <div class="contrato-label">Vendas do mês · C1</div>
+                                <div class="contrato-value money" id="kpiVendasTotal">R$ 0,00</div>
+                            </div>
+                            <div class="contrato-item c2">
+                                <div class="contrato-label">Vendas do mês · C2</div>
+                                <div class="contrato-value money" id="kpiVendasTotal2">R$ 0,00</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- KPIs direita -->
-                    <div style="display:flex;flex-direction:column;gap:clamp(8px, 1vh, 16px);">
-                        <div class="kpi-card">
-                            <div class="kpi-icon green">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
-                                    <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-                                </svg>
-                            </div>
-                            <div class="kpi-data">
-                                <div class="kpi-label">Contratos gerados</div>
-                                <div class="kpi-value" id="kpiGerados">R$ 0,00</div>
-                            </div>
+                    <div class="dash-card">
+                        <div class="dash-card-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                            Indicadores
                         </div>
-                        <div class="kpi-card">
-                            <div class="kpi-icon blue">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                                </svg>
+                        <div class="contratos-grid indicadores-grid">
+                            <div class="contrato-item">
+                                <div class="contrato-label">Gerados · C1</div>
+                                <div class="contrato-value money" id="kpiGerados">R$ 0,00</div>
                             </div>
-                            <div class="kpi-data">
-                                <div class="kpi-label">Taxa de conversão</div>
-                                <div class="kpi-value" id="kpiTaxaConversao">0%</div>
+                            <div class="contrato-item c2">
+                                <div class="contrato-label">Gerados · C2</div>
+                                <div class="contrato-value money" id="kpiGerados2">—</div>
                             </div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-icon purple">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                    <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                                    <line x1="3" y1="10" x2="21" y2="10"/>
-                                </svg>
+                            <div class="contrato-item">
+                                <div class="contrato-label">Conversão · C1</div>
+                                <div class="contrato-value" id="kpiTaxaConversao">0%</div>
                             </div>
-                            <div class="kpi-data">
-                                <div class="kpi-label">Meta semanal</div>
-                                <div class="kpi-value" id="kpiMetaSemanal">R$ 0,00</div>
+                            <div class="contrato-item c2">
+                                <div class="contrato-label">Conversão · C2</div>
+                                <div class="contrato-value" id="kpiTaxaConversao2">—</div>
+                            </div>
+                            <div class="contrato-item">
+                                <div class="contrato-label">Meta Semanal · C1</div>
+                                <div class="contrato-value money" id="kpiMetaSemanal">R$ 0,00</div>
+                            </div>
+                            <div class="contrato-item c2">
+                                <div class="contrato-label">Meta Semanal · C2</div>
+                                <div class="contrato-value money" id="kpiMetaSemanal2">R$ 0,00</div>
                             </div>
                         </div>
                     </div>
@@ -1957,11 +1950,23 @@
             }
         }
 
+        function renderContratosMes2() {
+            var kpis2 = comercial2DadosCache;
+            if (!kpis2) return;
+            document.querySelector('#contratosPagos2 span').textContent = kpis2.contratosAssinados || '0';
+            document.querySelector('#contratosPendentes2 span').textContent = kpis2.contratosPendentes || '0';
+            document.getElementById('kpiVendasTotal2').textContent = kpis2.total || 'R$ 0,00';
+            document.getElementById('kpiGerados2').textContent = kpis2.gerados || '—';
+            document.getElementById('kpiTaxaConversao2').textContent = kpis2.taxaConversao || '—';
+            document.getElementById('kpiMetaSemanal2').textContent = kpis2.metaSemanal || 'R$ 0,00';
+        }
+
         function startComercial2TodayListeners() {
             if (!isFirebaseReady()) return;
             database.ref('comercial2_dados').on('value', function(snapshot) {
                 comercial2DadosCache = snapshot.val();
                 renderToday2();
+                renderContratosMes2();
             });
             database.ref('comercial2_ultima_venda').on('value', function(snapshot) {
                 comercial2UltimaVendaCache = snapshot.val();

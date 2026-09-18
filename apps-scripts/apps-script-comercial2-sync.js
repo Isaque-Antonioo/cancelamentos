@@ -28,11 +28,12 @@
  * - "última venda"  (A=Closer, B=Foto, C=Valor)
  *                    → banner de celebração da venda mais recente → /comercial2_ultima_venda
  *                    (lê a ÚLTIMA linha com dado na coluna A, não só a linha 2)
- * - "Dados"         (D=Total, E=Dia, F=Meta, G=Pendentes, H=Desistentes,
- *                    I=Meta Diária, J=Contratos Assinados, K=Contratos Pendentes, L=Meta Semanal)
- *                    → meta agregada do time → /comercial2_dados
- *                    (sincronizado mas AINDA NÃO exibido no dashboard — front-end está
- *                    com esse bloco comentado até decidirem ativar a faixa de progresso)
+ * - "Dados"         (B=Gerados, D=Total, E=Dia, F=Meta, G=Pendentes, H=Desistentes,
+ *                    I=Meta Diária, J=Contratos Assinados, K=Contratos Pendentes, L=Meta Semanal,
+ *                    M=Taxa de Conversão do time)
+ *                    → indicadores do time → /comercial2_dados
+ *                    → usado no comercial-total.html (cards "Gerados/Conversão/Meta Semanal · C2"
+ *                    e "Pagos/Pendentes/Vendas do mês · C2")
  *
  * Todas as abas: linha 1 = cabeçalho, dados a partir da linha 2.
  *
@@ -69,18 +70,30 @@ function setupTriggerComercial2() {
 
   Logger.log('Triggers criados com sucesso!');
 
-  buildMenuComercial2(); // já aparece na sessão atual, sem precisar recarregar
+  // getUi() só funciona quando chamado por um clique de menu na planilha —
+  // ao rodar pelo botão "Executar" do editor não existe esse contexto de UI,
+  // então isso pode falhar aqui sem problema (os triggers já foram criados).
+  try { buildMenuComercial2(); } catch (e) { Logger.log('[Comercial2] Sem UI para montar o menu agora (normal ao rodar pelo editor).'); }
 
   var r = syncAllComercial2();
 
-  SpreadsheetApp.getUi().alert(
-    'Hubstrom Comercial 2 — Setup Completo\n\n' +
-    '✓ Triggers instalados (onEdit + onChange + onOpen)\n' +
-    '✓ ' + r.closer + ' vendedores (Closer)\n' +
-    '✓ última venda: ' + (r.ultimaVenda ? 'OK' : 'sem dados') + '\n' +
-    '✓ Dados (metas do time): ' + (r.dados ? 'OK' : 'sem dados') + '\n\n' +
-    'O ranking já está atualizando em tempo real!'
+  Logger.log(
+    'Setup completo — ' + r.closer + ' vendedores (Closer), última venda: ' +
+    (r.ultimaVenda ? 'OK' : 'sem dados') + ', Dados: ' + (r.dados ? 'OK' : 'sem dados')
   );
+
+  try {
+    SpreadsheetApp.getUi().alert(
+      'Hubstrom Comercial 2 — Setup Completo\n\n' +
+      '✓ Triggers instalados (onEdit + onChange + onOpen)\n' +
+      '✓ ' + r.closer + ' vendedores (Closer)\n' +
+      '✓ última venda: ' + (r.ultimaVenda ? 'OK' : 'sem dados') + '\n' +
+      '✓ Dados (metas do time): ' + (r.dados ? 'OK' : 'sem dados') + '\n\n' +
+      'O ranking já está atualizando em tempo real!'
+    );
+  } catch (e) {
+    Logger.log('[Comercial2] Setup OK (sem UI pra mostrar o alerta — veja o Registro de execução acima).');
+  }
 }
 
 // ===================== TRIGGERS AUTOMÁTICOS =====================
@@ -99,11 +112,11 @@ function onOpen_Comercial2() {
 
 function manualSyncComercial2() {
   var r = syncAllComercial2();
-  SpreadsheetApp.getUi().alert(
-    r.closer + ' vendedores sincronizados!\n' +
+  var msg = r.closer + ' vendedores sincronizados!\n' +
     'última venda: ' + (r.ultimaVenda ? 'OK' : 'sem dados') + '\n' +
-    'Dados (metas do time): ' + (r.dados ? 'OK' : 'sem dados')
-  );
+    'Dados (metas do time): ' + (r.dados ? 'OK' : 'sem dados');
+  Logger.log('[Comercial2] ' + msg.replace(/\n/g, ' | '));
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) { /* sem UI ao rodar pelo editor — ok */ }
 }
 
 function syncAllComercial2() {
@@ -210,20 +223,22 @@ function syncDadosComercial2() {
 
   if (sheet.getLastRow() < 2) return false;
 
-  // D=Total, E=Dia, F=Meta, G=Pendentes, H=Desistentes,
-  // I=Meta Diária, J=Contratos Assinados, K=Contratos Pendentes, L=Meta Semanal
-  var row = sheet.getRange(2, 4, 1, 9).getDisplayValues()[0];
+  // B=Gerados, C=(não usada), D=Total, E=Dia, F=Meta, G=Pendentes, H=Desistentes,
+  // I=Meta Diária, J=Contratos Assinados, K=Contratos Pendentes, L=Meta Semanal, M=Taxa de Conversão
+  var row = sheet.getRange(2, 2, 1, 12).getDisplayValues()[0];
 
   var payload = {
-    total:              row[0] || '0',
-    dia:                row[1] || '0',
-    meta:               row[2] || '0',
-    pendentes:          row[3] || '0',
-    desistentes:        row[4] || '0',
-    metaDiaria:         row[5] || '0',
-    contratosAssinados: row[6] || '0',
-    contratosPendentes: row[7] || '0',
-    metaSemanal:        row[8] || '0',
+    gerados:            row[0]  || '0',
+    total:              row[2]  || '0',
+    dia:                row[3]  || '0',
+    meta:               row[4]  || '0',
+    pendentes:          row[5]  || '0',
+    desistentes:        row[6]  || '0',
+    metaDiaria:         row[7]  || '0',
+    contratosAssinados: row[8]  || '0',
+    contratosPendentes: row[9]  || '0',
+    metaSemanal:        row[10] || '0',
+    taxaConversao:      row[11] || '0%',
     updatedAt:          Date.now(),
     updatedISO:         new Date().toISOString(),
     source:             'apps_script'
