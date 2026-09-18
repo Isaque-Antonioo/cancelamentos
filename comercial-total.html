@@ -5,7 +5,7 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Dashboard Comercial - Métricas e Performance">
-    <title>Hubstrom - Comercial</title>
+    <title>Hubstrom - Comercial Total</title>
 
     <!-- Favicon Hubstrom -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M161 85c2.7-1.2 5.6.8 5.6 3.7v50.3c0 1.6-.9 3-2.4 3.7L35.2 199.9c-.9.4-1.9-.3-1.9-1.2v-54.4c0-1.6.9-3 2.4-3.7L161 85z' fill='%2335CCA3'/%3E%3Cpath d='M164.8.1c.9-.4 1.9.3 1.9 1.2v54.4c0 1.6-.9 3-2.4 3.7L39 114.9c-2.7 1.2-5.6-.8-5.6-3.7V61c0-1.6.9-3 2.4-3.7L164.8.1z' fill='%2335CCA3'/%3E%3C/svg%3E">
@@ -925,7 +925,7 @@
                         <span>Cancelamentos</span>
                     </a>
                 </li>
-                <li class="sidebar-item active">
+                <li class="sidebar-item">
                     <a href="comercial.html">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="1" x2="12" y2="23"/>
@@ -943,7 +943,7 @@
                         <span>Ranking de Vendas</span>
                     </a>
                 </li>
-                <li class="sidebar-item">
+                <li class="sidebar-item active">
                     <a href="comercial-total.html">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
@@ -1021,7 +1021,7 @@
                         <line x1="3" y1="18" x2="21" y2="18"></line>
                     </svg>
                 </button>
-                <h1 class="header-main-title">Dashboard Comercial</h1>
+                <h1 class="header-main-title">Dashboard Comercial Total</h1>
                 <div class="header-controls">
                     <select id="comercialMonthFilter" class="month-selector" onchange="handleComercialMonthChange(this.value)">
                         <option value="live">Mês atual (ao vivo)</option>
@@ -1074,11 +1074,38 @@
                     <div id="rankingList"></div>
                 </div>
 
-                <!-- Contratados Hoje -->
-                <div class="dash-card today-card">
+                <!-- Contratados Hoje — Comercial 2 -->
+                <div class="dash-card today-card" id="todayCard2">
                     <div class="today-top">
                         <div>
-                            <div style="font-size:clamp(0.65em,0.75vw,0.95em);color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:clamp(4px,0.6vh,8px);font-weight:600;">Contratados hoje</div>
+                            <div style="font-size:clamp(0.65em,0.75vw,0.95em);color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:clamp(4px,0.6vh,8px);font-weight:600;">Contratados hoje · Comercial 2</div>
+                            <div class="today-value" id="todayValue2">R$ 0,00</div>
+                        </div>
+                        <div class="today-last-sale" id="todayLastSale2">
+                            <div class="today-last-sale-info">
+                                <div class="today-last-sale-badge">Venda concretizada!</div>
+                                <div class="today-last-sale-closer" id="lastSaleCloser2">-</div>
+                                <div class="today-last-sale-value" id="lastSaleValue2">-</div>
+                            </div>
+                            <img class="today-last-sale-avatar" id="lastSaleAvatar2" src="" alt="" style="display:none">
+                        </div>
+                    </div>
+                    <div class="today-progress">
+                        <div class="today-progress-bar">
+                            <div class="today-progress-fill" id="todayProgressFill2" style="width:0%"></div>
+                        </div>
+                        <div class="today-progress-labels">
+                            <span class="today-progress-current" id="todayProgressCurrent2">R$ 0,00</span>
+                            <span class="today-progress-meta">/ <span id="todayProgressMeta2">R$ 0,00</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contratados Hoje — Comercial 1 -->
+                <div class="dash-card today-card" id="todayCard1">
+                    <div class="today-top">
+                        <div>
+                            <div style="font-size:clamp(0.65em,0.75vw,0.95em);color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:clamp(4px,0.6vh,8px);font-weight:600;">Contratados hoje · Comercial 1</div>
                             <div class="today-value" id="todayValue">R$ 0,00</div>
                         </div>
                         <div class="today-last-sale" id="todayLastSale">
@@ -1361,6 +1388,39 @@
         let appsScriptRealtimeActive = false; // True quando Apps Script está enviando dados via Firebase
 
         // ===================================
+        // MERGE COMERCIAL 1 + COMERCIAL 2 (só o Ranking Especialistas por enquanto —
+        // gráfico, KPIs, Contratos do mês e Contratados hoje seguem só o Comercial 1)
+        // ===================================
+        var comercial1Closers = [];
+        var comercial2Closers = [];
+
+        function renderMergedRanking() {
+            var merged = comercial1Closers.concat(comercial2Closers);
+            merged.sort(function(a, b) {
+                return parseMoneyValue(b.totalVendas) - parseMoneyValue(a.totalVendas);
+            });
+            renderRanking(merged.slice(0, 3));
+        }
+
+        function startComercial2RankingListener() {
+            if (!isFirebaseReady()) return;
+            database.ref('comercial2_live').on('value', function(snapshot) {
+                var data = snapshot.val();
+                var rows = (data && data.rows) || [];
+                comercial2Closers = rows.map(function(r) {
+                    return {
+                        nome: r[0] || '',
+                        taxaConversao: r[1] || '0%',
+                        totalVendas: r[2] || 'R$ 0,00',
+                        foto: r[3] || '',
+                        pendente: r[4] || ''
+                    };
+                }).filter(function(c) { return c.nome; });
+                renderMergedRanking();
+            });
+        }
+
+        // ===================================
         // SIDEBAR
         // ===================================
         document.addEventListener('DOMContentLoaded', function() {
@@ -1531,7 +1591,8 @@
                 // RENDER
                 renderKPIs(kpis, closers);
                 renderChart(kpis);
-                renderRanking(closers);
+                comercial1Closers = closers;
+                renderMergedRanking();
                 renderToday(kpis, ultimaVenda);
 
                 // Sincronizar dados para Firebase (real-time para outros clientes)
@@ -1754,9 +1815,9 @@
         // ===================================
         // ANIMAÇÃO NOVA VENDA
         // ===================================
-        function triggerCashAnimation() {
-            var card = document.querySelector('.today-card');
-            var value = document.getElementById('todayValue');
+        function triggerCashAnimation(cardId, valueId) {
+            var card = document.getElementById(cardId || 'todayCard1');
+            var value = document.getElementById(valueId || 'todayValue');
 
             // Reset animations
             card.classList.remove('cash-animation');
@@ -1854,6 +1915,58 @@
         }
 
         // ===================================
+        // RENDER CONTRATADOS HOJE — COMERCIAL 2
+        // ===================================
+        var lastTodayValue2 = 0;
+        var comercial2DadosCache = null;
+        var comercial2UltimaVendaCache = null;
+
+        function renderToday2() {
+            var kpis2 = comercial2DadosCache;
+            var ultimaVenda2 = comercial2UltimaVendaCache;
+            if (!kpis2) return;
+
+            var diaValue = kpis2.dia || 'R$ 0,00';
+            var metaDiaria = kpis2.metaDiaria || 'R$ 3.500,00';
+            var diaNum = parseMoneyValue(diaValue);
+
+            document.getElementById('todayValue2').textContent = diaValue;
+            document.getElementById('todayProgressCurrent2').textContent = diaValue;
+            document.getElementById('todayProgressMeta2').textContent = metaDiaria;
+
+            if (lastTodayValue2 > 0 && diaNum > lastTodayValue2) {
+                triggerCashAnimation('todayCard2', 'todayValue2');
+            }
+            lastTodayValue2 = diaNum;
+
+            var metaNum = parseMoneyValue(metaDiaria);
+            var pct = metaNum > 0 ? Math.min((diaNum / metaNum) * 100, 100) : 0;
+            document.getElementById('todayProgressFill2').style.width = pct + '%';
+
+            if (ultimaVenda2 && ultimaVenda2.closer) {
+                document.getElementById('lastSaleCloser2').textContent = ultimaVenda2.closer;
+                document.getElementById('lastSaleValue2').textContent = ultimaVenda2.valor;
+                var avatar2 = document.getElementById('lastSaleAvatar2');
+                if (ultimaVenda2.foto) {
+                    avatar2.src = ultimaVenda2.foto;
+                    avatar2.style.display = 'block';
+                }
+            }
+        }
+
+        function startComercial2TodayListeners() {
+            if (!isFirebaseReady()) return;
+            database.ref('comercial2_dados').on('value', function(snapshot) {
+                comercial2DadosCache = snapshot.val();
+                renderToday2();
+            });
+            database.ref('comercial2_ultima_venda').on('value', function(snapshot) {
+                comercial2UltimaVendaCache = snapshot.val();
+                renderToday2();
+            });
+        }
+
+        // ===================================
         // FIREBASE REAL-TIME SYNC
         // ===================================
 
@@ -1915,7 +2028,8 @@
             // Render
             renderKPIs(kpis, closers);
             renderChart(kpis);
-            renderRanking(closers);
+            comercial1Closers = closers;
+            renderMergedRanking();
             renderToday(kpis, ultimaVenda);
 
             // Show dashboard
@@ -2144,10 +2258,14 @@
             // Iniciar Firebase listener quando estiver pronto
             if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
                 startFirebaseListener();
+                startComercial2RankingListener();
+                startComercial2TodayListeners();
                 loadMonthOptions();
             } else {
                 window.addEventListener('firebaseReady', function() {
                     startFirebaseListener();
+                    startComercial2RankingListener();
+                    startComercial2TodayListeners();
                     loadMonthOptions();
                 });
             }
