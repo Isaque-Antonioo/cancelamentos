@@ -77,7 +77,14 @@
             const pageLabels = {
                 'index.html': 'Cancelamentos',
                 'comercial.html': 'Comercial',
+                'comercial2.html': 'Ranking de Vendas',
+                'comercial-total.html': 'Comercial Total',
+                'operacional.html': 'Health Score',
+                'suporte-massivas.html': 'Suporte Massivas',
                 'suporte.html': 'Suporte',
+                'bugs.html': 'Bugs',
+                'analise-comercial.html': 'Análise Comercial',
+                'log-erros.html': 'Log de Erros',
                 'relacionamento.html': 'Relacionamento'
             };
 
@@ -454,7 +461,14 @@
             const pageLabels = {
                 'index.html': 'Cancelamentos',
                 'comercial.html': 'Comercial',
+                'comercial2.html': 'Ranking de Vendas',
+                'comercial-total.html': 'Comercial Total',
+                'operacional.html': 'Health Score',
+                'suporte-massivas.html': 'Suporte Massivas',
                 'suporte.html': 'Suporte',
+                'bugs.html': 'Bugs',
+                'analise-comercial.html': 'Análise Comercial',
+                'log-erros.html': 'Log de Erros',
                 'relacionamento.html': 'Relacionamento',
                 'admin.html': 'Admin',
                 'login.html': 'Login'
