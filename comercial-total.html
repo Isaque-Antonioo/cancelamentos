@@ -115,18 +115,18 @@
         .ranking-header span:nth-child(3),
         .ranking-header span:nth-child(4) {
             text-align: center;
-            min-width: clamp(80px, 8vw, 140px);
+            min-width: clamp(92px, 9vw, 155px);
         }
 
         .ranking-item {
             display: grid;
-            grid-template-columns: clamp(32px, 3vw, 50px) 1fr auto auto;
+            grid-template-columns: clamp(38px, 3.6vw, 58px) 1fr auto auto;
             align-items: center;
-            padding: clamp(8px, 1.2vh, 18px) clamp(8px, 1vw, 18px);
+            padding: clamp(16px, 2.6vh, 34px) clamp(10px, 1.2vw, 22px);
             border-radius: clamp(10px, 1vw, 16px);
             transition: background 0.2s;
             border: 1px solid transparent;
-            margin-bottom: clamp(2px, 0.4vh, 6px);
+            margin-bottom: clamp(6px, 1vh, 16px);
             position: relative;
         }
 
@@ -171,10 +171,10 @@
         }
         .rank-crown {
             position: absolute;
-            top: -18px;
+            top: -22px;
             left: 50%;
             transform: translateX(-50%) rotate(-4deg);
-            font-size: clamp(14px, 1.4vw, 20px);
+            font-size: clamp(16px, 1.7vw, 24px);
             line-height: 1;
             animation: crownFloat 2s ease-in-out infinite;
             filter: drop-shadow(0 1px 4px rgba(255,215,0,0.7));
@@ -193,14 +193,14 @@
         }
 
         .rank-pos {
-            width: clamp(28px, 2.8vw, 46px);
-            height: clamp(28px, 2.8vw, 46px);
-            border-radius: clamp(8px, 0.7vw, 12px);
+            width: clamp(30px, 3vw, 48px);
+            height: clamp(30px, 3vw, 48px);
+            border-radius: clamp(8px, 0.75vw, 13px);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: clamp(0.8em, 0.95vw, 1.2em);
+            font-size: clamp(0.85em, 1vw, 1.25em);
             color: #e7e7e7;
             background: rgba(255,255,255,0.05);
         }
@@ -212,13 +212,13 @@
         .rank-info {
             display: flex;
             align-items: center;
-            gap: clamp(10px, 1vw, 18px);
-            padding-left: clamp(8px, 0.8vw, 16px);
+            gap: clamp(12px, 1.3vw, 22px);
+            padding-left: clamp(10px, 1vw, 20px);
         }
 
         .rank-avatar {
-            width: clamp(44px, 4.5vw, 68px);
-            height: clamp(44px, 4.5vw, 68px);
+            width: clamp(48px, 4.8vw, 74px);
+            height: clamp(48px, 4.8vw, 74px);
             border-radius: 50%;
             object-fit: cover;
             border: 3px solid rgba(255,255,255,0.12);
@@ -233,7 +233,7 @@
         .rank-name {
             font-weight: 600;
             color: #e7e7e7;
-            font-size: clamp(0.85em, 1vw, 1.2em);
+            font-size: clamp(0.9em, 1.05vw, 1.3em);
         }
 
         .rank-pending {
@@ -246,28 +246,31 @@
 
         .rank-sales-col {
             text-align: center;
-            min-width: clamp(80px, 8vw, 140px);
+            min-width: clamp(92px, 9vw, 155px);
         }
 
         .rank-sales {
             font-weight: 800;
             color: #35CCA3;
-            font-size: clamp(0.88em, 1vw, 1.2em);
+            font-size: clamp(0.9em, 1.05vw, 1.3em);
             text-shadow: 0 0 12px rgba(53, 204, 163, 0.25);
+            white-space: nowrap;
         }
 
         .rank-sales-pending {
-            font-size: clamp(0.55em, 0.6vw, 0.75em);
+            font-size: clamp(0.62em, 0.7vw, 0.85em);
             color: #E8BB34;
-            margin-top: 2px;
+            margin-top: 3px;
+            white-space: nowrap;
         }
 
         .rank-conversion {
             text-align: center;
             font-weight: 700;
             color: #e7e7e7;
-            font-size: clamp(0.82em, 0.95vw, 1.15em);
-            min-width: clamp(80px, 8vw, 140px);
+            font-size: clamp(0.9em, 1.05vw, 1.3em);
+            min-width: clamp(92px, 9vw, 155px);
+            white-space: nowrap;
         }
 
         /* ======================== CONTRATADOS HOJE ======================== */
