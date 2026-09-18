@@ -218,12 +218,14 @@ function readSheetData(sheet) {
   var allHeaders = sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
   var headers = [];
 
-  // Coletar headers válidos (não vazios)
+  // Parar no primeiro header vazio = fim da tabela principal.
+  // Isso evita capturar blocos de resumo/dashboard soltos mais à direita na mesma aba
+  // (que quebrariam o alinhamento de colunas abaixo e podem duplicar nomes de header,
+  // ex: outra célula "Valor revertido" fora da tabela sobrescrevendo o valor real da linha)
   for (var h = 0; h < allHeaders.length; h++) {
     var headerVal = allHeaders[h].toString().trim();
-    if (headerVal !== '') {
-      headers.push(headerVal);
-    }
+    if (headerVal === '') break;
+    headers.push(headerVal);
   }
 
   if (headers.length === 0) {

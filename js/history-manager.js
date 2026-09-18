@@ -563,16 +563,26 @@ function loadMonthData(monthData) {
     // Restaurar csvData global
     window.csvData = monthData.csvData || null;
 
-    // Atualizar KPIs - usar kpis primeiro, depois summary
-    if (monthData.kpis) {
-        updateKPIsFromValues(monthData.kpis);
+    // Recalcular o resumo a partir do csvData sempre que possível, para não exibir um
+    // summary/kpis salvo que ficou desatualizado por uma correção de cálculo posterior.
+    const freshSummary = (monthData.csvData && monthData.csvData.length > 0 && typeof prepareDataSummary === 'function')
+        ? prepareDataSummary(monthData.csvData)
+        : null;
+
+    // Atualizar KPIs - fallback: summary salvo, depois kpis salvos (dados antigos sem csvData completo)
+    if (freshSummary) {
+        updateKPIs(freshSummary);
     } else if (monthData.summary) {
         updateKPIs(monthData.summary);
+    } else if (monthData.kpis) {
+        updateKPIsFromValues(monthData.kpis);
     }
 
     // Restaurar gráficos
-    // Prioridade: 1) csvData + summary, 2) chartsData salvos
-    if (monthData.csvData && monthData.summary && monthData.summary.motivos) {
+    // Prioridade: 1) csvData recalculado, 2) summary salvo, 3) chartsData salvos
+    if (freshSummary && freshSummary.motivos) {
+        updateCharts(freshSummary);
+    } else if (monthData.csvData && monthData.summary && monthData.summary.motivos) {
         // Se tiver CSV completo, usar updateCharts normal
         updateCharts(monthData.summary);
     } else if (monthData.chartsData && Object.keys(monthData.chartsData).length > 0) {

@@ -420,8 +420,12 @@ function prepareDataSummary(data) {
             const valorRevStr = getValueColumn(row, 'Valor revertido');
 
             summary.valoresPorPlano[plano].solicitado += parseMoneyValue(valorSolStr);
-            summary.valoresPorPlano[plano].cancelado  += parseMoneyValue(valorCancStr);
-            summary.valoresPorPlano[plano].revertido  += parseMoneyValue(valorRevStr);
+            if (status === 'Cancelado' || status === 'Desistência') {
+                summary.valoresPorPlano[plano].cancelado += parseMoneyValue(valorCancStr);
+            }
+            if (status === 'Revertido') {
+                summary.valoresPorPlano[plano].revertido += parseMoneyValue(valorRevStr);
+            }
         }
 
         // Módulos envolvidos (várias variações de nome de coluna)
@@ -464,12 +468,17 @@ function prepareDataSummary(data) {
         const valorRevStr = getValueColumn(row, 'Valor revertido');
 
         const valorSolicitado = parseMoneyValue(valorSolicitadoStr);
-        const valorCanc = parseMoneyValue(valorCancStr);
-        const valorRev = parseMoneyValue(valorRevStr);
-
         summary.valorTotal += valorSolicitado;
-        summary.valorCancelado += valorCanc;
-        summary.valorRevertido += valorRev;
+
+        // Somar valor cancelado/revertido apenas para linhas com o status correspondente,
+        // evitando que valores digitados na coluna errada (ex: linha "Em negociação" com
+        // valor preenchido em "Valor revertido") inflem o total.
+        if (status === 'Cancelado' || status === 'Desistência') {
+            summary.valorCancelado += parseMoneyValue(valorCancStr);
+        }
+        if (status === 'Revertido') {
+            summary.valorRevertido += parseMoneyValue(valorRevStr);
+        }
 
         // Causas detalhadas (para análise qualitativa)
         const causa = getColumn(row, 'Causa', 'Motivo  da solicitação (ABERTURA *Hubspot)');
@@ -538,6 +547,11 @@ function updateKPIs(summary) {
     const percRevertidos = ((revertidos / total) * 100).toFixed(1);
     const percTratativa = ((emTratativa / total) * 100).toFixed(1);
 
+    // Taxa de Reversão em valor: % do MRR em risco que foi recuperado (coluna "Valor revertido")
+    const taxaReversaoValor = summary.valorTotal > 0
+        ? ((summary.valorRevertido / summary.valorTotal) * 100).toFixed(1)
+        : '0.0';
+
     // Atualizar cards de KPI
     const kpiCards = document.querySelectorAll('.kpi-card');
     if (kpiCards.length >= 8) {
@@ -554,7 +568,7 @@ function updateKPIs(summary) {
         kpiCards[4].querySelector('.kpi-value').textContent = formatMoney(summary.valorTotal);
         kpiCards[5].querySelector('.kpi-value').textContent = formatMoney(summary.valorCancelado);
         kpiCards[6].querySelector('.kpi-value').textContent = formatMoney(summary.valorRevertido);
-        kpiCards[7].querySelector('.kpi-value').textContent = percRevertidos + '%';
+        kpiCards[7].querySelector('.kpi-value').textContent = taxaReversaoValor + '%';
     }
 
     // Gerar alerta dinâmico baseado nos dados reais
