@@ -503,10 +503,18 @@
         .contrato-value.pending svg { color: #E8BB34; }
         .contrato-value.money { font-size: clamp(0.85em, 1vw, 1.35em); color: #35CCA3; }
 
-        /* Card "Indicadores": unifica o tamanho de todos os valores (contagem, % e R$) */
+        /* Card "Contratos do mês": Pagos/Pendentes · C2 na mesma cor branca do C1
+           (não afeta "Vendas do mês", que continua colorido) */
+        .contratos-mes-grid .contrato-item.c2 .contrato-value:not(.money) {
+            color: #e7e7e7;
+        }
+
+        /* Card "Indicadores": unifica tamanho e cor de todos os valores (contagem, % e R$) */
         .indicadores-grid .contrato-value,
-        .indicadores-grid .contrato-value.money {
+        .indicadores-grid .contrato-value.money,
+        .indicadores-grid .contrato-item.c2 .contrato-value {
             font-size: clamp(1em, 1.2vw, 1.7em);
+            color: #e7e7e7;
         }
 
         .contrato-item.c2 { border-color: rgba(13, 171, 206, 0.18); }
@@ -1144,7 +1152,7 @@
                             </svg>
                             Contratos do mês
                         </div>
-                        <div class="contratos-grid">
+                        <div class="contratos-grid contratos-mes-grid">
                             <div class="contrato-item">
                                 <div class="contrato-label">Pagos · C1</div>
                                 <div class="contrato-value" id="contratosPagos">
