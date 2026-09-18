@@ -1403,6 +1403,7 @@
         // ===================================
         var comercial1Closers = [];
         var comercial2Closers = [];
+        var lastKpis1 = null; // último kpis do Comercial 1, pra re-renderizar o gráfico quando o Comercial 2 atualizar
 
         function renderMergedRanking() {
             var merged = comercial1Closers.concat(comercial2Closers);
@@ -1600,6 +1601,7 @@
 
                 // RENDER
                 renderKPIs(kpis, closers);
+                lastKpis1 = kpis;
                 renderChart(kpis);
                 comercial1Closers = closers;
                 renderMergedRanking();
@@ -1656,26 +1658,36 @@
             '2026-06': 90000
         };
 
+        function hexToRgba(hex, alpha) {
+            var h = hex.replace('#', '');
+            var r = parseInt(h.substring(0, 2), 16);
+            var g = parseInt(h.substring(2, 4), 16);
+            var b = parseInt(h.substring(4, 6), 16);
+            return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+        }
+
         function renderChart(kpis) {
             var ctx = document.getElementById('kpiChart').getContext('2d');
 
             var monthKey = currentViewMode === 'live' ? getCurrentMonthKey() : currentViewMode;
             var metaValue = parseMoneyValue(kpis['Meta']) || META_BY_MONTH[monthKey] || 0;
 
-            var items = [
-                { label: 'Assinados', value: parseMoneyValue(kpis['Assinados']), color: '#35CCA3' },
-                { label: 'Gerados', value: parseMoneyValue(kpis['Equipe'] || kpis['Gerados']), color: '#68C9AE' },
-                { label: 'Total', value: parseMoneyValue(kpis['Total']), color: '#2FB490' },
-                { label: 'Desistentes', value: parseMoneyValue(kpis['Desistentes']), color: '#E05D5D' },
-                { label: 'Pendentes', value: parseMoneyValue(kpis['Pendentes']), color: '#E8BB34' }
+            var kpis2 = comercial2DadosCache || {};
+
+            // Ordem fixa (não mais por valor) — cada categoria compara Comercial 1 x Comercial 2
+            var categories = [
+                { label: 'Total',       c1: parseMoneyValue(kpis['Total']),                    c2: parseMoneyValue(kpis2.total),       color: '#2FB490' },
+                { label: 'Assinados',   c1: parseMoneyValue(kpis['Assinados']),                 c2: parseMoneyValue(kpis2.assinados),   color: '#35CCA3' },
+                { label: 'Pendentes',   c1: parseMoneyValue(kpis['Pendentes']),                 c2: parseMoneyValue(kpis2.pendentes),   color: '#E8BB34' },
+                { label: 'Desistentes', c1: parseMoneyValue(kpis['Desistentes']),               c2: parseMoneyValue(kpis2.desistentes), color: '#E05D5D' },
+                { label: 'Gerados',     c1: parseMoneyValue(kpis['Equipe'] || kpis['Gerados']),  c2: parseMoneyValue(kpis2.gerados),     color: '#68C9AE' }
             ];
 
-            // Ordenar do maior para o menor
-            items.sort(function(a, b) { return b.value - a.value; });
-
-            var labels = items.map(function(i) { return i.label; });
-            var values = items.map(function(i) { return i.value; });
-            var colors = items.map(function(i) { return i.color; });
+            var labels   = categories.map(function(c) { return c.label; });
+            var valuesC1 = categories.map(function(c) { return c.c1; });
+            var valuesC2 = categories.map(function(c) { return c.c2; });
+            var colorsC1 = categories.map(function(c) { return c.color; });
+            var colorsC2 = categories.map(function(c) { return hexToRgba(c.color, 0.45); });
 
             if (kpiChart) kpiChart.destroy();
 
@@ -1710,26 +1722,42 @@
                 type: 'bar',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        data: values,
-                        backgroundColor: colors,
-                        borderRadius: 8,
-                        borderSkipped: false,
-                        maxBarThickness: 60
-                    }]
+                    datasets: [
+                        {
+                            label: 'Comercial 1',
+                            data: valuesC1,
+                            backgroundColor: colorsC1,
+                            borderRadius: 8,
+                            borderSkipped: false,
+                            maxBarThickness: 44
+                        },
+                        {
+                            label: 'Comercial 2',
+                            data: valuesC2,
+                            backgroundColor: colorsC2,
+                            borderRadius: 8,
+                            borderSkipped: false,
+                            maxBarThickness: 44
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     layout: { padding: { top: 30, right: 10 } },
                     plugins: {
-                        legend: { display: false },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'end',
+                            labels: { color: '#b9c0ca', font: { size: 11, family: 'Poppins' }, boxWidth: 12, boxHeight: 12 }
+                        },
                         datalabels: {
                             anchor: 'end',
                             align: 'top',
                             color: '#e7e7e7',
-                            font: { size: 11, weight: '700', family: 'Poppins' },
-                            formatter: function(value) { return formatMoney(value); }
+                            font: { size: 10, weight: '700', family: 'Poppins' },
+                            formatter: function(value) { return value ? formatMoney(value) : ''; }
                         }
                     },
                     scales: {
@@ -1981,6 +2009,7 @@
                 comercial2DadosCache = snapshot.val();
                 renderToday2();
                 renderContratosMes2();
+                if (lastKpis1) renderChart(lastKpis1);
             });
             database.ref('comercial2_ultima_venda').on('value', function(snapshot) {
                 comercial2UltimaVendaCache = snapshot.val();
@@ -2049,6 +2078,7 @@
 
             // Render
             renderKPIs(kpis, closers);
+            lastKpis1 = kpis;
             renderChart(kpis);
             comercial1Closers = closers;
             renderMergedRanking();

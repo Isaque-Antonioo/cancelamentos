@@ -28,12 +28,12 @@
  * - "última venda"  (A=Closer, B=Foto, C=Valor)
  *                    → banner de celebração da venda mais recente → /comercial2_ultima_venda
  *                    (lê a ÚLTIMA linha com dado na coluna A, não só a linha 2)
- * - "Dados"         (B=Gerados, D=Total, E=Dia, F=Meta, G=Pendentes, H=Desistentes,
- *                    I=Meta Diária, J=Contratos Assinados, K=Contratos Pendentes, L=Meta Semanal,
- *                    M=Taxa de Conversão do time)
+ * - "Dados"         (A=Taxa de Conversão Equipe, B=Gerados, C=Assinados, D=Total, E=Dia,
+ *                    F=Meta, G=Pendentes, H=Desistentes, I=Meta Diária, J=Contratos Assinados,
+ *                    K=Contratos Pendentes, L=Meta Semanal)
  *                    → indicadores do time → /comercial2_dados
- *                    → usado no comercial-total.html (cards "Gerados/Conversão/Meta Semanal · C2"
- *                    e "Pagos/Pendentes/Vendas do mês · C2")
+ *                    → usado no comercial-total.html (cards "Comercial 2" e no gráfico
+ *                    "Panorama do Mês", pareado com o Comercial 1)
  *
  * Todas as abas: linha 1 = cabeçalho, dados a partir da linha 2.
  *
@@ -223,22 +223,24 @@ function syncDadosComercial2() {
 
   if (sheet.getLastRow() < 2) return false;
 
-  // B=Gerados, C=(não usada), D=Total, E=Dia, F=Meta, G=Pendentes, H=Desistentes,
-  // I=Meta Diária, J=Contratos Assinados, K=Contratos Pendentes, L=Meta Semanal, M=Taxa de Conversão
-  var row = sheet.getRange(2, 2, 1, 12).getDisplayValues()[0];
+  // A=Taxa de Conversão Equipe, B=Gerados, C=Assinados, D=Total, E=Dia, F=Meta,
+  // G=Pendentes, H=Desistentes, I=Meta Diária, J=Contratos Assinados,
+  // K=Contratos Pendentes, L=Meta Semanal
+  var row = sheet.getRange(2, 1, 1, 12).getDisplayValues()[0];
 
   var payload = {
-    gerados:            row[0]  || '0',
-    total:              row[2]  || '0',
-    dia:                row[3]  || '0',
-    meta:               row[4]  || '0',
-    pendentes:          row[5]  || '0',
-    desistentes:        row[6]  || '0',
-    metaDiaria:         row[7]  || '0',
-    contratosAssinados: row[8]  || '0',
-    contratosPendentes: row[9]  || '0',
-    metaSemanal:        row[10] || '0',
-    taxaConversao:      row[11] || '0%',
+    taxaConversao:      row[0]  || '0%',
+    gerados:            row[1]  || '0',
+    assinados:          row[2]  || '0',
+    total:              row[3]  || '0',
+    dia:                row[4]  || '0',
+    meta:               row[5]  || '0',
+    pendentes:          row[6]  || '0',
+    desistentes:        row[7]  || '0',
+    metaDiaria:         row[8]  || '0',
+    contratosAssinados: row[9]  || '0',
+    contratosPendentes: row[10] || '0',
+    metaSemanal:        row[11] || '0',
     updatedAt:          Date.now(),
     updatedISO:         new Date().toISOString(),
     source:             'apps_script'
