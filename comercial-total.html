@@ -1666,9 +1666,9 @@
             return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
         }
 
-        // Só pro gráfico "Panorama do Mês" — sem centavos, pra não poluir a barra
+        // Só pro gráfico "Panorama do Mês" — ignora os centavos de vez (trunca, não arredonda)
         function formatMoneyChart(value) {
-            return 'R$ ' + Math.round(value).toLocaleString('pt-BR');
+            return 'R$ ' + Math.trunc(value).toLocaleString('pt-BR');
         }
 
         function renderChart(kpis) {
