@@ -1585,6 +1585,11 @@
             '2026-06': 90000
         };
 
+        // Só pro gráfico "Panorama do Mês" — ignora os centavos de vez (trunca, não arredonda)
+        function formatMoneyChart(value) {
+            return 'R$ ' + Math.trunc(value).toLocaleString('pt-BR');
+        }
+
         function renderChart(kpis) {
             var ctx = document.getElementById('kpiChart').getContext('2d');
 
@@ -1630,7 +1635,7 @@
                     ctx.font = "600 11px 'Poppins', sans-serif";
                     ctx.textAlign = 'right';
                     ctx.globalAlpha = 1;
-                    ctx.fillText('Meta: ' + formatMoney(metaValue), chart.chartArea.right, yPos - 6);
+                    ctx.fillText('Meta: ' + formatMoneyChart(metaValue), chart.chartArea.right, yPos - 6);
                     ctx.restore();
                 }
             };
@@ -1658,7 +1663,7 @@
                             align: 'top',
                             color: '#e7e7e7',
                             font: { size: 11, weight: '700', family: 'Poppins' },
-                            formatter: function(value) { return formatMoney(value); }
+                            formatter: function(value) { return formatMoneyChart(value); }
                         }
                     },
                     scales: {
