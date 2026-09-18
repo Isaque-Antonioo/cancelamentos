@@ -771,20 +771,17 @@ async function updateUser(userId, updates) {
     }
 }
 
-// Desativar usuário (soft delete)
-async function deactivateUser(userId) {
+// Excluir usuário permanentemente
+async function deleteUser(userId) {
     if (!isFirebaseReady()) return false;
 
     try {
-        await database.ref(`users/${userId}`).update({
-            active: false,
-            deactivatedAt: new Date().toISOString()
-        });
+        await database.ref(`users/${userId}`).remove();
 
-        console.log('[Users] Usuário desativado:', userId);
+        console.log('[Users] Usuário excluído:', userId);
         return true;
     } catch (error) {
-        console.error('[Users] Erro ao desativar usuário:', error);
+        console.error('[Users] Erro ao excluir usuário:', error);
         return false;
     }
 }

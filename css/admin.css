@@ -241,7 +241,7 @@
     color: #f59e0b;
 }
 
-.btn-action.btn-deactivate:hover {
+.btn-action.btn-delete-user:hover {
     background: rgba(239, 68, 68, 0.15);
     border-color: rgba(239, 68, 68, 0.3);
     color: #ef4444;
