@@ -1758,11 +1758,27 @@
                             labels: { color: '#b9c0ca', font: { size: 11, family: 'Poppins' }, boxWidth: 12, boxHeight: 12 }
                         },
                         datalabels: {
-                            anchor: 'end',
-                            align: 'top',
-                            color: '#e7e7e7',
-                            font: { size: 10, weight: '700', family: 'Poppins' },
-                            formatter: function(value) { return value ? formatMoneyChart(value) : ''; }
+                            labels: {
+                                value: {
+                                    anchor: 'end',
+                                    align: 'top',
+                                    offset: 16,
+                                    color: '#e7e7e7',
+                                    font: { size: 10, weight: '700', family: 'Poppins' },
+                                    formatter: function(value) { return value ? formatMoneyChart(value) : ''; }
+                                },
+                                tag: {
+                                    anchor: 'end',
+                                    align: 'top',
+                                    offset: 4,
+                                    color: function(context) { return context.datasetIndex === 0 ? '#35CCA3' : '#0DABCE'; },
+                                    font: { size: 8.5, weight: '700', family: 'Poppins' },
+                                    formatter: function(value, context) {
+                                        if (!value) return '';
+                                        return context.datasetIndex === 0 ? 'C1' : 'C2';
+                                    }
+                                }
+                            }
                         }
                     },
                     scales: {
