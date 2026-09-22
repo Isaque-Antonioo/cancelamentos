@@ -111,6 +111,12 @@
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
                 </button>
+                <button class="btn-action btn-reset" onclick="resetPasswordHandler('${user.id}')" title="Redefinir senha">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </button>
                 ${!isSelf ? `
                 <button class="btn-action btn-delete-user" onclick="deleteUserHandler('${user.id}')" title="Excluir">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -144,8 +150,10 @@
         const displayNameInput = document.getElementById('userDisplayNameInput');
         const usernameInput = document.getElementById('userUsername');
         const passwordInput = document.getElementById('userPassword');
-        const passwordLabel = document.getElementById('passwordLabel');
         const roleSelect = document.getElementById('userRole');
+        const emailGroup = document.getElementById('userEmailGroup');
+        const passwordGroup = document.getElementById('userPasswordGroup');
+        const emailReadonlyNote = document.getElementById('userEmailReadonlyNote');
 
         // Reset
         displayNameInput.value = '';
@@ -159,18 +167,19 @@
         });
 
         if (userId) {
-            // Editar usuario existente
+            // Editar usuario existente — e-mail e senha nao sao editaveis por aqui
+            // (a conta de autenticacao ja existe; use "Redefinir senha" na tabela)
             const user = allUsers.find(u => u.id === userId);
             if (!user) return;
 
             title.textContent = 'Editar Usuario';
             editId.value = userId;
             displayNameInput.value = user.displayName || '';
-            usernameInput.value = ''; // Nao mostramos o username (hash)
-            usernameInput.placeholder = 'Deixe em branco para manter';
-            passwordLabel.textContent = 'Nova Senha (deixe em branco para manter)';
-            passwordInput.placeholder = 'Deixe em branco para manter';
             roleSelect.value = user.role || 'collaborator';
+
+            emailGroup.style.display = 'none';
+            passwordGroup.style.display = 'none';
+            emailReadonlyNote.style.display = '';
 
             // Marcar pages
             document.querySelectorAll('#pagesGroup input[type="checkbox"]').forEach(cb => {
@@ -180,9 +189,9 @@
             // Novo usuario
             title.textContent = 'Novo Usuario';
             editId.value = '';
-            usernameInput.placeholder = 'Ex: maria';
-            passwordLabel.textContent = 'Senha';
-            passwordInput.placeholder = 'Digite a senha';
+            emailGroup.style.display = '';
+            passwordGroup.style.display = '';
+            emailReadonlyNote.style.display = 'none';
         }
 
         togglePagesVisibility();
@@ -202,7 +211,7 @@
     window.handleSaveUser = async function() {
         const editId = document.getElementById('editUserId').value;
         const displayName = document.getElementById('userDisplayNameInput').value.trim();
-        const username = document.getElementById('userUsername').value.trim();
+        const email = document.getElementById('userUsername').value.trim();
         const password = document.getElementById('userPassword').value;
         const role = document.getElementById('userRole').value;
 
@@ -218,8 +227,8 @@
             return;
         }
 
-        if (!editId && !username) {
-            alert('Informe o nome de usuario.');
+        if (!editId && !email) {
+            alert('Informe o e-mail de login.');
             return;
         }
 
@@ -234,7 +243,7 @@
 
         try {
             if (editId) {
-                // Atualizar usuario
+                // Atualizar usuario (e-mail/senha nao sao editaveis por aqui)
                 const updates = {
                     displayName: displayName,
                     role: role,
@@ -242,16 +251,6 @@
                         ? ['index.html', 'comercial.html', 'suporte.html', 'admin.html']
                         : allowedPages
                 };
-
-                // Se informou novo username
-                if (username) {
-                    updates.username_hash = await window.hubstromSha256(username);
-                }
-
-                // Se informou nova senha
-                if (password) {
-                    updates.password_hash = await window.hubstromSha256(password);
-                }
 
                 const success = await updateUser(editId, updates);
                 if (success) {
@@ -268,30 +267,17 @@
                     alert('Erro ao atualizar usuario.');
                 }
             } else {
-                // Criar usuario
-                const usernameHash = await window.hubstromSha256(username);
-                const passwordHash = await window.hubstromSha256(password);
-
-                // Verificar se username ja existe
-                const existing = await findUserByUsernameHash(usernameHash);
-                if (existing) {
-                    alert('Ja existe um usuario com esse nome de usuario.');
-                    btnSave.disabled = false;
-                    btnSave.textContent = 'Salvar';
-                    return;
-                }
-
+                // Criar usuario: cria a conta real no Firebase Auth + perfil em /users
                 const currentUser = window.hubstromGetUser ? window.hubstromGetUser() : null;
 
                 const userData = {
-                    username_hash: usernameHash,
-                    password_hash: passwordHash,
+                    email: email,
+                    password: password,
                     displayName: displayName,
                     role: role,
                     allowedPages: role === 'admin'
                         ? ['index.html', 'comercial.html', 'suporte.html', 'admin.html']
                         : allowedPages,
-                    active: true,
                     createdBy: currentUser ? currentUser.userId : 'unknown'
                 };
 
@@ -313,6 +299,26 @@
 
         btnSave.disabled = false;
         btnSave.textContent = 'Salvar';
+    };
+
+    window.resetPasswordHandler = async function(userId) {
+        const user = allUsers.find(u => u.id === userId);
+        if (!user || !user.email) {
+            alert('Este usuario nao tem e-mail cadastrado (conta antiga do sistema anterior). Exclua e recrie o usuario.');
+            return;
+        }
+        if (!confirm(`Enviar link de redefinicao de senha para ${user.email}?`)) return;
+
+        try {
+            await firebase.auth().sendPasswordResetEmail(user.email);
+            if (typeof logAuditEvent === 'function') {
+                logAuditEvent('password_reset_sent', { targetUserId: userId, displayName: user.displayName });
+            }
+            alert('Link de redefinicao enviado para ' + user.email);
+        } catch (error) {
+            console.error('Erro ao enviar redefinicao de senha:', error);
+            alert('Erro ao enviar link de redefinicao.');
+        }
     };
 
     window.deleteUserHandler = async function(userId) {

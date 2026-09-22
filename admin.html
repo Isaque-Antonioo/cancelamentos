@@ -249,15 +249,17 @@
                     <input type="text" id="userDisplayNameInput" placeholder="Ex: Maria Silva">
                 </div>
 
-                <div class="form-group">
-                    <label>Nome de Usuario (login)</label>
-                    <input type="text" id="userUsername" placeholder="Ex: maria">
+                <div class="form-group" id="userEmailGroup">
+                    <label>E-mail (login)</label>
+                    <input type="email" id="userUsername" placeholder="Ex: maria@empresa.com">
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="userPasswordGroup">
                     <label id="passwordLabel">Senha</label>
-                    <input type="password" id="userPassword" placeholder="Digite a senha">
+                    <input type="password" id="userPassword" placeholder="Digite a senha (minimo 6 caracteres)">
                 </div>
+
+                <p id="userEmailReadonlyNote" style="display:none;color:#94a3b8;font-size:12px;margin:-8px 0 16px;">O e-mail de login não pode ser alterado por aqui. Para trocar a senha do usuário, use "Redefinir senha" na tabela.</p>
 
                 <div class="form-group">
                     <label>Perfil</label>

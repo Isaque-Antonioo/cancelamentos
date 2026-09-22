@@ -1,23 +1,13 @@
 // Hubstrom Authentication System
-// Sistema multi-usuario com perfis e permissoes
+// Login real via Firebase Authentication (email + senha).
+// O acesso a dados e paginas e sempre validado contra o Firebase (Realtime Database Rules
+// + auth.uid), nunca apenas contra o cache local — o localStorage serve so para a UI.
 
 (function() {
     'use strict';
 
     const SESSION_KEY = 'hubstrom_auth_session';
-    const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 horas
-
-    // Funcao para gerar hash SHA-256
-    async function sha256(message) {
-        const msgBuffer = new TextEncoder().encode(message);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        return hashHex;
-    }
-
-    // Expor sha256 globalmente para uso no admin.js
-    window.hubstromSha256 = sha256;
+    const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 horas (so para expirar o cache de UI)
 
     // Detectar pagina atual
     function getCurrentPageFile() {
@@ -32,66 +22,38 @@
                         window.location.pathname.endsWith('/login') ||
                         document.getElementById('loginForm') !== null;
 
-    const isAdminPage = currentPage === 'admin.html';
-
-    // Verificar sessao
-    function isAuthenticated() {
-        const session = localStorage.getItem(SESSION_KEY);
-        if (!session) return false;
-
-        try {
-            const sessionData = JSON.parse(session);
-            const now = Date.now();
-
-            // Verificar expiracao
-            if (now > sessionData.expires) {
-                localStorage.removeItem(SESSION_KEY);
-                return false;
-            }
-
-            // Verificar se tem userId (sessao nova)
-            if (!sessionData.userId) {
-                localStorage.removeItem(SESSION_KEY);
-                return false;
-            }
-
-            return true;
-        } catch (e) {
-            localStorage.removeItem(SESSION_KEY);
-            return false;
+    function onFirebaseReady(callback) {
+        if (typeof isFirebaseReady === 'function' && isFirebaseReady()) {
+            callback();
+        } else {
+            window.addEventListener('firebaseReady', callback, { once: true });
         }
     }
 
-    // Obter usuario atual da sessao
-    function getCurrentUser() {
-        const session = localStorage.getItem(SESSION_KEY);
-        if (!session) return null;
-
+    // Cache local (so para desenhar a UI rapido). Nunca e a fonte de verdade do acesso.
+    function readSessionCache() {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) return null;
         try {
-            const sessionData = JSON.parse(session);
-            const now = Date.now();
-
-            if (now > sessionData.expires || !sessionData.userId) {
+            const sessionData = JSON.parse(raw);
+            if (Date.now() > sessionData.expires) {
+                localStorage.removeItem(SESSION_KEY);
                 return null;
             }
-
             return sessionData;
         } catch (e) {
+            localStorage.removeItem(SESSION_KEY);
             return null;
         }
     }
 
-    // Expor getCurrentUser globalmente
-    window.hubstromGetUser = getCurrentUser;
-
-    // Criar sessao com dados do usuario
-    function createSession(userObj) {
+    function writeSessionCache(uid, profile) {
         const sessionData = {
             authenticated: true,
-            userId: userObj.id,
-            displayName: userObj.displayName || 'Usuario',
-            role: userObj.role || 'collaborator',
-            allowedPages: userObj.allowedPages || [],
+            userId: uid,
+            displayName: profile.displayName || 'Usuario',
+            role: profile.role || 'collaborator',
+            allowedPages: profile.allowedPages || [],
             created: Date.now(),
             expires: Date.now() + SESSION_DURATION
         };
@@ -99,25 +61,21 @@
         return sessionData;
     }
 
-    // Verificar acesso a pagina
-    function hasPageAccess(userSession, pageFile) {
-        if (!userSession) return false;
+    // Expor para uso no admin.js / audit log (cache local, apenas leitura de UI)
+    window.hubstromGetUser = readSessionCache;
 
-        // Admin tem acesso total
-        if (userSession.role === 'admin') return true;
-
-        // Colaborador verifica allowedPages
-        return (userSession.allowedPages || []).includes(pageFile);
+    function hasPageAccess(profile, pageFile) {
+        if (!profile) return false;
+        if (profile.role === 'admin') return true;
+        return (profile.allowedPages || []).includes(pageFile);
     }
 
-    // Obter primeira pagina permitida para redirect
-    function getFirstAllowedPage(userSession) {
-        if (!userSession) return 'login.html';
-        if (userSession.role === 'admin') return 'index.html';
+    function getFirstAllowedPage(profile) {
+        if (!profile) return 'login.html';
+        if (profile.role === 'admin') return 'index.html';
 
-        const pages = userSession.allowedPages || [];
+        const pages = profile.allowedPages || [];
         if (pages.length > 0) {
-            // Priorizar index.html se estiver na lista
             if (pages.includes('index.html')) return 'index.html';
             return pages[0];
         }
@@ -127,70 +85,25 @@
 
     // Logout
     function logout() {
-        // Registrar no audit log antes de sair
         if (typeof window.hubstromLog === 'function') {
             window.hubstromLog('logout', { page: currentPage });
         }
 
         localStorage.removeItem(SESSION_KEY);
 
-        // Delay para garantir que o audit log seja salvo
-        setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 300);
+        firebase.auth().signOut().catch(() => {}).then(() => {
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 300);
+        });
     }
 
-    // Expor funcoes globalmente
     window.hubstromLogout = logout;
 
-    const FALLBACK_ADMIN = {
-        id: 'fallback_admin',
-        username_hash: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918',
-        password_hash: '4e8a92f02b906bd1e98f91259b7d66cc77e18c783dc8856852e96c1bf1808abd',
-        displayName: 'Administrador',
-        role: 'admin',
-        allowedPages: ['index.html', 'comercial.html', 'comercial-total.html', 'suporte.html', 'admin.html', 'log-erros.html'],
-        active: true
-    };
-
-    // Validar credenciais contra Firebase
-    async function validateCredentials(username, password) {
-        const userHash = await sha256(username);
-        const passHash = await sha256(password);
-
-        // Tentar Firebase primeiro
-        if (typeof findUserByUsernameHash === 'function') {
-            const user = await findUserByUsernameHash(userHash);
-
-            if (user && user.password_hash === passHash) {
-                if (user.active === false) {
-                    return { success: false, error: 'Conta desativada. Contate o administrador.' };
-                }
-                return { success: true, user: user };
-            }
-        }
-
-        // Fallback: credenciais padrão hardcoded
-        if (userHash === FALLBACK_ADMIN.username_hash && passHash === FALLBACK_ADMIN.password_hash) {
-            return { success: true, user: FALLBACK_ADMIN };
-        }
-
-        return { success: false, error: 'Usuario ou senha incorretos. Tente novamente.' };
-    }
-
     // ==============================
-    // LOGICA DE REDIRECIONAMENTO
+    // PAGINA DE LOGIN
     // ==============================
-
-    // Se estiver na pagina de login
     if (isLoginPage) {
-        if (isAuthenticated()) {
-            const user = getCurrentUser();
-            window.location.href = getFirstAllowedPage(user);
-            return;
-        }
-
-        // Configurar formulario de login
         document.addEventListener('DOMContentLoaded', function() {
             const loginForm = document.getElementById('loginForm');
             const errorMessage = document.getElementById('errorMessage');
@@ -199,6 +112,18 @@
             const togglePassword = document.getElementById('togglePassword');
             const passwordInput = document.getElementById('password');
             const eyeIcon = document.getElementById('eyeIcon');
+
+            // Se ja existir sessao real do Firebase (persistida), pula direto pra area logada
+            onFirebaseReady(function() {
+                firebase.auth().onAuthStateChanged(async function(user) {
+                    if (!user) return;
+                    const profile = await getUserProfile(user.uid);
+                    if (profile && profile.active !== false) {
+                        const session = writeSessionCache(user.uid, profile);
+                        window.location.href = getFirstAllowedPage(session);
+                    }
+                });
+            });
 
             // Toggle password visibility
             if (togglePassword && passwordInput) {
@@ -222,55 +147,63 @@
 
             // Form submit handler
             if (loginForm) {
-                loginForm.addEventListener('submit', async function(e) {
+                loginForm.addEventListener('submit', function(e) {
                     e.preventDefault();
 
-                    const username = document.getElementById('username').value.trim();
+                    const email = document.getElementById('username').value.trim();
                     const password = document.getElementById('password').value;
 
                     errorMessage.classList.remove('show');
                     submitBtn.classList.add('loading');
                     submitBtn.disabled = true;
 
-                    // Validar com delay para UX
                     setTimeout(async function() {
-                        const result = await validateCredentials(username, password);
+                        try {
+                            const cred = await firebase.auth().signInWithEmailAndPassword(email, password);
+                            const profile = await getUserProfile(cred.user.uid);
 
-                        if (result.success) {
-                            const session = createSession(result.user);
-
-                            // Atualizar lastLogin no Firebase
-                            if (typeof updateLastLogin === 'function') {
-                                updateLastLogin(result.user.id);
+                            if (!profile || profile.active === false) {
+                                await firebase.auth().signOut();
+                                throw new Error('Conta desativada. Contate o administrador.');
                             }
 
-                            // Registrar login no audit log
+                            const session = writeSessionCache(cred.user.uid, profile);
+
+                            if (typeof updateLastLogin === 'function') {
+                                updateLastLogin(cred.user.uid);
+                            }
                             if (typeof logAuditEvent === 'function') {
                                 logAuditEvent('login', { page: 'login.html' });
                             }
 
-                            // Animacao de sucesso
                             submitBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
                             submitBtn.querySelector('.btn-text').textContent = 'Sucesso!';
 
                             setTimeout(function() {
                                 window.location.href = getFirstAllowedPage(session);
                             }, 500);
-                        } else {
+                        } catch (err) {
                             submitBtn.classList.remove('loading');
                             submitBtn.disabled = false;
 
-                            errorText.textContent = result.error;
+                            const code = err && err.code;
+                            let message = 'Usuario ou senha incorretos. Tente novamente.';
+                            if (code === 'auth/too-many-requests') {
+                                message = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+                            } else if (err && err.message && err.message.indexOf('desativada') !== -1) {
+                                message = err.message;
+                            }
+
+                            errorText.textContent = message;
                             errorMessage.classList.add('show');
 
-                            // Registrar tentativa falha
                             if (typeof logAuditEvent === 'function') {
                                 logAuditEvent('login_failed', { page: 'login.html' });
                             }
 
                             document.getElementById('username').focus();
                         }
-                    }, 800);
+                    }, 400);
                 });
             }
 
@@ -292,6 +225,30 @@
                     }
                 });
             }
+
+            // Esqueci minha senha
+            const forgotLink = document.getElementById('forgotPasswordLink');
+            if (forgotLink) {
+                forgotLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const email = document.getElementById('username').value.trim();
+                    if (!email) {
+                        errorText.textContent = 'Digite seu e-mail no campo acima para receber o link de redefinicao.';
+                        errorMessage.classList.add('show');
+                        return;
+                    }
+                    onFirebaseReady(function() {
+                        firebase.auth().sendPasswordResetEmail(email)
+                            .then(function() {
+                                errorMessage.classList.remove('show');
+                                alert('Se esse e-mail estiver cadastrado, enviamos um link de redefinicao de senha.');
+                            })
+                            .catch(function() {
+                                alert('Se esse e-mail estiver cadastrado, enviamos um link de redefinicao de senha.');
+                            });
+                    });
+                });
+            }
         });
 
         return; // Parar aqui se for pagina de login
@@ -300,43 +257,47 @@
     // ==============================
     // PAGINAS PROTEGIDAS
     // ==============================
+    onFirebaseReady(function() {
+        firebase.auth().onAuthStateChanged(async function(user) {
+            if (!user) {
+                localStorage.removeItem(SESSION_KEY);
+                window.location.href = 'login.html';
+                return;
+            }
 
-    // Se nao autenticado, redirecionar para login
-    if (!isAuthenticated()) {
-        window.location.href = 'login.html';
-        return;
-    }
+            const profile = await getUserProfile(user.uid);
 
-    // Verificar permissao de acesso a pagina atual
-    const user = getCurrentUser();
+            if (!profile || profile.active === false) {
+                localStorage.removeItem(SESSION_KEY);
+                await firebase.auth().signOut();
+                window.location.href = 'login.html';
+                return;
+            }
 
-    if (user && !hasPageAccess(user, currentPage)) {
-        // Sem acesso a esta pagina, redirecionar
-        window.location.href = getFirstAllowedPage(user);
-        return;
-    }
+            const session = writeSessionCache(user.uid, profile);
 
-    // Registrar page_view no audit
-    document.addEventListener('DOMContentLoaded', function() {
-        if (typeof window.hubstromLog === 'function') {
-            window.hubstromLog('page_view', { page: currentPage });
-        }
+            if (!hasPageAccess(session, currentPage)) {
+                window.location.href = getFirstAllowedPage(session);
+                return;
+            }
 
-        // Configurar UI baseada no perfil
-        setupUserUI(user);
+            if (typeof window.hubstromLog === 'function') {
+                window.hubstromLog('page_view', { page: currentPage });
+            }
+
+            setupUserUI(session);
+        });
     });
 
     // Configurar elementos de UI baseados no perfil do usuario
     function setupUserUI(userSession) {
         if (!userSession) return;
 
-        // Mostrar nome do usuario no header
         const userNameEl = document.getElementById('userDisplayName');
         if (userNameEl) {
             userNameEl.textContent = userSession.displayName;
         }
 
-        // Mostrar/ocultar link admin no sidebar
         const adminItems = document.querySelectorAll('.sidebar-admin-only');
         adminItems.forEach(item => {
             if (userSession.role === 'admin') {
@@ -344,7 +305,6 @@
             }
         });
 
-        // Desabilitar links de sidebar para paginas sem acesso
         if (userSession.role !== 'admin') {
             document.querySelectorAll('.sidebar-menu .sidebar-item a').forEach(link => {
                 const href = link.getAttribute('href');

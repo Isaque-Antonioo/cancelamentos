@@ -31,24 +31,22 @@ function initFirebase() {
         }
 
         database = firebase.database();
-        console.log('Firebase inicializado, aguardando autenticação anônima...');
+        console.log('Firebase inicializado, aguardando estado de autenticação...');
 
-        // Detectar auth cacheada (instantâneo) ou criar nova sessão anônima (rede)
+        // onAuthStateChanged dispara com o usuário logado (sessão persistida) ou null.
+        // Não fazemos mais login anônimo automático — o acesso real aos dados
+        // é decidido pelas Realtime Database Rules com base em auth.uid.
         firebase.auth().onAuthStateChanged((user) => {
             if (firebaseReady) return; // já inicializado
             firebaseReady = true;
 
-            if (user) {
-                console.log('Firebase pronto (sessão cacheada).');
-            } else {
-                console.log('Firebase pronto (nova sessão anônima).');
-                firebase.auth().signInAnonymously().catch(err =>
-                    console.warn('[Firebase Auth]', err.message)
-                );
-            }
+            console.log(user ? 'Firebase pronto (sessão autenticada).' : 'Firebase pronto (sem sessão).');
 
             window.dispatchEvent(new CustomEvent('firebaseReady'));
-            syncAppSettingsFromFirebase().then(() => listenToAppSettings());
+
+            if (user) {
+                syncAppSettingsFromFirebase().then(() => listenToAppSettings());
+            }
         });
 
         return true;
@@ -642,73 +640,39 @@ function listenToAppSettings() {
 // GERENCIAMENTO DE USUÁRIOS
 // ==========================================
 
-// Hashes SHA-256 do admin inicial (mesmos valores do auth.js original)
-const SEED_ADMIN_USERNAME_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
-const SEED_ADMIN_PASSWORD_HASH = '4e8a92f02b906bd1e98f91259b7d66cc77e18c783dc8856852e96c1bf1808abd';
-
-// Verificar se já existem usuários no Firebase
-async function hasAnyUsers() {
-    if (!isFirebaseReady()) return false;
-    try {
-        const snapshot = await database.ref('users').once('value');
-        return snapshot.exists();
-    } catch (error) {
-        console.error('[Users] Erro ao verificar usuários:', error);
-        return false;
-    }
-}
-
-// Seed do admin inicial (roda apenas uma vez)
-async function ensureAdminExists() {
-    if (!isFirebaseReady()) return;
-
-    try {
-        const exists = await hasAnyUsers();
-        if (exists) {
-            console.log('[Users] Usuários já existem, seed não necessário.');
-            return;
-        }
-
-        const adminRef = database.ref('users').push();
-        await adminRef.set({
-            username_hash: SEED_ADMIN_USERNAME_HASH,
-            password_hash: SEED_ADMIN_PASSWORD_HASH,
-            displayName: 'Administrador',
-            role: 'admin',
-            allowedPages: ['index.html', 'comercial.html', 'suporte.html', 'admin.html'],
-            active: true,
-            createdAt: new Date().toISOString(),
-            createdBy: 'system_seed',
-            lastLogin: null
-        });
-
-        console.log('[Users] Admin inicial criado com sucesso.');
-    } catch (error) {
-        console.error('[Users] Erro ao criar admin inicial:', error);
-    }
-}
-
-// Buscar usuário pelo hash do username
-async function findUserByUsernameHash(usernameHash) {
+// Buscar o perfil (role/allowedPages/displayName) de um usuário pelo UID do Firebase Auth.
+// Protegido pelas Database Rules: o próprio usuário só lê o seu, admin lê qualquer um.
+async function getUserProfile(uid) {
     if (!isFirebaseReady()) return null;
-
     try {
-        const snapshot = await database.ref('users').once('value');
-        if (!snapshot.exists()) return null;
-
-        let foundUser = null;
-        snapshot.forEach(child => {
-            const userData = child.val();
-            if (userData.username_hash === usernameHash && userData.active !== false) {
-                foundUser = { id: child.key, ...userData };
-            }
-        });
-
-        return foundUser;
+        const snapshot = await database.ref('users/' + uid).once('value');
+        return snapshot.exists() ? { id: uid, ...snapshot.val() } : null;
     } catch (error) {
-        console.error('[Users] Erro ao buscar usuário:', error);
+        console.error('[Users] Erro ao buscar perfil:', error);
         return null;
     }
+}
+
+// Cria a conta de autenticação (Firebase Auth) via REST, sem afetar a sessão
+// atual do navegador (diferente do SDK signUp, que trocaria o usuário logado).
+async function createAuthAccount(email, password) {
+    const resp = await fetch(
+        'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + firebaseConfig.apiKey,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, password: password, returnSecureToken: false })
+        }
+    );
+    const data = await resp.json();
+    if (!resp.ok) {
+        const code = data.error && data.error.message || '';
+        if (code === 'EMAIL_EXISTS') throw new Error('Já existe uma conta com esse e-mail.');
+        if (code.indexOf('WEAK_PASSWORD') === 0) throw new Error('A senha deve ter pelo menos 6 caracteres.');
+        if (code === 'INVALID_EMAIL') throw new Error('E-mail inválido.');
+        throw new Error(code || 'Erro ao criar conta de autenticação.');
+    }
+    return data.localId;
 }
 
 // Buscar todos os usuários
@@ -731,7 +695,7 @@ async function getAllUsers() {
     }
 }
 
-// Criar novo usuário
+// Criar novo usuário: cria a conta real no Firebase Auth (email+senha) e o perfil em /users/{uid}
 async function createUser(userData) {
     if (!isFirebaseReady()) {
         console.error('[Users] createUser: Firebase não está pronto');
@@ -739,14 +703,23 @@ async function createUser(userData) {
     }
 
     try {
-        const newRef = database.ref('users').push();
-        await newRef.set({
-            ...userData,
-            createdAt: new Date().toISOString()
-        });
+        const uid = await createAuthAccount(userData.email, userData.password);
 
-        console.log('[Users] Usuário criado:', newRef.key);
-        return newRef.key;
+        const profile = {
+            email: userData.email,
+            displayName: userData.displayName,
+            role: userData.role,
+            allowedPages: userData.allowedPages,
+            active: true,
+            createdAt: new Date().toISOString(),
+            createdBy: userData.createdBy || 'unknown',
+            lastLogin: null
+        };
+
+        await database.ref('users/' + uid).set(profile);
+
+        console.log('[Users] Usuário criado:', uid);
+        return uid;
     } catch (error) {
         console.error('[Users] Erro ao criar usuário:', error);
         throw error;
@@ -880,10 +853,7 @@ window.hubstromLog = function(action, details) {
 // Inicializar quando o DOM carregar
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof firebase !== 'undefined') {
-        const initialized = initFirebase();
-        if (initialized) {
-            ensureAdminExists();
-        }
+        initFirebase();
     } else {
         console.warn('Firebase SDK não carregado. Usando apenas localStorage.');
     }
