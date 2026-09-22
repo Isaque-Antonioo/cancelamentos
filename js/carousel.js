@@ -4,13 +4,13 @@
  * Uso: incluir este script em cada página que participa do carrossel.
  * A página deve definir window.CAROUSEL_PAGE com seu próprio nome de arquivo.
  *
- * Ex: <script>window.CAROUSEL_PAGE = 'operacional.html';</script>
+ * Ex: <script>window.CAROUSEL_PAGE = 'suporte-massivas.html';</script>
  *     <script src="js/carousel.js"></script>
  */
 
 (function () {
   var STORAGE_KEY = 'hubstrom_carousel';
-  var PAGES = ['operacional.html', 'suporte-massivas.html'];
+  var PAGES = ['suporte-massivas.html'];
 
   /* ---- Helpers ---- */
   function getState() {
