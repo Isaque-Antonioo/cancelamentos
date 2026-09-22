@@ -22,9 +22,12 @@
  * 7. Aceite as permissões
  * 8. Recarregue a planilha uma vez — o menu "Hubstrom Comercial 2" some a aparecer
  *
+ * (A página comercial2.html/"Ranking de Vendas" foi removida — os paths abaixo agora
+ * alimentam só o comercial-total.html, que mescla esses dados com os do Comercial 1)
+ *
  * ABAS LIDAS:
  * - "Closer"        (A=Nome, B=Taxa de Conversão, C=Total de Vendas, D=Foto, E=Pendente)
- *                    → ranking por vendedor (pódio + lista) → /comercial2_live
+ *                    → ranking por vendedor, mesclado no "Ranking Especialistas" → /comercial2_live
  * - "última venda"  (A=Closer, B=Foto, C=Valor)
  *                    → banner de celebração da venda mais recente → /comercial2_ultima_venda
  *                    (lê a ÚLTIMA linha com dado na coluna A, não só a linha 2)
@@ -39,7 +42,7 @@
  *
  * COMO FUNCIONA:
  * - Toda edição na planilha dispara o envio das 3 abas pro Firebase
- * - O dashboard (comercial2.html) escuta esses paths e atualiza em tempo real
+ * - O dashboard (comercial-total.html) escuta esses paths e atualiza em tempo real
  */
 
 // ===================== CONFIGURAÇÃO =====================
@@ -209,9 +212,8 @@ function syncUltimaVendaComercial2() {
 }
 
 // ===================== DADOS (meta do time) =====================
-// Sincronizado desde já para o front-end poder ligar a exibição sem
-// precisar mexer no Apps Script depois. Hoje o comercial2.html ainda
-// não mostra isso (bloco comentado no HTML).
+// Usado pelo comercial-total.html: cards "Comercial 2" (Pagos/Pendentes/
+// Vendas do mês/Gerados/Conversão/Meta Semanal) e o gráfico "Panorama do Mês".
 
 function syncDadosComercial2() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();

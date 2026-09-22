@@ -77,7 +77,6 @@
             const pageLabels = {
                 'index.html': 'Cancelamentos',
                 'comercial.html': 'Comercial',
-                'comercial2.html': 'Ranking de Vendas',
                 'comercial-total.html': 'Comercial Total',
                 'operacional.html': 'Health Score',
                 'suporte-massivas.html': 'Suporte Massivas',
@@ -461,7 +460,6 @@
             const pageLabels = {
                 'index.html': 'Cancelamentos',
                 'comercial.html': 'Comercial',
-                'comercial2.html': 'Ranking de Vendas',
                 'comercial-total.html': 'Comercial Total',
                 'operacional.html': 'Health Score',
                 'suporte-massivas.html': 'Suporte Massivas',
