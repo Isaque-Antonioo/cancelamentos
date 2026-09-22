@@ -6,15 +6,10 @@
 // Variáveis globais (usando window para compartilhar entre scripts)
 window.csvData = null;
 
-// Função getter para API Key - SEMPRE lê do localStorage para evitar dessincronização
-function getApiKey() {
-    return localStorage.getItem('anthropic_api_key') || '';
-}
-
-// Função para verificar se API Key está configurada
+// A chave da Anthropic agora fica só no servidor (api/claude.js) — nunca no navegador.
+// Mantido como "sempre true" para não quebrar os pontos da UI que checam isso.
 function hasApiKeyConfigured() {
-    const key = getApiKey();
-    return key && key.length > 0 && key.startsWith('sk-ant-');
+    return true;
 }
 
 // Inicialização
@@ -56,7 +51,6 @@ function handleCSVUpload(event) {
         // Verificar API Key usando a função getter (sempre lê do localStorage)
         const hasApiKey = hasApiKeyConfigured();
         console.log('CSV carregado - API Key configurada:', hasApiKey);
-        console.log('API Key value:', getApiKey() ? 'Existe (ocultada)' : 'Não existe');
 
         // Habilitar botão de gerar análise
         const btnGenerate = document.getElementById('btnGenerate');
@@ -659,23 +653,11 @@ Responda APENAS com JSON:
   ...
 ]`;
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': getApiKey(),
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 1200,
-            messages: [{ role: 'user', content: prompt }]
-        })
+    const result = await callClaudeProxy({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1200,
+        messages: [{ role: 'user', content: prompt }]
     });
-
-    if (!response.ok) throw new Error('API error ' + response.status);
-    const result = await response.json();
     const text = result.content[0].text;
     const match = text.match(/\[[\s\S]*\]/);
     if (match) return JSON.parse(match[0]);
@@ -810,23 +792,11 @@ Dados: ${total} cancelamentos. Motivo principal: "${topMotivo}" = ${topPerc.toFi
 
 Responda APENAS com JSON: {"linha1": "...", "linha2": "..."}`;
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': getApiKey(),
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 200,
-            messages: [{ role: 'user', content: prompt }]
-        })
+    const result = await callClaudeProxy({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        messages: [{ role: 'user', content: prompt }]
     });
-
-    if (!response.ok) throw new Error('API error ' + response.status);
-    const result = await response.json();
     const text = result.content[0].text;
     const match = text.match(/\{[\s\S]*\}/);
     if (match) return JSON.parse(match[0]);
@@ -1319,30 +1289,14 @@ function showNotification(message) {
 async function callClaudeAPI(dataSummary) {
     const prompt = buildAnalysisPrompt(dataSummary);
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': getApiKey(),
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-            model: 'claude-3-haiku-20240307',
-            max_tokens: 2000,
-            messages: [{
-                role: 'user',
-                content: prompt
-            }]
-        })
+    const result = await callClaudeProxy({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 2000,
+        messages: [{
+            role: 'user',
+            content: prompt
+        }]
     });
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Erro na API');
-    }
-
-    const result = await response.json();
     const content = result.content[0].text;
 
     // Parsear resposta JSON do Claude
@@ -1491,79 +1445,11 @@ function showLoading(show) {
     }
 }
 
-// Modal de configuração
-function openConfigModal() {
-    const modal = document.getElementById('configModal');
-    const input = document.getElementById('apiKeyInput');
-
-    if (modal) {
-        modal.style.display = 'flex';
-        const currentKey = getApiKey();
-        if (input && currentKey) {
-            input.value = currentKey;
-        }
-    }
-}
-
-function closeConfigModal() {
-    const modal = document.getElementById('configModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-async function saveApiKey() {
-    const input = document.getElementById('apiKeyInput');
-    if (!input) return;
-
-    const newKey = input.value.trim();
-
-    if (!newKey.startsWith('sk-ant-')) {
-        alert('Chave inválida. A chave deve começar com "sk-ant-"');
-        return;
-    }
-
-    // Salvar no localStorage para acesso imediato
-    localStorage.setItem('anthropic_api_key', newKey);
-    console.log('API Key salva no localStorage');
-
-    // Salvar no Firebase para compartilhar com todos os usuários
-    if (typeof saveApiKeyToFirebase === 'function') {
-        try {
-            await saveApiKeyToFirebase(newKey);
-            console.log('API Key também salva no Firebase');
-        } catch (error) {
-            console.warn('Não foi possível salvar no Firebase:', error);
-        }
-    }
-
-    updateApiStatus(true);
-
-    // Habilitar botão se CSV já foi carregado
-    const btnGenerate = document.getElementById('btnGenerate');
-    if (btnGenerate && window.csvData) {
-        btnGenerate.disabled = false;
-    }
-
-    closeConfigModal();
-
-    // Mostrar notificação de sucesso
-    showNotification('API Key configurada com sucesso! (salva para todos os usuários)');
-}
-
 function updateApiStatus(configured) {
     const status = document.getElementById('apiStatus');
     if (status) {
-        status.innerHTML = configured
-            ? '<span style="color: #35cca3;">✓ API Key configurada</span>'
-            : '<span style="color: #f59e0b;">⚠ API Key não configurada</span>';
+        // Não dá pra saber daqui se a ANTHROPIC_API_KEY está configurada no servidor
+        // (api/claude.js) — deixa em branco em vez de afirmar algo que pode estar errado.
+        status.innerHTML = '';
     }
 }
-
-// Fechar modal clicando fora
-document.addEventListener('click', (e) => {
-    const modal = document.getElementById('configModal');
-    if (e.target === modal) {
-        closeConfigModal();
-    }
-});

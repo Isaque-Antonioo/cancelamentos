@@ -425,47 +425,6 @@ function stopListening() {
 // todos os usuários possam acessar
 // ==========================================
 
-// Salvar API Key da Anthropic no Firebase
-async function saveApiKeyToFirebase(apiKey) {
-    if (!isFirebaseReady()) {
-        console.warn('Firebase não está pronto. Salvando API Key apenas localmente...');
-        return false;
-    }
-
-    try {
-        await database.ref('app_settings/anthropic_api_key').set({
-            key: apiKey,
-            updatedAt: new Date().toISOString()
-        });
-        console.log('API Key salva no Firebase');
-        return true;
-    } catch (error) {
-        console.error('Erro ao salvar API Key no Firebase:', error);
-        return false;
-    }
-}
-
-// Buscar API Key do Firebase
-async function getApiKeyFromFirebase() {
-    if (!isFirebaseReady()) {
-        console.warn('Firebase não está pronto.');
-        return null;
-    }
-
-    try {
-        const snapshot = await database.ref('app_settings/anthropic_api_key').once('value');
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            console.log('API Key carregada do Firebase');
-            return data.key || null;
-        }
-        return null;
-    } catch (error) {
-        console.error('Erro ao buscar API Key do Firebase:', error);
-        return null;
-    }
-}
-
 // Salvar configuração do Google Sheets no Firebase
 async function saveSheetsConfigToFirebase(config) {
     if (!isFirebaseReady()) {
@@ -514,17 +473,6 @@ async function syncAppSettingsFromFirebase() {
     }
 
     try {
-        // Sincronizar API Key
-        const apiKey = await getApiKeyFromFirebase();
-        if (apiKey) {
-            localStorage.setItem('anthropic_api_key', apiKey);
-            console.log('API Key sincronizada do Firebase para localStorage');
-            // Atualizar status na UI se a função existir
-            if (typeof updateApiStatus === 'function') {
-                updateApiStatus(true);
-            }
-        }
-
         // Sincronizar configuração do Sheets
         const sheetsConfig = await getSheetsConfigFromFirebase();
         if (sheetsConfig) {
@@ -587,23 +535,6 @@ function listenToAppSettings() {
     if (!isFirebaseReady()) {
         return;
     }
-
-    // Escutar mudanças na API Key
-    database.ref('app_settings/anthropic_api_key').on('value', (snapshot) => {
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            if (data.key) {
-                const currentKey = localStorage.getItem('anthropic_api_key');
-                if (currentKey !== data.key) {
-                    localStorage.setItem('anthropic_api_key', data.key);
-                    console.log('API Key atualizada em tempo real do Firebase');
-                    if (typeof updateApiStatus === 'function') {
-                        updateApiStatus(true);
-                    }
-                }
-            }
-        }
-    });
 
     // Escutar mudanças na config do Sheets
     database.ref('app_settings/sheets_config').on('value', (snapshot) => {
@@ -842,6 +773,31 @@ async function getAuditLogs(filters = {}) {
         return [];
     }
 }
+
+// Chama a API da Anthropic através do proxy server-side (/api/claude), autenticado
+// com o ID token do Firebase Auth do usuário atual. A chave real nunca passa pelo navegador.
+async function callClaudeProxy(payload) {
+    const user = firebase.auth().currentUser;
+    if (!user) throw new Error('Você precisa estar logado para usar a IA.');
+
+    const idToken = await user.getIdToken();
+
+    const response = await fetch('/api/claude', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + idToken
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error((data && data.error && (data.error.message || data.error)) || 'Erro na API');
+    }
+    return data;
+}
+window.callClaudeProxy = callClaudeProxy;
 
 // Helper global para instrumentação fácil
 window.hubstromLog = function(action, details) {

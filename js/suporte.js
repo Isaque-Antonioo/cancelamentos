@@ -2940,54 +2940,11 @@ window.addEventListener('firebaseReady', () => {
 // ANÁLISE COM IA (Claude) - SUPORTE
 // ===================================
 
-function getSuporteApiKey() {
-    return localStorage.getItem('anthropic_api_key') || '';
-}
-
-function hasSuporteApiKey() {
-    const key = getSuporteApiKey();
-    return key && key.startsWith('sk-ant-');
-}
-
 function updateSuporteApiStatus() {
     const status = document.getElementById('suporteApiStatus');
     if (status) {
-        if (hasSuporteApiKey()) {
-            status.textContent = '✓ API Key configurada';
-            status.style.color = '#35cca3';
-        } else {
-            status.textContent = '✗ API Key não configurada';
-            status.style.color = '#f87171';
-        }
+        status.textContent = '';
     }
-}
-
-function openSuporteConfigModal() {
-    const modal = document.getElementById('suporteConfigModal');
-    const input = document.getElementById('suporteApiKeyInput');
-    if (modal) {
-        modal.style.display = 'flex';
-        if (input) input.value = getSuporteApiKey();
-    }
-}
-
-function closeSuporteConfigModal() {
-    const modal = document.getElementById('suporteConfigModal');
-    if (modal) modal.style.display = 'none';
-}
-
-function saveSuporteApiKey() {
-    const input = document.getElementById('suporteApiKeyInput');
-    if (!input) return;
-    const key = input.value.trim();
-    if (!key.startsWith('sk-ant-')) {
-        alert('Chave inválida. A chave deve começar com "sk-ant-"');
-        return;
-    }
-    localStorage.setItem('anthropic_api_key', key);
-    closeSuporteConfigModal();
-    updateSuporteApiStatus();
-    showNotification('API Key salva com sucesso!', 'success');
 }
 
 // Preparar resumo dos dados de suporte para o prompt
@@ -3132,11 +3089,6 @@ async function generateSuporteAIAnalysis() {
         return;
     }
 
-    if (!hasSuporteApiKey()) {
-        openSuporteConfigModal();
-        return;
-    }
-
     const btn = document.getElementById('btnSuporteAI');
     const loading = document.getElementById('suporteAiLoading');
     const results = document.getElementById('suporteAiResults');
@@ -3149,27 +3101,11 @@ async function generateSuporteAIAnalysis() {
         const summary = prepareSuporteSummary();
         const prompt = buildSuportePrompt(summary);
 
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': getSuporteApiKey(),
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-                model: 'claude-3-haiku-20240307',
-                max_tokens: 3000,
-                messages: [{ role: 'user', content: prompt }]
-            })
+        const result = await callClaudeProxy({
+            model: 'claude-3-haiku-20240307',
+            max_tokens: 3000,
+            messages: [{ role: 'user', content: prompt }]
         });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || 'Erro na API');
-        }
-
-        const result = await response.json();
         const content = result.content[0].text;
 
         // Parsear JSON da resposta
