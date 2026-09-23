@@ -530,7 +530,11 @@
         }
         .totals-grid .contrato-value.money {
             color: #35CCA3;
-            font-size: clamp(1.3em, 1.8vw, 2.4em);
+            font-size: clamp(1.1em, 1.5vw, 1.9em);
+            white-space: nowrap;
+        }
+        .totals-grid .contrato-value.money.pending {
+            color: #E8BB34;
         }
 
         /* Todo valor fica branco, exceto "Vendas do mês" que mantém a cor por comercial
@@ -1261,6 +1265,10 @@
                                 <div class="contrato-label">Vendas</div>
                                 <div class="contrato-value money" id="kpiVendasTotalGeral">R$ 0,00</div>
                             </div>
+                            <div class="contrato-item total-vendas-full">
+                                <div class="contrato-label">Valor Pendente Total</div>
+                                <div class="contrato-value money pending" id="kpiValorPendenteTotalGeral">R$ 0,00</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1657,7 +1665,7 @@
             renderTotalGeral();
         }
 
-        // Total combinado (Comercial 1 + Comercial 2): pagos, pendentes e vendas do mês
+        // Total combinado (Comercial 1 + Comercial 2): pagos, pendentes, vendas e valor pendente
         function renderTotalGeral() {
             var kpis1 = lastKpis1 || {};
             var kpis2 = comercial2DadosCache || {};
@@ -1668,10 +1676,13 @@
             var pendentes2 = parseInt(kpis2.contratosPendentes, 10) || 0;
             var vendas1 = parseMoneyValue(kpis1['Total']);
             var vendas2 = parseMoneyValue(kpis2.total);
+            var valorPendente1 = parseMoneyValue(kpis1['Pendentes']);
+            var valorPendente2 = parseMoneyValue(kpis2.pendentes);
 
             document.querySelector('#kpiPagosTotalGeral span').textContent = pagos1 + pagos2;
             document.querySelector('#kpiPendentesTotalGeral span').textContent = pendentes1 + pendentes2;
             document.getElementById('kpiVendasTotalGeral').textContent = formatMoney(vendas1 + vendas2);
+            document.getElementById('kpiValorPendenteTotalGeral').textContent = formatMoney(valorPendente1 + valorPendente2);
         }
 
         // ===================================
