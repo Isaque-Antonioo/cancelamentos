@@ -432,8 +432,16 @@
 
         .kpis-bottom-row {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1.15fr 1.15fr 0.7fr;
             gap: clamp(8px, 1vw, 16px);
+        }
+
+        .contratos-grid.totals-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .totals-grid .total-vendas-full {
+            grid-column: 1 / -1;
         }
 
         .kpi-card {
@@ -504,10 +512,25 @@
         .contrato-value.money { font-size: clamp(0.85em, 1vw, 1.35em); color: #35CCA3; }
 
         /* Cards "Comercial 1" / "Comercial 2": unifica o tamanho de todos os valores
-           (contagem, % e R$) — as 6 métricas de cada comercial no mesmo card */
+           (contagem, % e R$) — as 6 métricas de cada comercial no mesmo card.
+           Reduzido um pouco pra abrir espaço pro card de totais ao lado. */
         .metrics-grid .contrato-value,
         .metrics-grid .contrato-value.money {
-            font-size: clamp(1em, 1.2vw, 1.7em);
+            font-size: clamp(0.85em, 1.05vw, 1.4em);
+        }
+
+        .metrics-grid .contrato-item {
+            padding: clamp(6px, 0.8vh, 12px);
+        }
+
+        /* Card de totais: valores um pouco maiores, já que são só 3 métricas */
+        .totals-grid .contrato-value {
+            font-size: clamp(1em, 1.3vw, 1.9em);
+            color: #e7e7e7;
+        }
+        .totals-grid .contrato-value.money {
+            color: #35CCA3;
+            font-size: clamp(1.3em, 1.8vw, 2.4em);
         }
 
         /* Todo valor fica branco, exceto "Vendas do mês" que mantém a cor por comercial
@@ -1216,6 +1239,30 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Total combinado: Comercial 1 + Comercial 2 -->
+                    <div class="dash-card">
+                        <div class="dash-card-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
+                            </svg>
+                            Total Geral
+                        </div>
+                        <div class="contratos-grid metrics-grid totals-grid">
+                            <div class="contrato-item">
+                                <div class="contrato-label">Pagos</div>
+                                <div class="contrato-value" id="kpiPagosTotalGeral"><span>0</span></div>
+                            </div>
+                            <div class="contrato-item">
+                                <div class="contrato-label">Pendentes</div>
+                                <div class="contrato-value pending" id="kpiPendentesTotalGeral"><span>0</span></div>
+                            </div>
+                            <div class="contrato-item total-vendas-full">
+                                <div class="contrato-label">Vendas</div>
+                                <div class="contrato-value money" id="kpiVendasTotalGeral">R$ 0,00</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1559,7 +1606,6 @@
 
                 // RENDER
                 renderKPIs(kpis, closers);
-                lastKpis1 = kpis;
                 renderChart(kpis);
                 comercial1Closers = closers;
                 renderMergedRanking();
@@ -1606,6 +1652,26 @@
             // Contratos do mês
             document.getElementById('contratosPagos').querySelector('span').textContent = kpis['Contratos Assinados'] || '0';
             document.getElementById('contratosPendentes').querySelector('span').textContent = kpis['Contratos Pendentes'] || '0';
+
+            lastKpis1 = kpis;
+            renderTotalGeral();
+        }
+
+        // Total combinado (Comercial 1 + Comercial 2): pagos, pendentes e vendas do mês
+        function renderTotalGeral() {
+            var kpis1 = lastKpis1 || {};
+            var kpis2 = comercial2DadosCache || {};
+
+            var pagos1 = parseInt(kpis1['Contratos Assinados'], 10) || 0;
+            var pagos2 = parseInt(kpis2.contratosAssinados, 10) || 0;
+            var pendentes1 = parseInt(kpis1['Contratos Pendentes'], 10) || 0;
+            var pendentes2 = parseInt(kpis2.contratosPendentes, 10) || 0;
+            var vendas1 = parseMoneyValue(kpis1['Total']);
+            var vendas2 = parseMoneyValue(kpis2.total);
+
+            document.querySelector('#kpiPagosTotalGeral span').textContent = pagos1 + pagos2;
+            document.querySelector('#kpiPendentesTotalGeral span').textContent = pendentes1 + pendentes2;
+            document.getElementById('kpiVendasTotalGeral').textContent = formatMoney(vendas1 + vendas2);
         }
 
         // ===================================
@@ -1980,6 +2046,8 @@
             document.getElementById('kpiGerados2').textContent = kpis2.gerados || '—';
             document.getElementById('kpiTaxaConversao2').textContent = kpis2.taxaConversao || '—';
             document.getElementById('kpiMetaSemanal2').textContent = kpis2.metaSemanal || 'R$ 0,00';
+
+            renderTotalGeral();
         }
 
         function startComercial2TodayListeners() {
@@ -2057,7 +2125,6 @@
 
             // Render
             renderKPIs(kpis, closers);
-            lastKpis1 = kpis;
             renderChart(kpis);
             comercial1Closers = closers;
             renderMergedRanking();
